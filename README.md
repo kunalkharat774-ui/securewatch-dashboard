@@ -7,21 +7,7 @@ SecureWatch is a modern, real-time cyber threat monitoring and security analysis
 </p>
 
 <p align="center">
-  <a href="https://cybermap.kaspersky.com/">
-    <img src="https://img.shields.io/badge/Kaspersky-Cyber_Threat_Map-red?style=for-the-badge&logo=kaspersky&logoColor=white" alt="Kaspersky Cybermap">
-  </a>
-  <a href="https://www.threatcrowd.org/">
-    <img src="https://img.shields.io/badge/ThreatCrowd-Intelligence-blue?style=for-the-badge&logo=cloud-flare&logoColor=white" alt="ThreatCrowd">
-  </a>
-  <a href="https://www.fireeye.com/cyber-map/threat-map.html">
-    <img src="https://img.shields.io/badge/Mandiant-Threat_Map-orange?style=for-the-badge&logo=firewalla&logoColor=white" alt="Mandiant Threat Map">
-  </a>
-</p>
-
-<p align="center">
-  <img src="https://github.com/kunalkharat774-ui/securewatch-dashboard/blob/153f39cb3c0c63ec9e424182fd6cea5bca0551fb/WhatsApp%20Image%202026-07-26%20at%209.33.51%20AM.jpeg?raw=true" alt="SecureWatch Dashboard Preview" width="100%">
-  <br>
-  <sub style="color: gray; font-style: italic;">AI Image Created</sub>
+  <img src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExcW9iN2h6MnEyd3RpbTd2YXJzMDg0eGlmdDFlNXp3ZTBhZm5yOHM4aiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/37QUVx5Og5KB49ZnfF/giphy.gif" width="300" alt="GIF Description">
 </p>
 
 ## 🚀 Features
