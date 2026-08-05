@@ -3,88 +3,13 @@
     "users": [],
     "logs": [
       {
-        "id": "SEC-LOG-66632",
-        "timestamp": "2026-08-05T14:50:58.147Z",
-        "traceId": "tr-72fq5czd",
-        "level": "ERROR",
-        "service": "Honeypot Guard",
-        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.29.243.214",
-        "sourceIp": "103.159.233.213",
-        "destination": "honeypot-sinkhole:22",
-        "action": "QUARANTINED",
-        "details": {
-          "protocol": "TCP/SYN",
-          "bytesSent": 64
-        }
-      },
-      {
-        "id": "SEC-LOG-60963",
-        "timestamp": "2026-08-05T14:50:48.134Z",
-        "traceId": "tr-3t6lrv6t",
-        "level": "ERROR",
-        "service": "Honeypot Guard",
-        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.188.33.91",
-        "sourceIp": "103.142.20.205",
-        "destination": "honeypot-sinkhole:22",
-        "action": "QUARANTINED",
-        "details": {
-          "protocol": "TCP/SYN",
-          "bytesSent": 64
-        }
-      },
-      {
-        "id": "SEC-LOG-62492",
-        "timestamp": "2026-08-05T14:50:38.121Z",
-        "traceId": "tr-5haw17dz",
-        "level": "ERROR",
-        "service": "Honeypot Guard",
-        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.154.178.162",
-        "sourceIp": "103.183.11.25",
-        "destination": "honeypot-sinkhole:22",
-        "action": "QUARANTINED",
-        "details": {
-          "protocol": "TCP/SYN",
-          "bytesSent": 64
-        }
-      },
-      {
-        "id": "SEC-LOG-17867",
-        "timestamp": "2026-08-05T14:50:28.108Z",
-        "traceId": "tr-unb4ga71",
-        "level": "INFO",
-        "service": "TLS Gateway",
-        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
-        "sourceIp": "192.168.1.108",
-        "destination": "internal-mesh:8443",
-        "action": "ALLOWED",
-        "details": {
-          "cipher": "TLS_AES_256_GCM_SHA384",
-          "certSubject": "CN=xHunter-Microservice"
-        }
-      },
-      {
-        "id": "SEC-LOG-98739",
-        "timestamp": "2026-08-05T14:50:18.104Z",
-        "traceId": "tr-pe6m0tg2",
-        "level": "ERROR",
-        "service": "Honeypot Guard",
-        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.45.152.39",
-        "sourceIp": "103.23.67.126",
-        "destination": "honeypot-sinkhole:22",
-        "action": "QUARANTINED",
-        "details": {
-          "protocol": "TCP/SYN",
-          "bytesSent": 64
-        }
-      },
-      {
-        "id": "SEC-LOG-10426",
-        "timestamp": "2026-08-05T14:50:08.101Z",
-        "traceId": "tr-d9413lht",
+        "id": "SEC-LOG-25381",
+        "timestamp": "2026-08-05T15:33:40.411Z",
+        "traceId": "tr-ypmt7r7u",
         "level": "CRITICAL",
         "service": "WAF Guard",
-        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.28.225.172",
-        "sourceIp": "185.240.181.172",
+        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.201.138.114",
+        "sourceIp": "185.72.152.178",
         "destination": "ingress-gateway:443",
         "action": "BLOCKED",
         "details": {
@@ -93,28 +18,13 @@
         }
       },
       {
-        "id": "SEC-LOG-27626",
-        "timestamp": "2026-08-05T14:49:58.096Z",
-        "traceId": "tr-6a6blku3",
-        "level": "INFO",
-        "service": "TLS Gateway",
-        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
-        "sourceIp": "192.168.1.108",
-        "destination": "internal-mesh:8443",
-        "action": "ALLOWED",
-        "details": {
-          "cipher": "TLS_AES_256_GCM_SHA384",
-          "certSubject": "CN=xHunter-Microservice"
-        }
-      },
-      {
-        "id": "SEC-LOG-97575",
-        "timestamp": "2026-08-05T14:49:48.087Z",
-        "traceId": "tr-0pu6qzg3",
+        "id": "SEC-LOG-70089",
+        "timestamp": "2026-08-05T15:33:30.409Z",
+        "traceId": "tr-holjl3wb",
         "level": "WARN",
         "service": "API Gateway",
-        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.52.102.167",
-        "sourceIp": "45.77.88.243",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.160.179.81",
+        "sourceIp": "45.33.89.110",
         "destination": "/api/v1/telemetry",
         "action": "FLAGGED",
         "details": {
@@ -123,43 +33,13 @@
         }
       },
       {
-        "id": "SEC-LOG-41205",
-        "timestamp": "2026-08-05T14:49:38.073Z",
-        "traceId": "tr-exskbb2f",
-        "level": "INFO",
-        "service": "TLS Gateway",
-        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
-        "sourceIp": "192.168.1.108",
-        "destination": "internal-mesh:8443",
-        "action": "ALLOWED",
-        "details": {
-          "cipher": "TLS_AES_256_GCM_SHA384",
-          "certSubject": "CN=xHunter-Microservice"
-        }
-      },
-      {
-        "id": "SEC-LOG-77082",
-        "timestamp": "2026-08-05T14:49:28.054Z",
-        "traceId": "tr-18ra7gdl",
-        "level": "INFO",
-        "service": "TLS Gateway",
-        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
-        "sourceIp": "192.168.1.108",
-        "destination": "internal-mesh:8443",
-        "action": "ALLOWED",
-        "details": {
-          "cipher": "TLS_AES_256_GCM_SHA384",
-          "certSubject": "CN=xHunter-Microservice"
-        }
-      },
-      {
-        "id": "SEC-LOG-15077",
-        "timestamp": "2026-08-05T14:49:18.040Z",
-        "traceId": "tr-82qsi97s",
+        "id": "SEC-LOG-13585",
+        "timestamp": "2026-08-05T15:33:20.408Z",
+        "traceId": "tr-7m71no7m",
         "level": "CRITICAL",
         "service": "WAF Guard",
-        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.179.66.245",
-        "sourceIp": "185.93.168.244",
+        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.1.164.103",
+        "sourceIp": "185.56.185.172",
         "destination": "ingress-gateway:443",
         "action": "BLOCKED",
         "details": {
@@ -168,13 +48,28 @@
         }
       },
       {
-        "id": "SEC-LOG-22749",
-        "timestamp": "2026-08-05T14:49:08.036Z",
-        "traceId": "tr-1bngiwci",
+        "id": "SEC-LOG-38951",
+        "timestamp": "2026-08-05T15:33:10.399Z",
+        "traceId": "tr-scb828ho",
+        "level": "CRITICAL",
+        "service": "WAF Guard",
+        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.69.132.225",
+        "sourceIp": "185.163.240.91",
+        "destination": "ingress-gateway:443",
+        "action": "BLOCKED",
+        "details": {
+          "matchedRule": "OWASP-CRS-942100",
+          "userAgent": "Go-http-client/1.1"
+        }
+      },
+      {
+        "id": "SEC-LOG-33710",
+        "timestamp": "2026-08-05T15:33:00.389Z",
+        "traceId": "tr-1kh43b29",
         "level": "ERROR",
         "service": "Honeypot Guard",
-        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.147.25.152",
-        "sourceIp": "103.103.117.123",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.63.113.201",
+        "sourceIp": "103.167.32.173",
         "destination": "honeypot-sinkhole:22",
         "action": "QUARANTINED",
         "details": {
@@ -183,13 +78,13 @@
         }
       },
       {
-        "id": "SEC-LOG-55692",
-        "timestamp": "2026-08-05T14:48:58.032Z",
-        "traceId": "tr-netgi618",
+        "id": "SEC-LOG-73508",
+        "timestamp": "2026-08-05T15:32:50.385Z",
+        "traceId": "tr-19oayaky",
         "level": "CRITICAL",
         "service": "WAF Guard",
-        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.105.203.83",
-        "sourceIp": "185.40.228.241",
+        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.196.138.170",
+        "sourceIp": "185.239.209.139",
         "destination": "ingress-gateway:443",
         "action": "BLOCKED",
         "details": {
@@ -198,58 +93,13 @@
         }
       },
       {
-        "id": "SEC-LOG-13375",
-        "timestamp": "2026-08-05T14:48:48.025Z",
-        "traceId": "tr-e7txz4xe",
-        "level": "ERROR",
-        "service": "Honeypot Guard",
-        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.193.68.92",
-        "sourceIp": "103.152.79.65",
-        "destination": "honeypot-sinkhole:22",
-        "action": "QUARANTINED",
-        "details": {
-          "protocol": "TCP/SYN",
-          "bytesSent": 64
-        }
-      },
-      {
-        "id": "SEC-LOG-73565",
-        "timestamp": "2026-08-05T14:48:38.019Z",
-        "traceId": "tr-oxoo4p17",
-        "level": "INFO",
-        "service": "TLS Gateway",
-        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
-        "sourceIp": "192.168.1.108",
-        "destination": "internal-mesh:8443",
-        "action": "ALLOWED",
-        "details": {
-          "cipher": "TLS_AES_256_GCM_SHA384",
-          "certSubject": "CN=xHunter-Microservice"
-        }
-      },
-      {
-        "id": "SEC-LOG-23778",
-        "timestamp": "2026-08-05T14:48:28.011Z",
-        "traceId": "tr-sruqa71j",
-        "level": "CRITICAL",
-        "service": "WAF Guard",
-        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.189.14.234",
-        "sourceIp": "185.248.50.15",
-        "destination": "ingress-gateway:443",
-        "action": "BLOCKED",
-        "details": {
-          "matchedRule": "OWASP-CRS-942100",
-          "userAgent": "Go-http-client/1.1"
-        }
-      },
-      {
-        "id": "SEC-LOG-46144",
-        "timestamp": "2026-08-05T14:48:18.006Z",
-        "traceId": "tr-2d8ut5cj",
+        "id": "SEC-LOG-84736",
+        "timestamp": "2026-08-05T15:32:40.381Z",
+        "traceId": "tr-yymtm9s2",
         "level": "WARN",
         "service": "API Gateway",
-        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.79.109.173",
-        "sourceIp": "45.39.137.170",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.194.28.46",
+        "sourceIp": "45.157.153.141",
         "destination": "/api/v1/telemetry",
         "action": "FLAGGED",
         "details": {
@@ -258,159 +108,9 @@
         }
       },
       {
-        "id": "SEC-LOG-49322",
-        "timestamp": "2026-08-05T14:48:08.005Z",
-        "traceId": "tr-svrn89l2",
-        "level": "CRITICAL",
-        "service": "WAF Guard",
-        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.123.130.189",
-        "sourceIp": "185.70.239.76",
-        "destination": "ingress-gateway:443",
-        "action": "BLOCKED",
-        "details": {
-          "matchedRule": "OWASP-CRS-942100",
-          "userAgent": "Go-http-client/1.1"
-        }
-      },
-      {
-        "id": "SEC-LOG-58712",
-        "timestamp": "2026-08-05T14:47:57.992Z",
-        "traceId": "tr-34x68iam",
-        "level": "ERROR",
-        "service": "Honeypot Guard",
-        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.198.71.40",
-        "sourceIp": "103.105.165.84",
-        "destination": "honeypot-sinkhole:22",
-        "action": "QUARANTINED",
-        "details": {
-          "protocol": "TCP/SYN",
-          "bytesSent": 64
-        }
-      },
-      {
-        "id": "SEC-LOG-36236",
-        "timestamp": "2026-08-05T14:47:47.988Z",
-        "traceId": "tr-xql90cxm",
-        "level": "ERROR",
-        "service": "Honeypot Guard",
-        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.81.222.122",
-        "sourceIp": "103.73.223.170",
-        "destination": "honeypot-sinkhole:22",
-        "action": "QUARANTINED",
-        "details": {
-          "protocol": "TCP/SYN",
-          "bytesSent": 64
-        }
-      },
-      {
-        "id": "SEC-LOG-63996",
-        "timestamp": "2026-08-05T14:47:37.978Z",
-        "traceId": "tr-vwbcz0b5",
-        "level": "WARN",
-        "service": "API Gateway",
-        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.7.248.59",
-        "sourceIp": "45.158.166.134",
-        "destination": "/api/v1/telemetry",
-        "action": "FLAGGED",
-        "details": {
-          "rate": 140,
-          "threshold": 120
-        }
-      },
-      {
-        "id": "SEC-LOG-69073",
-        "timestamp": "2026-08-05T14:47:27.973Z",
-        "traceId": "tr-8y6mz0zj",
-        "level": "ERROR",
-        "service": "Honeypot Guard",
-        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.125.32.184",
-        "sourceIp": "103.116.21.226",
-        "destination": "honeypot-sinkhole:22",
-        "action": "QUARANTINED",
-        "details": {
-          "protocol": "TCP/SYN",
-          "bytesSent": 64
-        }
-      },
-      {
-        "id": "SEC-LOG-27684",
-        "timestamp": "2026-08-05T14:47:17.962Z",
-        "traceId": "tr-wyzkv8ru",
-        "level": "ERROR",
-        "service": "Honeypot Guard",
-        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.192.47.76",
-        "sourceIp": "103.142.74.156",
-        "destination": "honeypot-sinkhole:22",
-        "action": "QUARANTINED",
-        "details": {
-          "protocol": "TCP/SYN",
-          "bytesSent": 64
-        }
-      },
-      {
-        "id": "SEC-LOG-48420",
-        "timestamp": "2026-08-05T14:47:07.958Z",
-        "traceId": "tr-rajwkaaq",
-        "level": "CRITICAL",
-        "service": "WAF Guard",
-        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.153.164.73",
-        "sourceIp": "185.120.172.134",
-        "destination": "ingress-gateway:443",
-        "action": "BLOCKED",
-        "details": {
-          "matchedRule": "OWASP-CRS-942100",
-          "userAgent": "Go-http-client/1.1"
-        }
-      },
-      {
-        "id": "SEC-LOG-49933",
-        "timestamp": "2026-08-05T14:46:57.942Z",
-        "traceId": "tr-6zlsmi14",
-        "level": "CRITICAL",
-        "service": "WAF Guard",
-        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.190.169.154",
-        "sourceIp": "185.246.87.204",
-        "destination": "ingress-gateway:443",
-        "action": "BLOCKED",
-        "details": {
-          "matchedRule": "OWASP-CRS-942100",
-          "userAgent": "Go-http-client/1.1"
-        }
-      },
-      {
-        "id": "SEC-LOG-42250",
-        "timestamp": "2026-08-05T14:46:47.928Z",
-        "traceId": "tr-i3ugl0rj",
-        "level": "ERROR",
-        "service": "Honeypot Guard",
-        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.104.196.85",
-        "sourceIp": "103.214.190.242",
-        "destination": "honeypot-sinkhole:22",
-        "action": "QUARANTINED",
-        "details": {
-          "protocol": "TCP/SYN",
-          "bytesSent": 64
-        }
-      },
-      {
-        "id": "SEC-LOG-25038",
-        "timestamp": "2026-08-05T14:46:37.914Z",
-        "traceId": "tr-1pbr6avc",
-        "level": "WARN",
-        "service": "API Gateway",
-        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.188.23.233",
-        "sourceIp": "45.48.57.242",
-        "destination": "/api/v1/telemetry",
-        "action": "FLAGGED",
-        "details": {
-          "rate": 140,
-          "threshold": 120
-        }
-      },
-      {
-        "id": "SEC-LOG-90200",
-        "timestamp": "2026-08-05T14:46:27.910Z",
-        "traceId": "tr-naktp4uo",
+        "id": "SEC-LOG-77886",
+        "timestamp": "2026-08-05T15:32:30.368Z",
+        "traceId": "tr-pf93kium",
         "level": "INFO",
         "service": "TLS Gateway",
         "message": "mTLS Client Certificate Mutual Handshake verified successfully",
@@ -423,9 +123,84 @@
         }
       },
       {
-        "id": "SEC-LOG-80944",
-        "timestamp": "2026-08-05T14:46:17.909Z",
-        "traceId": "tr-tmwwiir8",
+        "id": "SEC-LOG-19606",
+        "timestamp": "2026-08-05T15:32:20.365Z",
+        "traceId": "tr-dnkouv76",
+        "level": "CRITICAL",
+        "service": "WAF Guard",
+        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.169.219.209",
+        "sourceIp": "185.111.6.126",
+        "destination": "ingress-gateway:443",
+        "action": "BLOCKED",
+        "details": {
+          "matchedRule": "OWASP-CRS-942100",
+          "userAgent": "Go-http-client/1.1"
+        }
+      },
+      {
+        "id": "SEC-LOG-93387",
+        "timestamp": "2026-08-05T15:32:10.342Z",
+        "traceId": "tr-sjsvfjrg",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.95.127.73",
+        "sourceIp": "45.187.110.1",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
+        "id": "SEC-LOG-25323",
+        "timestamp": "2026-08-05T15:32:00.329Z",
+        "traceId": "tr-z5zlc0uy",
+        "level": "CRITICAL",
+        "service": "WAF Guard",
+        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.68.81.73",
+        "sourceIp": "185.191.193.149",
+        "destination": "ingress-gateway:443",
+        "action": "BLOCKED",
+        "details": {
+          "matchedRule": "OWASP-CRS-942100",
+          "userAgent": "Go-http-client/1.1"
+        }
+      },
+      {
+        "id": "SEC-LOG-20064",
+        "timestamp": "2026-08-05T15:31:50.314Z",
+        "traceId": "tr-l2fg6wlp",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.247.101.216",
+        "sourceIp": "45.175.125.242",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
+        "id": "SEC-LOG-86613",
+        "timestamp": "2026-08-05T15:31:40.298Z",
+        "traceId": "tr-s1691yt7",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.65.144.164",
+        "sourceIp": "45.166.1.197",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
+        "id": "SEC-LOG-28177",
+        "timestamp": "2026-08-05T15:31:30.283Z",
+        "traceId": "tr-ace7dczt",
         "level": "INFO",
         "service": "TLS Gateway",
         "message": "mTLS Client Certificate Mutual Handshake verified successfully",
@@ -438,13 +213,58 @@
         }
       },
       {
-        "id": "SEC-LOG-18390",
-        "timestamp": "2026-08-05T14:46:07.895Z",
-        "traceId": "tr-nzgbznjd",
+        "id": "SEC-LOG-83614",
+        "timestamp": "2026-08-05T15:31:20.279Z",
+        "traceId": "tr-v0y6rzz1",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.194.197.193",
+        "sourceIp": "45.14.212.31",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
+        "id": "SEC-LOG-43908",
+        "timestamp": "2026-08-05T15:31:10.268Z",
+        "traceId": "tr-2monoqys",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.240.53.186",
+        "sourceIp": "103.195.247.217",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
+        "id": "SEC-LOG-25473",
+        "timestamp": "2026-08-05T15:31:00.262Z",
+        "traceId": "tr-fnw2wxf2",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.90.31.6",
+        "sourceIp": "45.229.29.77",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
+        "id": "SEC-LOG-29972",
+        "timestamp": "2026-08-05T15:30:50.255Z",
+        "traceId": "tr-0kku3zix",
         "level": "CRITICAL",
         "service": "WAF Guard",
-        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.68.170.57",
-        "sourceIp": "185.244.68.100",
+        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.164.42.150",
+        "sourceIp": "185.125.78.3",
         "destination": "ingress-gateway:443",
         "action": "BLOCKED",
         "details": {
@@ -453,13 +273,28 @@
         }
       },
       {
-        "id": "SEC-LOG-10783",
-        "timestamp": "2026-08-05T14:45:57.891Z",
-        "traceId": "tr-b72crg2h",
+        "id": "SEC-LOG-29300",
+        "timestamp": "2026-08-05T15:30:40.251Z",
+        "traceId": "tr-sff8bomm",
+        "level": "CRITICAL",
+        "service": "WAF Guard",
+        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.3.20.184",
+        "sourceIp": "185.158.84.106",
+        "destination": "ingress-gateway:443",
+        "action": "BLOCKED",
+        "details": {
+          "matchedRule": "OWASP-CRS-942100",
+          "userAgent": "Go-http-client/1.1"
+        }
+      },
+      {
+        "id": "SEC-LOG-47441",
+        "timestamp": "2026-08-05T15:30:30.246Z",
+        "traceId": "tr-xhsvbrzq",
         "level": "ERROR",
         "service": "Honeypot Guard",
-        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.189.176.182",
-        "sourceIp": "103.1.192.244",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.217.15.123",
+        "sourceIp": "103.80.86.50",
         "destination": "honeypot-sinkhole:22",
         "action": "QUARANTINED",
         "details": {
@@ -468,13 +303,13 @@
         }
       },
       {
-        "id": "SEC-LOG-97990",
-        "timestamp": "2026-08-05T14:45:47.886Z",
-        "traceId": "tr-ffp670sh",
+        "id": "SEC-LOG-11659",
+        "timestamp": "2026-08-05T15:30:20.243Z",
+        "traceId": "tr-3mzam7ia",
         "level": "ERROR",
         "service": "Honeypot Guard",
-        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.188.203.246",
-        "sourceIp": "103.27.35.120",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.79.205.48",
+        "sourceIp": "103.201.63.89",
         "destination": "honeypot-sinkhole:22",
         "action": "QUARANTINED",
         "details": {
@@ -483,9 +318,9 @@
         }
       },
       {
-        "id": "SEC-LOG-44245",
-        "timestamp": "2026-08-05T14:45:37.875Z",
-        "traceId": "tr-ojggt3de",
+        "id": "SEC-LOG-51760",
+        "timestamp": "2026-08-05T15:30:10.221Z",
+        "traceId": "tr-0aswh6v4",
         "level": "INFO",
         "service": "TLS Gateway",
         "message": "mTLS Client Certificate Mutual Handshake verified successfully",
@@ -498,13 +333,13 @@
         }
       },
       {
-        "id": "SEC-LOG-45454",
-        "timestamp": "2026-08-05T14:45:27.861Z",
-        "traceId": "tr-wr6zxwm0",
+        "id": "SEC-LOG-74045",
+        "timestamp": "2026-08-05T15:30:00.214Z",
+        "traceId": "tr-gvfzp1wv",
         "level": "CRITICAL",
         "service": "WAF Guard",
-        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.98.112.71",
-        "sourceIp": "185.26.236.135",
+        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.192.144.108",
+        "sourceIp": "185.83.232.15",
         "destination": "ingress-gateway:443",
         "action": "BLOCKED",
         "details": {
@@ -513,24 +348,9 @@
         }
       },
       {
-        "id": "SEC-LOG-23189",
-        "timestamp": "2026-08-05T14:45:17.847Z",
-        "traceId": "tr-e9qvr6tw",
-        "level": "ERROR",
-        "service": "Honeypot Guard",
-        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.130.204.228",
-        "sourceIp": "103.158.188.108",
-        "destination": "honeypot-sinkhole:22",
-        "action": "QUARANTINED",
-        "details": {
-          "protocol": "TCP/SYN",
-          "bytesSent": 64
-        }
-      },
-      {
-        "id": "SEC-LOG-93458",
-        "timestamp": "2026-08-05T14:45:07.840Z",
-        "traceId": "tr-jzv3y0hu",
+        "id": "SEC-LOG-57671",
+        "timestamp": "2026-08-05T15:29:50.199Z",
+        "traceId": "tr-ecu7xkap",
         "level": "INFO",
         "service": "TLS Gateway",
         "message": "mTLS Client Certificate Mutual Handshake verified successfully",
@@ -543,13 +363,28 @@
         }
       },
       {
-        "id": "SEC-LOG-17977",
-        "timestamp": "2026-08-05T14:44:57.837Z",
-        "traceId": "tr-gdhxruth",
+        "id": "SEC-LOG-33215",
+        "timestamp": "2026-08-05T15:29:40.196Z",
+        "traceId": "tr-as6ybdem",
+        "level": "INFO",
+        "service": "TLS Gateway",
+        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
+        "sourceIp": "192.168.1.108",
+        "destination": "internal-mesh:8443",
+        "action": "ALLOWED",
+        "details": {
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "certSubject": "CN=xHunter-Microservice"
+        }
+      },
+      {
+        "id": "SEC-LOG-87166",
+        "timestamp": "2026-08-05T15:29:30.188Z",
+        "traceId": "tr-8gn19dm8",
         "level": "WARN",
         "service": "API Gateway",
-        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.134.79.156",
-        "sourceIp": "45.29.149.176",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.160.80.4",
+        "sourceIp": "45.198.85.3",
         "destination": "/api/v1/telemetry",
         "action": "FLAGGED",
         "details": {
@@ -558,48 +393,2613 @@
         }
       },
       {
-        "id": "SEC-LOG-45452",
-        "timestamp": "2026-08-05T14:44:47.833Z",
-        "traceId": "tr-y72nvpi2",
-        "level": "WARN",
-        "service": "API Gateway",
-        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.21.24.24",
-        "sourceIp": "45.131.122.234",
-        "destination": "/api/v1/telemetry",
-        "action": "FLAGGED",
-        "details": {
-          "rate": 140,
-          "threshold": 120
-        }
-      },
-      {
-        "id": "SEC-LOG-42765",
-        "timestamp": "2026-08-05T14:44:37.816Z",
-        "traceId": "tr-g0za32wn",
-        "level": "WARN",
-        "service": "API Gateway",
-        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.79.230.209",
-        "sourceIp": "45.23.209.106",
-        "destination": "/api/v1/telemetry",
-        "action": "FLAGGED",
-        "details": {
-          "rate": 140,
-          "threshold": 120
-        }
-      },
-      {
-        "id": "SEC-LOG-41385",
-        "timestamp": "2026-08-05T14:44:27.815Z",
-        "traceId": "tr-9qwfe319",
+        "id": "SEC-LOG-18227",
+        "timestamp": "2026-08-05T15:29:20.183Z",
+        "traceId": "tr-0t0o1lt9",
         "level": "CRITICAL",
         "service": "WAF Guard",
-        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.113.53.208",
-        "sourceIp": "185.207.233.217",
+        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.42.72.199",
+        "sourceIp": "185.209.142.71",
         "destination": "ingress-gateway:443",
         "action": "BLOCKED",
         "details": {
           "matchedRule": "OWASP-CRS-942100",
           "userAgent": "Go-http-client/1.1"
+        }
+      },
+      {
+        "id": "SEC-LOG-77986",
+        "timestamp": "2026-08-05T15:29:10.166Z",
+        "traceId": "tr-np2m740t",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.119.230.102",
+        "sourceIp": "45.33.76.24",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
+        "id": "SEC-LOG-65582",
+        "timestamp": "2026-08-05T15:29:00.153Z",
+        "traceId": "tr-69j6tqe2",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.201.206.5",
+        "sourceIp": "103.26.67.50",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
+        "id": "SEC-LOG-13767",
+        "timestamp": "2026-08-05T15:28:50.149Z",
+        "traceId": "tr-9hwi9vx3",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.77.176.208",
+        "sourceIp": "45.42.164.190",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
+        "id": "SEC-LOG-25174",
+        "timestamp": "2026-08-05T15:28:40.135Z",
+        "traceId": "tr-6tazxn9s",
+        "level": "CRITICAL",
+        "service": "WAF Guard",
+        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.30.139.151",
+        "sourceIp": "185.208.144.236",
+        "destination": "ingress-gateway:443",
+        "action": "BLOCKED",
+        "details": {
+          "matchedRule": "OWASP-CRS-942100",
+          "userAgent": "Go-http-client/1.1"
+        }
+      },
+      {
+        "id": "SEC-LOG-22085",
+        "timestamp": "2026-08-05T15:28:30.127Z",
+        "traceId": "tr-z05h33qt",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.124.135.232",
+        "sourceIp": "45.13.244.138",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
+        "id": "SEC-LOG-12599",
+        "timestamp": "2026-08-05T15:28:20.125Z",
+        "traceId": "tr-0812xiy3",
+        "level": "INFO",
+        "service": "TLS Gateway",
+        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
+        "sourceIp": "192.168.1.108",
+        "destination": "internal-mesh:8443",
+        "action": "ALLOWED",
+        "details": {
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "certSubject": "CN=xHunter-Microservice"
+        }
+      },
+      {
+        "id": "SEC-LOG-55680",
+        "timestamp": "2026-08-05T15:28:10.110Z",
+        "traceId": "tr-ysqxapgq",
+        "level": "INFO",
+        "service": "TLS Gateway",
+        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
+        "sourceIp": "192.168.1.108",
+        "destination": "internal-mesh:8443",
+        "action": "ALLOWED",
+        "details": {
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "certSubject": "CN=xHunter-Microservice"
+        }
+      },
+      {
+        "id": "SEC-LOG-23389",
+        "timestamp": "2026-08-05T15:28:00.109Z",
+        "traceId": "tr-yad268hz",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.113.73.217",
+        "sourceIp": "45.118.214.217",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
+        "id": "SEC-LOG-46573",
+        "timestamp": "2026-08-05T15:27:50.095Z",
+        "traceId": "tr-bgjseyii",
+        "level": "INFO",
+        "service": "TLS Gateway",
+        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
+        "sourceIp": "192.168.1.108",
+        "destination": "internal-mesh:8443",
+        "action": "ALLOWED",
+        "details": {
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "certSubject": "CN=xHunter-Microservice"
+        }
+      },
+      {
+        "id": "SEC-LOG-88464",
+        "timestamp": "2026-08-05T15:27:40.079Z",
+        "traceId": "tr-fi1lke98",
+        "level": "INFO",
+        "service": "TLS Gateway",
+        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
+        "sourceIp": "192.168.1.108",
+        "destination": "internal-mesh:8443",
+        "action": "ALLOWED",
+        "details": {
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "certSubject": "CN=xHunter-Microservice"
+        }
+      },
+      {
+        "id": "SEC-LOG-65985",
+        "timestamp": "2026-08-05T15:27:30.074Z",
+        "traceId": "tr-4mim9j2n",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.101.136.240",
+        "sourceIp": "103.215.116.78",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
+        "id": "SEC-LOG-10015",
+        "timestamp": "2026-08-05T15:27:20.063Z",
+        "traceId": "tr-63fehdb2",
+        "level": "CRITICAL",
+        "service": "WAF Guard",
+        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.50.9.242",
+        "sourceIp": "185.45.151.149",
+        "destination": "ingress-gateway:443",
+        "action": "BLOCKED",
+        "details": {
+          "matchedRule": "OWASP-CRS-942100",
+          "userAgent": "Go-http-client/1.1"
+        }
+      },
+      {
+        "id": "SEC-LOG-90014",
+        "timestamp": "2026-08-05T15:27:10.048Z",
+        "traceId": "tr-1pixd7yf",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.89.175.15",
+        "sourceIp": "103.110.213.246",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
+        "id": "SEC-LOG-96894",
+        "timestamp": "2026-08-05T15:27:00.047Z",
+        "traceId": "tr-mzjyf16o",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.201.204.149",
+        "sourceIp": "103.62.183.42",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
+        "id": "SEC-LOG-30755",
+        "timestamp": "2026-08-05T15:26:50.037Z",
+        "traceId": "tr-5px8xn2r",
+        "level": "INFO",
+        "service": "TLS Gateway",
+        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
+        "sourceIp": "192.168.1.108",
+        "destination": "internal-mesh:8443",
+        "action": "ALLOWED",
+        "details": {
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "certSubject": "CN=xHunter-Microservice"
+        }
+      },
+      {
+        "id": "SEC-LOG-61004",
+        "timestamp": "2026-08-05T15:26:40.034Z",
+        "traceId": "tr-zoh9otd8",
+        "level": "INFO",
+        "service": "TLS Gateway",
+        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
+        "sourceIp": "192.168.1.108",
+        "destination": "internal-mesh:8443",
+        "action": "ALLOWED",
+        "details": {
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "certSubject": "CN=xHunter-Microservice"
+        }
+      },
+      {
+        "id": "SEC-LOG-45937",
+        "timestamp": "2026-08-05T15:26:30.025Z",
+        "traceId": "tr-q31fplex",
+        "level": "CRITICAL",
+        "service": "WAF Guard",
+        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.47.204.79",
+        "sourceIp": "185.17.183.172",
+        "destination": "ingress-gateway:443",
+        "action": "BLOCKED",
+        "details": {
+          "matchedRule": "OWASP-CRS-942100",
+          "userAgent": "Go-http-client/1.1"
+        }
+      },
+      {
+        "id": "SEC-LOG-26655",
+        "timestamp": "2026-08-05T15:26:20.023Z",
+        "traceId": "tr-v4azajpf",
+        "level": "CRITICAL",
+        "service": "WAF Guard",
+        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.122.112.58",
+        "sourceIp": "185.10.39.129",
+        "destination": "ingress-gateway:443",
+        "action": "BLOCKED",
+        "details": {
+          "matchedRule": "OWASP-CRS-942100",
+          "userAgent": "Go-http-client/1.1"
+        }
+      },
+      {
+        "id": "SEC-LOG-97695",
+        "timestamp": "2026-08-05T15:26:10.015Z",
+        "traceId": "tr-km8rolkb",
+        "level": "INFO",
+        "service": "TLS Gateway",
+        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
+        "sourceIp": "192.168.1.108",
+        "destination": "internal-mesh:8443",
+        "action": "ALLOWED",
+        "details": {
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "certSubject": "CN=xHunter-Microservice"
+        }
+      },
+      {
+        "id": "SEC-LOG-15094",
+        "timestamp": "2026-08-05T15:26:00.004Z",
+        "traceId": "tr-pazuof7d",
+        "level": "CRITICAL",
+        "service": "WAF Guard",
+        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.160.156.228",
+        "sourceIp": "185.240.239.31",
+        "destination": "ingress-gateway:443",
+        "action": "BLOCKED",
+        "details": {
+          "matchedRule": "OWASP-CRS-942100",
+          "userAgent": "Go-http-client/1.1"
+        }
+      },
+      {
+        "id": "SEC-LOG-60706",
+        "timestamp": "2026-08-05T15:25:49.989Z",
+        "traceId": "tr-c7apddfi",
+        "level": "INFO",
+        "service": "TLS Gateway",
+        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
+        "sourceIp": "192.168.1.108",
+        "destination": "internal-mesh:8443",
+        "action": "ALLOWED",
+        "details": {
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "certSubject": "CN=xHunter-Microservice"
+        }
+      },
+      {
+        "id": "SEC-LOG-60714",
+        "timestamp": "2026-08-05T15:25:39.987Z",
+        "traceId": "tr-qqlqww1c",
+        "level": "CRITICAL",
+        "service": "WAF Guard",
+        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.228.224.167",
+        "sourceIp": "185.235.149.126",
+        "destination": "ingress-gateway:443",
+        "action": "BLOCKED",
+        "details": {
+          "matchedRule": "OWASP-CRS-942100",
+          "userAgent": "Go-http-client/1.1"
+        }
+      },
+      {
+        "id": "SEC-LOG-17137",
+        "timestamp": "2026-08-05T15:25:29.980Z",
+        "traceId": "tr-ii5sil6i",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.91.99.107",
+        "sourceIp": "103.84.63.210",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
+        "id": "SEC-LOG-22729",
+        "timestamp": "2026-08-05T15:25:19.966Z",
+        "traceId": "tr-hwmfuza4",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.143.143.212",
+        "sourceIp": "103.236.135.155",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
+        "id": "SEC-LOG-87036",
+        "timestamp": "2026-08-05T15:25:09.948Z",
+        "traceId": "tr-bmdql3t2",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.111.74.182",
+        "sourceIp": "103.14.200.34",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
+        "id": "SEC-LOG-92832",
+        "timestamp": "2026-08-05T15:24:59.934Z",
+        "traceId": "tr-cs79kifz",
+        "level": "INFO",
+        "service": "TLS Gateway",
+        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
+        "sourceIp": "192.168.1.108",
+        "destination": "internal-mesh:8443",
+        "action": "ALLOWED",
+        "details": {
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "certSubject": "CN=xHunter-Microservice"
+        }
+      },
+      {
+        "id": "SEC-LOG-21083",
+        "timestamp": "2026-08-05T15:24:49.927Z",
+        "traceId": "tr-wgf4r60g",
+        "level": "CRITICAL",
+        "service": "WAF Guard",
+        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.120.37.139",
+        "sourceIp": "185.14.147.203",
+        "destination": "ingress-gateway:443",
+        "action": "BLOCKED",
+        "details": {
+          "matchedRule": "OWASP-CRS-942100",
+          "userAgent": "Go-http-client/1.1"
+        }
+      },
+      {
+        "id": "SEC-LOG-86206",
+        "timestamp": "2026-08-05T15:24:39.912Z",
+        "traceId": "tr-ntu3vsub",
+        "level": "INFO",
+        "service": "TLS Gateway",
+        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
+        "sourceIp": "192.168.1.108",
+        "destination": "internal-mesh:8443",
+        "action": "ALLOWED",
+        "details": {
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "certSubject": "CN=xHunter-Microservice"
+        }
+      },
+      {
+        "id": "SEC-LOG-19797",
+        "timestamp": "2026-08-05T15:24:29.903Z",
+        "traceId": "tr-gl37q09o",
+        "level": "CRITICAL",
+        "service": "WAF Guard",
+        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.79.231.157",
+        "sourceIp": "185.55.204.142",
+        "destination": "ingress-gateway:443",
+        "action": "BLOCKED",
+        "details": {
+          "matchedRule": "OWASP-CRS-942100",
+          "userAgent": "Go-http-client/1.1"
+        }
+      },
+      {
+        "id": "SEC-LOG-49475",
+        "timestamp": "2026-08-05T15:24:19.894Z",
+        "traceId": "tr-9payy19e",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.3.137.191",
+        "sourceIp": "45.249.129.41",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
+        "id": "SEC-LOG-60797",
+        "timestamp": "2026-08-05T15:24:09.866Z",
+        "traceId": "tr-sy6btjnn",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.144.189.223",
+        "sourceIp": "103.130.18.137",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
+        "id": "SEC-LOG-63092",
+        "timestamp": "2026-08-05T15:23:59.860Z",
+        "traceId": "tr-bu26txv2",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.102.139.203",
+        "sourceIp": "45.145.146.235",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
+        "id": "SEC-LOG-45903",
+        "timestamp": "2026-08-05T15:23:49.857Z",
+        "traceId": "tr-gpdfdubw",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.212.236.120",
+        "sourceIp": "103.246.234.104",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
+        "id": "SEC-LOG-98069",
+        "timestamp": "2026-08-05T15:23:39.845Z",
+        "traceId": "tr-4drecgrm",
+        "level": "CRITICAL",
+        "service": "WAF Guard",
+        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.36.92.71",
+        "sourceIp": "185.47.183.191",
+        "destination": "ingress-gateway:443",
+        "action": "BLOCKED",
+        "details": {
+          "matchedRule": "OWASP-CRS-942100",
+          "userAgent": "Go-http-client/1.1"
+        }
+      },
+      {
+        "id": "SEC-LOG-67904",
+        "timestamp": "2026-08-05T15:23:29.838Z",
+        "traceId": "tr-dj2zmck8",
+        "level": "CRITICAL",
+        "service": "WAF Guard",
+        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.92.123.78",
+        "sourceIp": "185.223.164.61",
+        "destination": "ingress-gateway:443",
+        "action": "BLOCKED",
+        "details": {
+          "matchedRule": "OWASP-CRS-942100",
+          "userAgent": "Go-http-client/1.1"
+        }
+      },
+      {
+        "id": "SEC-LOG-13460",
+        "timestamp": "2026-08-05T15:23:19.823Z",
+        "traceId": "tr-zkybs278",
+        "level": "CRITICAL",
+        "service": "WAF Guard",
+        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.130.174.127",
+        "sourceIp": "185.246.34.29",
+        "destination": "ingress-gateway:443",
+        "action": "BLOCKED",
+        "details": {
+          "matchedRule": "OWASP-CRS-942100",
+          "userAgent": "Go-http-client/1.1"
+        }
+      },
+      {
+        "id": "SEC-LOG-69998",
+        "timestamp": "2026-08-05T15:23:09.800Z",
+        "traceId": "tr-1k4q1v4o",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.79.234.47",
+        "sourceIp": "103.91.159.140",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
+        "id": "SEC-LOG-65368",
+        "timestamp": "2026-08-05T15:22:59.795Z",
+        "traceId": "tr-0y7gzxju",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.223.186.199",
+        "sourceIp": "103.44.11.36",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
+        "id": "SEC-LOG-74288",
+        "timestamp": "2026-08-05T15:22:49.783Z",
+        "traceId": "tr-1jj3e637",
+        "level": "INFO",
+        "service": "TLS Gateway",
+        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
+        "sourceIp": "192.168.1.108",
+        "destination": "internal-mesh:8443",
+        "action": "ALLOWED",
+        "details": {
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "certSubject": "CN=xHunter-Microservice"
+        }
+      },
+      {
+        "id": "SEC-LOG-52209",
+        "timestamp": "2026-08-05T15:22:39.780Z",
+        "traceId": "tr-0objporg",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.85.181.146",
+        "sourceIp": "103.249.22.119",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
+        "id": "SEC-LOG-69212",
+        "timestamp": "2026-08-05T15:22:29.767Z",
+        "traceId": "tr-0ztfyqgr",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.215.142.249",
+        "sourceIp": "103.121.153.173",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
+        "id": "SEC-LOG-16844",
+        "timestamp": "2026-08-05T15:22:19.753Z",
+        "traceId": "tr-zcer7xn6",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.173.154.219",
+        "sourceIp": "103.195.101.247",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
+        "id": "SEC-LOG-34125",
+        "timestamp": "2026-08-05T15:22:09.730Z",
+        "traceId": "tr-tx9kobpr",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.107.29.35",
+        "sourceIp": "45.93.2.66",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
+        "id": "SEC-LOG-70051",
+        "timestamp": "2026-08-05T15:21:59.722Z",
+        "traceId": "tr-ilqneobs",
+        "level": "INFO",
+        "service": "TLS Gateway",
+        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
+        "sourceIp": "192.168.1.108",
+        "destination": "internal-mesh:8443",
+        "action": "ALLOWED",
+        "details": {
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "certSubject": "CN=xHunter-Microservice"
+        }
+      },
+      {
+        "id": "SEC-LOG-94653",
+        "timestamp": "2026-08-05T15:21:49.722Z",
+        "traceId": "tr-cfmya6yi",
+        "level": "INFO",
+        "service": "TLS Gateway",
+        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
+        "sourceIp": "192.168.1.108",
+        "destination": "internal-mesh:8443",
+        "action": "ALLOWED",
+        "details": {
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "certSubject": "CN=xHunter-Microservice"
+        }
+      },
+      {
+        "id": "SEC-LOG-21339",
+        "timestamp": "2026-08-05T15:21:39.706Z",
+        "traceId": "tr-5nk9dsxx",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.172.152.163",
+        "sourceIp": "45.189.199.41",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
+        "id": "SEC-LOG-54362",
+        "timestamp": "2026-08-05T15:21:29.701Z",
+        "traceId": "tr-1gdty0db",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.239.64.209",
+        "sourceIp": "103.161.10.116",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
+        "id": "SEC-LOG-46391",
+        "timestamp": "2026-08-05T15:21:19.693Z",
+        "traceId": "tr-d6p9m7e4",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.107.228.101",
+        "sourceIp": "103.134.153.14",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
+        "id": "SEC-LOG-35849",
+        "timestamp": "2026-08-05T15:21:09.682Z",
+        "traceId": "tr-tg4y5v2t",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.198.53.57",
+        "sourceIp": "45.79.189.0",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
+        "id": "SEC-LOG-66864",
+        "timestamp": "2026-08-05T15:20:59.675Z",
+        "traceId": "tr-c1jq9b8y",
+        "level": "INFO",
+        "service": "TLS Gateway",
+        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
+        "sourceIp": "192.168.1.108",
+        "destination": "internal-mesh:8443",
+        "action": "ALLOWED",
+        "details": {
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "certSubject": "CN=xHunter-Microservice"
+        }
+      },
+      {
+        "id": "SEC-LOG-56025",
+        "timestamp": "2026-08-05T15:20:49.675Z",
+        "traceId": "tr-ioaler6w",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.97.230.185",
+        "sourceIp": "103.33.92.75",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
+        "id": "SEC-LOG-59678",
+        "timestamp": "2026-08-05T15:20:39.661Z",
+        "traceId": "tr-uegykxqz",
+        "level": "CRITICAL",
+        "service": "WAF Guard",
+        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.6.167.182",
+        "sourceIp": "185.102.180.179",
+        "destination": "ingress-gateway:443",
+        "action": "BLOCKED",
+        "details": {
+          "matchedRule": "OWASP-CRS-942100",
+          "userAgent": "Go-http-client/1.1"
+        }
+      },
+      {
+        "id": "SEC-LOG-89670",
+        "timestamp": "2026-08-05T15:20:29.644Z",
+        "traceId": "tr-8voicum3",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.88.39.143",
+        "sourceIp": "103.189.242.70",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
+        "id": "SEC-LOG-47672",
+        "timestamp": "2026-08-05T15:20:19.638Z",
+        "traceId": "tr-ae95am4g",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.75.42.81",
+        "sourceIp": "103.214.196.75",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
+        "id": "SEC-LOG-95393",
+        "timestamp": "2026-08-05T15:20:09.620Z",
+        "traceId": "tr-a2r4t62v",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.203.218.115",
+        "sourceIp": "45.9.82.107",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
+        "id": "SEC-LOG-49050",
+        "timestamp": "2026-08-05T15:19:59.614Z",
+        "traceId": "tr-bs00elvb",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.30.64.173",
+        "sourceIp": "45.114.193.112",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
+        "id": "SEC-LOG-39871",
+        "timestamp": "2026-08-05T15:19:49.610Z",
+        "traceId": "tr-w5e9m68w",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.138.175.38",
+        "sourceIp": "45.199.110.7",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
+        "id": "SEC-LOG-46390",
+        "timestamp": "2026-08-05T15:19:39.600Z",
+        "traceId": "tr-qk1xd2y2",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.82.111.82",
+        "sourceIp": "45.224.95.55",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
+        "id": "SEC-LOG-28647",
+        "timestamp": "2026-08-05T15:19:29.590Z",
+        "traceId": "tr-84sw1ycb",
+        "level": "CRITICAL",
+        "service": "WAF Guard",
+        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.230.27.111",
+        "sourceIp": "185.249.18.195",
+        "destination": "ingress-gateway:443",
+        "action": "BLOCKED",
+        "details": {
+          "matchedRule": "OWASP-CRS-942100",
+          "userAgent": "Go-http-client/1.1"
+        }
+      },
+      {
+        "id": "SEC-LOG-40705",
+        "timestamp": "2026-08-05T15:19:19.587Z",
+        "traceId": "tr-sjfkjoyz",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.231.38.7",
+        "sourceIp": "103.71.126.177",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
+        "id": "SEC-LOG-94782",
+        "timestamp": "2026-08-05T15:19:09.567Z",
+        "traceId": "tr-3okzzms7",
+        "level": "CRITICAL",
+        "service": "WAF Guard",
+        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.141.137.168",
+        "sourceIp": "185.210.144.241",
+        "destination": "ingress-gateway:443",
+        "action": "BLOCKED",
+        "details": {
+          "matchedRule": "OWASP-CRS-942100",
+          "userAgent": "Go-http-client/1.1"
+        }
+      },
+      {
+        "id": "SEC-LOG-54462",
+        "timestamp": "2026-08-05T15:18:59.564Z",
+        "traceId": "tr-inay80mo",
+        "level": "CRITICAL",
+        "service": "WAF Guard",
+        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.120.140.214",
+        "sourceIp": "185.215.239.44",
+        "destination": "ingress-gateway:443",
+        "action": "BLOCKED",
+        "details": {
+          "matchedRule": "OWASP-CRS-942100",
+          "userAgent": "Go-http-client/1.1"
+        }
+      },
+      {
+        "id": "SEC-LOG-33019",
+        "timestamp": "2026-08-05T15:18:49.554Z",
+        "traceId": "tr-bhxfsotm",
+        "level": "CRITICAL",
+        "service": "WAF Guard",
+        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.171.160.63",
+        "sourceIp": "185.246.75.32",
+        "destination": "ingress-gateway:443",
+        "action": "BLOCKED",
+        "details": {
+          "matchedRule": "OWASP-CRS-942100",
+          "userAgent": "Go-http-client/1.1"
+        }
+      },
+      {
+        "id": "SEC-LOG-21336",
+        "timestamp": "2026-08-05T15:18:39.550Z",
+        "traceId": "tr-9qjs8tst",
+        "level": "INFO",
+        "service": "TLS Gateway",
+        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
+        "sourceIp": "192.168.1.108",
+        "destination": "internal-mesh:8443",
+        "action": "ALLOWED",
+        "details": {
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "certSubject": "CN=xHunter-Microservice"
+        }
+      },
+      {
+        "id": "SEC-LOG-18362",
+        "timestamp": "2026-08-05T15:18:29.548Z",
+        "traceId": "tr-r8zxb0q3",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.112.18.135",
+        "sourceIp": "103.193.188.65",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
+        "id": "SEC-LOG-24879",
+        "timestamp": "2026-08-05T15:18:19.533Z",
+        "traceId": "tr-xzvtuzp6",
+        "level": "CRITICAL",
+        "service": "WAF Guard",
+        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.180.24.53",
+        "sourceIp": "185.198.216.37",
+        "destination": "ingress-gateway:443",
+        "action": "BLOCKED",
+        "details": {
+          "matchedRule": "OWASP-CRS-942100",
+          "userAgent": "Go-http-client/1.1"
+        }
+      },
+      {
+        "id": "SEC-LOG-77643",
+        "timestamp": "2026-08-05T15:18:09.511Z",
+        "traceId": "tr-hmfymosy",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.181.85.73",
+        "sourceIp": "103.168.132.179",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
+        "id": "SEC-LOG-41381",
+        "timestamp": "2026-08-05T15:17:59.507Z",
+        "traceId": "tr-rbgqq4ad",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.94.49.64",
+        "sourceIp": "45.215.173.150",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
+        "id": "SEC-LOG-61944",
+        "timestamp": "2026-08-05T15:17:49.491Z",
+        "traceId": "tr-2kdiix81",
+        "level": "INFO",
+        "service": "TLS Gateway",
+        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
+        "sourceIp": "192.168.1.108",
+        "destination": "internal-mesh:8443",
+        "action": "ALLOWED",
+        "details": {
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "certSubject": "CN=xHunter-Microservice"
+        }
+      },
+      {
+        "id": "SEC-LOG-46387",
+        "timestamp": "2026-08-05T15:17:39.489Z",
+        "traceId": "tr-axvam39r",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.31.64.162",
+        "sourceIp": "45.111.204.240",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
+        "id": "SEC-LOG-96839",
+        "timestamp": "2026-08-05T15:17:29.482Z",
+        "traceId": "tr-xbfw3x0m",
+        "level": "INFO",
+        "service": "TLS Gateway",
+        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
+        "sourceIp": "192.168.1.108",
+        "destination": "internal-mesh:8443",
+        "action": "ALLOWED",
+        "details": {
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "certSubject": "CN=xHunter-Microservice"
+        }
+      },
+      {
+        "id": "SEC-LOG-16074",
+        "timestamp": "2026-08-05T15:17:19.480Z",
+        "traceId": "tr-316s1tgg",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.81.228.175",
+        "sourceIp": "103.232.20.180",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
+        "id": "SEC-LOG-58214",
+        "timestamp": "2026-08-05T15:17:09.459Z",
+        "traceId": "tr-bwmcdhk6",
+        "level": "INFO",
+        "service": "TLS Gateway",
+        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
+        "sourceIp": "192.168.1.108",
+        "destination": "internal-mesh:8443",
+        "action": "ALLOWED",
+        "details": {
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "certSubject": "CN=xHunter-Microservice"
+        }
+      },
+      {
+        "id": "SEC-LOG-30540",
+        "timestamp": "2026-08-05T15:16:59.448Z",
+        "traceId": "tr-mzx3f1yz",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.21.213.202",
+        "sourceIp": "45.221.82.155",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
+        "id": "SEC-LOG-53927",
+        "timestamp": "2026-08-05T15:16:49.439Z",
+        "traceId": "tr-1shp2iid",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.215.28.248",
+        "sourceIp": "45.109.130.227",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
+        "id": "SEC-LOG-37669",
+        "timestamp": "2026-08-05T15:16:39.435Z",
+        "traceId": "tr-55c8b4g1",
+        "level": "CRITICAL",
+        "service": "WAF Guard",
+        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.204.115.165",
+        "sourceIp": "185.220.82.9",
+        "destination": "ingress-gateway:443",
+        "action": "BLOCKED",
+        "details": {
+          "matchedRule": "OWASP-CRS-942100",
+          "userAgent": "Go-http-client/1.1"
+        }
+      },
+      {
+        "id": "SEC-LOG-29877",
+        "timestamp": "2026-08-05T15:16:29.434Z",
+        "traceId": "tr-df4z53kd",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.210.77.108",
+        "sourceIp": "103.155.18.236",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
+        "id": "SEC-LOG-19118",
+        "timestamp": "2026-08-05T15:16:19.421Z",
+        "traceId": "tr-wz51vxlt",
+        "level": "CRITICAL",
+        "service": "WAF Guard",
+        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.122.13.43",
+        "sourceIp": "185.151.204.85",
+        "destination": "ingress-gateway:443",
+        "action": "BLOCKED",
+        "details": {
+          "matchedRule": "OWASP-CRS-942100",
+          "userAgent": "Go-http-client/1.1"
+        }
+      },
+      {
+        "id": "SEC-LOG-22117",
+        "timestamp": "2026-08-05T15:16:09.402Z",
+        "traceId": "tr-cv5hege7",
+        "level": "INFO",
+        "service": "TLS Gateway",
+        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
+        "sourceIp": "192.168.1.108",
+        "destination": "internal-mesh:8443",
+        "action": "ALLOWED",
+        "details": {
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "certSubject": "CN=xHunter-Microservice"
+        }
+      },
+      {
+        "id": "SEC-LOG-65312",
+        "timestamp": "2026-08-05T15:15:59.399Z",
+        "traceId": "tr-gvlg1h4j",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.114.213.149",
+        "sourceIp": "103.47.184.102",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
+        "id": "SEC-LOG-98982",
+        "timestamp": "2026-08-05T15:15:49.384Z",
+        "traceId": "tr-xj9demj2",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.37.223.81",
+        "sourceIp": "103.11.157.23",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
+        "id": "SEC-LOG-13492",
+        "timestamp": "2026-08-05T15:15:39.381Z",
+        "traceId": "tr-bbkegp0o",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.124.81.225",
+        "sourceIp": "45.82.28.90",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
+        "id": "SEC-LOG-55462",
+        "timestamp": "2026-08-05T15:15:29.373Z",
+        "traceId": "tr-kiouvblj",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.176.245.236",
+        "sourceIp": "45.240.126.121",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
+        "id": "SEC-LOG-29525",
+        "timestamp": "2026-08-05T15:15:19.372Z",
+        "traceId": "tr-ygxiolh4",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.94.160.206",
+        "sourceIp": "103.196.68.26",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
+        "id": "SEC-LOG-58170",
+        "timestamp": "2026-08-05T15:15:09.358Z",
+        "traceId": "tr-25sf7swe",
+        "level": "INFO",
+        "service": "TLS Gateway",
+        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
+        "sourceIp": "192.168.1.108",
+        "destination": "internal-mesh:8443",
+        "action": "ALLOWED",
+        "details": {
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "certSubject": "CN=xHunter-Microservice"
+        }
+      },
+      {
+        "id": "SEC-LOG-62548",
+        "timestamp": "2026-08-05T15:14:59.343Z",
+        "traceId": "tr-jhikpvea",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.158.221.78",
+        "sourceIp": "103.160.71.70",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
+        "id": "SEC-LOG-91957",
+        "timestamp": "2026-08-05T15:14:49.341Z",
+        "traceId": "tr-unfon89y",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.242.84.92",
+        "sourceIp": "45.247.74.245",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
+        "id": "SEC-LOG-79263",
+        "timestamp": "2026-08-05T15:14:39.339Z",
+        "traceId": "tr-xxvfjq0w",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.201.33.67",
+        "sourceIp": "45.97.140.31",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
+        "id": "SEC-LOG-14266",
+        "timestamp": "2026-08-05T15:14:29.338Z",
+        "traceId": "tr-jf1ee3sv",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.207.243.56",
+        "sourceIp": "45.199.74.144",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
+        "id": "SEC-LOG-33963",
+        "timestamp": "2026-08-05T15:14:19.326Z",
+        "traceId": "tr-4bv6lyse",
+        "level": "CRITICAL",
+        "service": "WAF Guard",
+        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.128.16.74",
+        "sourceIp": "185.180.13.24",
+        "destination": "ingress-gateway:443",
+        "action": "BLOCKED",
+        "details": {
+          "matchedRule": "OWASP-CRS-942100",
+          "userAgent": "Go-http-client/1.1"
+        }
+      },
+      {
+        "id": "SEC-LOG-94101",
+        "timestamp": "2026-08-05T15:14:09.313Z",
+        "traceId": "tr-qbho8hzn",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.208.53.4",
+        "sourceIp": "103.49.3.136",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
+        "id": "SEC-LOG-77019",
+        "timestamp": "2026-08-05T15:13:59.300Z",
+        "traceId": "tr-syvxe6sm",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.211.32.115",
+        "sourceIp": "103.228.87.140",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
+        "id": "SEC-LOG-26868",
+        "timestamp": "2026-08-05T15:13:49.297Z",
+        "traceId": "tr-9g4nr6kb",
+        "level": "CRITICAL",
+        "service": "WAF Guard",
+        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.87.133.220",
+        "sourceIp": "185.205.47.232",
+        "destination": "ingress-gateway:443",
+        "action": "BLOCKED",
+        "details": {
+          "matchedRule": "OWASP-CRS-942100",
+          "userAgent": "Go-http-client/1.1"
+        }
+      },
+      {
+        "id": "SEC-LOG-63262",
+        "timestamp": "2026-08-05T15:13:39.281Z",
+        "traceId": "tr-ub8cbcbf",
+        "level": "INFO",
+        "service": "TLS Gateway",
+        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
+        "sourceIp": "192.168.1.108",
+        "destination": "internal-mesh:8443",
+        "action": "ALLOWED",
+        "details": {
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "certSubject": "CN=xHunter-Microservice"
+        }
+      },
+      {
+        "id": "SEC-LOG-33830",
+        "timestamp": "2026-08-05T15:13:29.270Z",
+        "traceId": "tr-fc062ex9",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.237.239.232",
+        "sourceIp": "45.137.76.223",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
+        "id": "SEC-LOG-33120",
+        "timestamp": "2026-08-05T15:13:19.266Z",
+        "traceId": "tr-aq99asmf",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.209.178.55",
+        "sourceIp": "45.153.132.164",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
+        "id": "SEC-LOG-48003",
+        "timestamp": "2026-08-05T15:13:09.244Z",
+        "traceId": "tr-fqvpfqp2",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.133.46.8",
+        "sourceIp": "103.130.143.170",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
+        "id": "SEC-LOG-67852",
+        "timestamp": "2026-08-05T15:12:59.241Z",
+        "traceId": "tr-rgw3phen",
+        "level": "CRITICAL",
+        "service": "WAF Guard",
+        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.145.101.63",
+        "sourceIp": "185.179.147.169",
+        "destination": "ingress-gateway:443",
+        "action": "BLOCKED",
+        "details": {
+          "matchedRule": "OWASP-CRS-942100",
+          "userAgent": "Go-http-client/1.1"
+        }
+      },
+      {
+        "id": "SEC-LOG-81953",
+        "timestamp": "2026-08-05T15:12:49.237Z",
+        "traceId": "tr-e05ltvlu",
+        "level": "INFO",
+        "service": "TLS Gateway",
+        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
+        "sourceIp": "192.168.1.108",
+        "destination": "internal-mesh:8443",
+        "action": "ALLOWED",
+        "details": {
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "certSubject": "CN=xHunter-Microservice"
+        }
+      },
+      {
+        "id": "SEC-LOG-96300",
+        "timestamp": "2026-08-05T15:12:39.227Z",
+        "traceId": "tr-njfsmj36",
+        "level": "INFO",
+        "service": "TLS Gateway",
+        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
+        "sourceIp": "192.168.1.108",
+        "destination": "internal-mesh:8443",
+        "action": "ALLOWED",
+        "details": {
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "certSubject": "CN=xHunter-Microservice"
+        }
+      },
+      {
+        "id": "SEC-LOG-52294",
+        "timestamp": "2026-08-05T15:12:29.223Z",
+        "traceId": "tr-1ivjmhs5",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.62.191.94",
+        "sourceIp": "45.85.111.136",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
+        "id": "SEC-LOG-67402",
+        "timestamp": "2026-08-05T15:12:19.214Z",
+        "traceId": "tr-uvu2m187",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.46.212.10",
+        "sourceIp": "103.146.162.71",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
+        "id": "SEC-LOG-28618",
+        "timestamp": "2026-08-05T15:12:09.194Z",
+        "traceId": "tr-czm043ki",
+        "level": "INFO",
+        "service": "TLS Gateway",
+        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
+        "sourceIp": "192.168.1.108",
+        "destination": "internal-mesh:8443",
+        "action": "ALLOWED",
+        "details": {
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "certSubject": "CN=xHunter-Microservice"
+        }
+      },
+      {
+        "id": "SEC-LOG-78645",
+        "timestamp": "2026-08-05T15:11:59.186Z",
+        "traceId": "tr-2z5aq2gm",
+        "level": "CRITICAL",
+        "service": "WAF Guard",
+        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.146.207.216",
+        "sourceIp": "185.113.245.204",
+        "destination": "ingress-gateway:443",
+        "action": "BLOCKED",
+        "details": {
+          "matchedRule": "OWASP-CRS-942100",
+          "userAgent": "Go-http-client/1.1"
+        }
+      },
+      {
+        "id": "SEC-LOG-18421",
+        "timestamp": "2026-08-05T15:11:49.187Z",
+        "traceId": "tr-hk19p7dx",
+        "level": "INFO",
+        "service": "TLS Gateway",
+        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
+        "sourceIp": "192.168.1.108",
+        "destination": "internal-mesh:8443",
+        "action": "ALLOWED",
+        "details": {
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "certSubject": "CN=xHunter-Microservice"
+        }
+      },
+      {
+        "id": "SEC-LOG-42115",
+        "timestamp": "2026-08-05T15:11:39.182Z",
+        "traceId": "tr-x8addtt6",
+        "level": "CRITICAL",
+        "service": "WAF Guard",
+        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.197.156.189",
+        "sourceIp": "185.228.79.200",
+        "destination": "ingress-gateway:443",
+        "action": "BLOCKED",
+        "details": {
+          "matchedRule": "OWASP-CRS-942100",
+          "userAgent": "Go-http-client/1.1"
+        }
+      },
+      {
+        "id": "SEC-LOG-88170",
+        "timestamp": "2026-08-05T15:11:29.167Z",
+        "traceId": "tr-r00eh53v",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.190.53.0",
+        "sourceIp": "45.236.139.34",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
+        "id": "SEC-LOG-66519",
+        "timestamp": "2026-08-05T15:11:19.155Z",
+        "traceId": "tr-vcs5esdu",
+        "level": "INFO",
+        "service": "TLS Gateway",
+        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
+        "sourceIp": "192.168.1.108",
+        "destination": "internal-mesh:8443",
+        "action": "ALLOWED",
+        "details": {
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "certSubject": "CN=xHunter-Microservice"
+        }
+      },
+      {
+        "id": "SEC-LOG-43517",
+        "timestamp": "2026-08-05T15:11:09.142Z",
+        "traceId": "tr-s4j8f268",
+        "level": "CRITICAL",
+        "service": "WAF Guard",
+        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.212.17.26",
+        "sourceIp": "185.62.94.141",
+        "destination": "ingress-gateway:443",
+        "action": "BLOCKED",
+        "details": {
+          "matchedRule": "OWASP-CRS-942100",
+          "userAgent": "Go-http-client/1.1"
+        }
+      },
+      {
+        "id": "SEC-LOG-67797",
+        "timestamp": "2026-08-05T15:10:59.140Z",
+        "traceId": "tr-74zxmznw",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.69.233.173",
+        "sourceIp": "45.123.232.156",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
+        "id": "SEC-LOG-64724",
+        "timestamp": "2026-08-05T15:10:49.128Z",
+        "traceId": "tr-zlgcl8vl",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.210.112.123",
+        "sourceIp": "45.215.103.14",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
+        "id": "SEC-LOG-92531",
+        "timestamp": "2026-08-05T15:10:39.113Z",
+        "traceId": "tr-1rl7otj6",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.29.124.88",
+        "sourceIp": "103.205.77.96",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
+        "id": "SEC-LOG-36166",
+        "timestamp": "2026-08-05T15:10:29.098Z",
+        "traceId": "tr-4f1jv8op",
+        "level": "CRITICAL",
+        "service": "WAF Guard",
+        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.202.91.166",
+        "sourceIp": "185.171.148.86",
+        "destination": "ingress-gateway:443",
+        "action": "BLOCKED",
+        "details": {
+          "matchedRule": "OWASP-CRS-942100",
+          "userAgent": "Go-http-client/1.1"
+        }
+      },
+      {
+        "id": "SEC-LOG-45260",
+        "timestamp": "2026-08-05T15:10:19.098Z",
+        "traceId": "tr-9nm33r2v",
+        "level": "CRITICAL",
+        "service": "WAF Guard",
+        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.38.165.239",
+        "sourceIp": "185.182.176.9",
+        "destination": "ingress-gateway:443",
+        "action": "BLOCKED",
+        "details": {
+          "matchedRule": "OWASP-CRS-942100",
+          "userAgent": "Go-http-client/1.1"
+        }
+      },
+      {
+        "id": "SEC-LOG-35769",
+        "timestamp": "2026-08-05T15:10:09.081Z",
+        "traceId": "tr-spihmo16",
+        "level": "INFO",
+        "service": "TLS Gateway",
+        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
+        "sourceIp": "192.168.1.108",
+        "destination": "internal-mesh:8443",
+        "action": "ALLOWED",
+        "details": {
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "certSubject": "CN=xHunter-Microservice"
+        }
+      },
+      {
+        "id": "SEC-LOG-65015",
+        "timestamp": "2026-08-05T15:09:59.075Z",
+        "traceId": "tr-n4wz6yii",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.115.202.124",
+        "sourceIp": "45.125.216.4",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
+        "id": "SEC-LOG-85861",
+        "timestamp": "2026-08-05T15:09:49.074Z",
+        "traceId": "tr-63vuuhjy",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.158.94.132",
+        "sourceIp": "45.70.79.11",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
+        "id": "SEC-LOG-34830",
+        "timestamp": "2026-08-05T15:09:39.070Z",
+        "traceId": "tr-js9u4eh4",
+        "level": "INFO",
+        "service": "TLS Gateway",
+        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
+        "sourceIp": "192.168.1.108",
+        "destination": "internal-mesh:8443",
+        "action": "ALLOWED",
+        "details": {
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "certSubject": "CN=xHunter-Microservice"
+        }
+      },
+      {
+        "id": "SEC-LOG-41021",
+        "timestamp": "2026-08-05T15:09:29.069Z",
+        "traceId": "tr-f8e6r6zf",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.221.101.104",
+        "sourceIp": "103.10.239.249",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
+        "id": "SEC-LOG-49027",
+        "timestamp": "2026-08-05T15:09:19.055Z",
+        "traceId": "tr-p4ewqqoa",
+        "level": "INFO",
+        "service": "TLS Gateway",
+        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
+        "sourceIp": "192.168.1.108",
+        "destination": "internal-mesh:8443",
+        "action": "ALLOWED",
+        "details": {
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "certSubject": "CN=xHunter-Microservice"
+        }
+      },
+      {
+        "id": "SEC-LOG-44286",
+        "timestamp": "2026-08-05T15:09:09.043Z",
+        "traceId": "tr-uum9yqxj",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.236.28.21",
+        "sourceIp": "103.213.122.48",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
+        "id": "SEC-LOG-50934",
+        "timestamp": "2026-08-05T15:08:59.032Z",
+        "traceId": "tr-xw5zfeim",
+        "level": "INFO",
+        "service": "TLS Gateway",
+        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
+        "sourceIp": "192.168.1.108",
+        "destination": "internal-mesh:8443",
+        "action": "ALLOWED",
+        "details": {
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "certSubject": "CN=xHunter-Microservice"
+        }
+      },
+      {
+        "id": "SEC-LOG-57243",
+        "timestamp": "2026-08-05T15:08:49.030Z",
+        "traceId": "tr-qyaoarm9",
+        "level": "INFO",
+        "service": "TLS Gateway",
+        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
+        "sourceIp": "192.168.1.108",
+        "destination": "internal-mesh:8443",
+        "action": "ALLOWED",
+        "details": {
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "certSubject": "CN=xHunter-Microservice"
+        }
+      },
+      {
+        "id": "SEC-LOG-36062",
+        "timestamp": "2026-08-05T15:08:39.025Z",
+        "traceId": "tr-m8vzx14z",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.245.78.178",
+        "sourceIp": "45.24.197.195",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
+        "id": "SEC-LOG-78768",
+        "timestamp": "2026-08-05T15:08:29.022Z",
+        "traceId": "tr-rqpevfit",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.13.139.2",
+        "sourceIp": "45.86.183.195",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
+        "id": "SEC-LOG-15899",
+        "timestamp": "2026-08-05T15:08:19.014Z",
+        "traceId": "tr-wbafuz43",
+        "level": "INFO",
+        "service": "TLS Gateway",
+        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
+        "sourceIp": "192.168.1.108",
+        "destination": "internal-mesh:8443",
+        "action": "ALLOWED",
+        "details": {
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "certSubject": "CN=xHunter-Microservice"
+        }
+      },
+      {
+        "id": "SEC-LOG-47200",
+        "timestamp": "2026-08-05T15:08:08.988Z",
+        "traceId": "tr-xewt7sho",
+        "level": "INFO",
+        "service": "TLS Gateway",
+        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
+        "sourceIp": "192.168.1.108",
+        "destination": "internal-mesh:8443",
+        "action": "ALLOWED",
+        "details": {
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "certSubject": "CN=xHunter-Microservice"
+        }
+      },
+      {
+        "id": "SEC-LOG-62231",
+        "timestamp": "2026-08-05T15:07:58.982Z",
+        "traceId": "tr-lfbpotc8",
+        "level": "CRITICAL",
+        "service": "WAF Guard",
+        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.113.111.19",
+        "sourceIp": "185.141.139.195",
+        "destination": "ingress-gateway:443",
+        "action": "BLOCKED",
+        "details": {
+          "matchedRule": "OWASP-CRS-942100",
+          "userAgent": "Go-http-client/1.1"
+        }
+      },
+      {
+        "id": "SEC-LOG-90355",
+        "timestamp": "2026-08-05T15:07:48.979Z",
+        "traceId": "tr-5xsx7u6q",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.207.89.159",
+        "sourceIp": "45.2.215.3",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
+        "id": "SEC-LOG-62657",
+        "timestamp": "2026-08-05T15:07:38.971Z",
+        "traceId": "tr-29116zu1",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.183.182.222",
+        "sourceIp": "45.4.117.4",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
+        "id": "SEC-LOG-70394",
+        "timestamp": "2026-08-05T15:07:28.963Z",
+        "traceId": "tr-gtfrua8b",
+        "level": "INFO",
+        "service": "TLS Gateway",
+        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
+        "sourceIp": "192.168.1.108",
+        "destination": "internal-mesh:8443",
+        "action": "ALLOWED",
+        "details": {
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "certSubject": "CN=xHunter-Microservice"
+        }
+      },
+      {
+        "id": "SEC-LOG-71327",
+        "timestamp": "2026-08-05T15:07:18.955Z",
+        "traceId": "tr-qx5a6fix",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.44.124.61",
+        "sourceIp": "103.125.197.69",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
+        "id": "SEC-LOG-43592",
+        "timestamp": "2026-08-05T15:07:08.938Z",
+        "traceId": "tr-eudojx7l",
+        "level": "CRITICAL",
+        "service": "WAF Guard",
+        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.40.207.97",
+        "sourceIp": "185.130.135.1",
+        "destination": "ingress-gateway:443",
+        "action": "BLOCKED",
+        "details": {
+          "matchedRule": "OWASP-CRS-942100",
+          "userAgent": "Go-http-client/1.1"
+        }
+      },
+      {
+        "id": "SEC-LOG-51527",
+        "timestamp": "2026-08-05T15:06:58.926Z",
+        "traceId": "tr-e2akybir",
+        "level": "INFO",
+        "service": "TLS Gateway",
+        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
+        "sourceIp": "192.168.1.108",
+        "destination": "internal-mesh:8443",
+        "action": "ALLOWED",
+        "details": {
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "certSubject": "CN=xHunter-Microservice"
+        }
+      },
+      {
+        "id": "SEC-LOG-19415",
+        "timestamp": "2026-08-05T15:06:48.913Z",
+        "traceId": "tr-8axd4epy",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.36.23.165",
+        "sourceIp": "103.189.41.76",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
+        "id": "SEC-LOG-38030",
+        "timestamp": "2026-08-05T15:06:38.903Z",
+        "traceId": "tr-wdvl0k7r",
+        "level": "INFO",
+        "service": "TLS Gateway",
+        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
+        "sourceIp": "192.168.1.108",
+        "destination": "internal-mesh:8443",
+        "action": "ALLOWED",
+        "details": {
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "certSubject": "CN=xHunter-Microservice"
+        }
+      },
+      {
+        "id": "SEC-LOG-15425",
+        "timestamp": "2026-08-05T15:06:28.900Z",
+        "traceId": "tr-pzsj16kx",
+        "level": "CRITICAL",
+        "service": "WAF Guard",
+        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.174.208.10",
+        "sourceIp": "185.207.174.226",
+        "destination": "ingress-gateway:443",
+        "action": "BLOCKED",
+        "details": {
+          "matchedRule": "OWASP-CRS-942100",
+          "userAgent": "Go-http-client/1.1"
+        }
+      },
+      {
+        "id": "SEC-LOG-40435",
+        "timestamp": "2026-08-05T15:06:18.894Z",
+        "traceId": "tr-tsrq2qna",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.53.32.196",
+        "sourceIp": "103.242.189.177",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
+        "id": "SEC-LOG-32577",
+        "timestamp": "2026-08-05T15:06:08.871Z",
+        "traceId": "tr-nmkd8o49",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.109.194.17",
+        "sourceIp": "45.136.114.31",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
+        "id": "SEC-LOG-82933",
+        "timestamp": "2026-08-05T15:05:58.870Z",
+        "traceId": "tr-j8myjdrr",
+        "level": "INFO",
+        "service": "TLS Gateway",
+        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
+        "sourceIp": "192.168.1.108",
+        "destination": "internal-mesh:8443",
+        "action": "ALLOWED",
+        "details": {
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "certSubject": "CN=xHunter-Microservice"
+        }
+      },
+      {
+        "id": "SEC-LOG-55771",
+        "timestamp": "2026-08-05T15:05:48.855Z",
+        "traceId": "tr-l17xc2ms",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.55.204.112",
+        "sourceIp": "45.188.88.249",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
+        "id": "SEC-LOG-65554",
+        "timestamp": "2026-08-05T15:05:38.840Z",
+        "traceId": "tr-tbulxzue",
+        "level": "INFO",
+        "service": "TLS Gateway",
+        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
+        "sourceIp": "192.168.1.108",
+        "destination": "internal-mesh:8443",
+        "action": "ALLOWED",
+        "details": {
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "certSubject": "CN=xHunter-Microservice"
+        }
+      },
+      {
+        "id": "SEC-LOG-40124",
+        "timestamp": "2026-08-05T15:05:28.837Z",
+        "traceId": "tr-flikg4y7",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.162.111.52",
+        "sourceIp": "45.97.191.47",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
+        "id": "SEC-LOG-68599",
+        "timestamp": "2026-08-05T15:05:18.821Z",
+        "traceId": "tr-lnfyrb2c",
+        "level": "CRITICAL",
+        "service": "WAF Guard",
+        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.167.157.44",
+        "sourceIp": "185.33.183.152",
+        "destination": "ingress-gateway:443",
+        "action": "BLOCKED",
+        "details": {
+          "matchedRule": "OWASP-CRS-942100",
+          "userAgent": "Go-http-client/1.1"
+        }
+      },
+      {
+        "id": "SEC-LOG-39820",
+        "timestamp": "2026-08-05T15:05:08.808Z",
+        "traceId": "tr-ko19o616",
+        "level": "CRITICAL",
+        "service": "WAF Guard",
+        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.246.56.17",
+        "sourceIp": "185.143.92.142",
+        "destination": "ingress-gateway:443",
+        "action": "BLOCKED",
+        "details": {
+          "matchedRule": "OWASP-CRS-942100",
+          "userAgent": "Go-http-client/1.1"
+        }
+      },
+      {
+        "id": "SEC-LOG-11099",
+        "timestamp": "2026-08-05T15:04:58.808Z",
+        "traceId": "tr-6hzt7rwt",
+        "level": "INFO",
+        "service": "TLS Gateway",
+        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
+        "sourceIp": "192.168.1.108",
+        "destination": "internal-mesh:8443",
+        "action": "ALLOWED",
+        "details": {
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "certSubject": "CN=xHunter-Microservice"
+        }
+      },
+      {
+        "id": "SEC-LOG-16587",
+        "timestamp": "2026-08-05T15:04:48.795Z",
+        "traceId": "tr-budxrpyg",
+        "level": "CRITICAL",
+        "service": "WAF Guard",
+        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.122.56.176",
+        "sourceIp": "185.142.46.50",
+        "destination": "ingress-gateway:443",
+        "action": "BLOCKED",
+        "details": {
+          "matchedRule": "OWASP-CRS-942100",
+          "userAgent": "Go-http-client/1.1"
+        }
+      },
+      {
+        "id": "SEC-LOG-25215",
+        "timestamp": "2026-08-05T15:04:38.779Z",
+        "traceId": "tr-9as05n2w",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.160.74.235",
+        "sourceIp": "103.67.191.153",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
+        "id": "SEC-LOG-43116",
+        "timestamp": "2026-08-05T15:04:28.764Z",
+        "traceId": "tr-jjuzf88o",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.13.22.63",
+        "sourceIp": "45.219.238.247",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
+        "id": "SEC-LOG-97925",
+        "timestamp": "2026-08-05T15:04:18.748Z",
+        "traceId": "tr-kve6q75k",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.194.71.208",
+        "sourceIp": "45.198.241.188",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
+        "id": "SEC-LOG-20485",
+        "timestamp": "2026-08-05T15:04:08.736Z",
+        "traceId": "tr-ton1fm9c",
+        "level": "CRITICAL",
+        "service": "WAF Guard",
+        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.222.36.103",
+        "sourceIp": "185.139.213.49",
+        "destination": "ingress-gateway:443",
+        "action": "BLOCKED",
+        "details": {
+          "matchedRule": "OWASP-CRS-942100",
+          "userAgent": "Go-http-client/1.1"
+        }
+      },
+      {
+        "id": "SEC-LOG-52208",
+        "timestamp": "2026-08-05T15:03:58.723Z",
+        "traceId": "tr-jy9ymrju",
+        "level": "CRITICAL",
+        "service": "WAF Guard",
+        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.197.132.78",
+        "sourceIp": "185.249.147.194",
+        "destination": "ingress-gateway:443",
+        "action": "BLOCKED",
+        "details": {
+          "matchedRule": "OWASP-CRS-942100",
+          "userAgent": "Go-http-client/1.1"
+        }
+      },
+      {
+        "id": "SEC-LOG-80267",
+        "timestamp": "2026-08-05T15:03:48.720Z",
+        "traceId": "tr-50l2kgfn",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.201.202.216",
+        "sourceIp": "103.96.165.57",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
+        "id": "SEC-LOG-19848",
+        "timestamp": "2026-08-05T15:03:38.720Z",
+        "traceId": "tr-c4wm84m0",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.53.78.78",
+        "sourceIp": "103.177.237.177",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
+        "id": "SEC-LOG-18732",
+        "timestamp": "2026-08-05T15:03:28.719Z",
+        "traceId": "tr-qbhc3xgb",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.127.174.95",
+        "sourceIp": "103.51.58.6",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
+        "id": "SEC-LOG-75706",
+        "timestamp": "2026-08-05T15:03:18.715Z",
+        "traceId": "tr-4td9ci1t",
+        "level": "CRITICAL",
+        "service": "WAF Guard",
+        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.209.72.1",
+        "sourceIp": "185.85.61.39",
+        "destination": "ingress-gateway:443",
+        "action": "BLOCKED",
+        "details": {
+          "matchedRule": "OWASP-CRS-942100",
+          "userAgent": "Go-http-client/1.1"
+        }
+      },
+      {
+        "id": "SEC-LOG-60234",
+        "timestamp": "2026-08-05T15:03:08.697Z",
+        "traceId": "tr-xgkjk4xv",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.158.191.214",
+        "sourceIp": "103.93.138.236",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
+        "id": "SEC-LOG-11567",
+        "timestamp": "2026-08-05T15:02:58.691Z",
+        "traceId": "tr-vrcln9x0",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.86.123.108",
+        "sourceIp": "45.232.22.86",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
+        "id": "SEC-LOG-32930",
+        "timestamp": "2026-08-05T15:02:48.689Z",
+        "traceId": "tr-1jd8dt6q",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.24.47.99",
+        "sourceIp": "45.160.6.19",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
+        "id": "SEC-LOG-27240",
+        "timestamp": "2026-08-05T15:02:38.680Z",
+        "traceId": "tr-ygtvplfc",
+        "level": "INFO",
+        "service": "TLS Gateway",
+        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
+        "sourceIp": "192.168.1.108",
+        "destination": "internal-mesh:8443",
+        "action": "ALLOWED",
+        "details": {
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "certSubject": "CN=xHunter-Microservice"
+        }
+      },
+      {
+        "id": "SEC-LOG-19915",
+        "timestamp": "2026-08-05T15:02:28.671Z",
+        "traceId": "tr-71vwvual",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.141.137.45",
+        "sourceIp": "45.17.40.68",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
+        "id": "SEC-LOG-83542",
+        "timestamp": "2026-08-05T15:02:18.664Z",
+        "traceId": "tr-i1ahjisg",
+        "level": "CRITICAL",
+        "service": "WAF Guard",
+        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.206.194.121",
+        "sourceIp": "185.75.225.127",
+        "destination": "ingress-gateway:443",
+        "action": "BLOCKED",
+        "details": {
+          "matchedRule": "OWASP-CRS-942100",
+          "userAgent": "Go-http-client/1.1"
+        }
+      },
+      {
+        "id": "SEC-LOG-72940",
+        "timestamp": "2026-08-05T15:02:08.645Z",
+        "traceId": "tr-omaw6kzv",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.129.193.134",
+        "sourceIp": "45.89.62.238",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
+        "id": "SEC-LOG-80946",
+        "timestamp": "2026-08-05T15:01:58.639Z",
+        "traceId": "tr-817nk4yd",
+        "level": "INFO",
+        "service": "TLS Gateway",
+        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
+        "sourceIp": "192.168.1.108",
+        "destination": "internal-mesh:8443",
+        "action": "ALLOWED",
+        "details": {
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "certSubject": "CN=xHunter-Microservice"
+        }
+      },
+      {
+        "id": "SEC-LOG-66779",
+        "timestamp": "2026-08-05T15:01:48.633Z",
+        "traceId": "tr-h3kgn3ek",
+        "level": "INFO",
+        "service": "TLS Gateway",
+        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
+        "sourceIp": "192.168.1.108",
+        "destination": "internal-mesh:8443",
+        "action": "ALLOWED",
+        "details": {
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "certSubject": "CN=xHunter-Microservice"
+        }
+      },
+      {
+        "id": "SEC-LOG-55519",
+        "timestamp": "2026-08-05T15:01:38.623Z",
+        "traceId": "tr-6t19eebv",
+        "level": "CRITICAL",
+        "service": "WAF Guard",
+        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.35.52.141",
+        "sourceIp": "185.209.119.14",
+        "destination": "ingress-gateway:443",
+        "action": "BLOCKED",
+        "details": {
+          "matchedRule": "OWASP-CRS-942100",
+          "userAgent": "Go-http-client/1.1"
+        }
+      },
+      {
+        "id": "SEC-LOG-26227",
+        "timestamp": "2026-08-05T15:01:28.622Z",
+        "traceId": "tr-e8enaoaf",
+        "level": "CRITICAL",
+        "service": "WAF Guard",
+        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.218.205.150",
+        "sourceIp": "185.213.237.207",
+        "destination": "ingress-gateway:443",
+        "action": "BLOCKED",
+        "details": {
+          "matchedRule": "OWASP-CRS-942100",
+          "userAgent": "Go-http-client/1.1"
+        }
+      },
+      {
+        "id": "SEC-LOG-16233",
+        "timestamp": "2026-08-05T15:01:18.622Z",
+        "traceId": "tr-m215actb",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.81.224.116",
+        "sourceIp": "103.89.95.233",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
+        "id": "SEC-LOG-53920",
+        "timestamp": "2026-08-05T15:01:08.598Z",
+        "traceId": "tr-bpn1l134",
+        "level": "INFO",
+        "service": "TLS Gateway",
+        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
+        "sourceIp": "192.168.1.108",
+        "destination": "internal-mesh:8443",
+        "action": "ALLOWED",
+        "details": {
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "certSubject": "CN=xHunter-Microservice"
+        }
+      },
+      {
+        "id": "SEC-LOG-50510",
+        "timestamp": "2026-08-05T15:00:58.588Z",
+        "traceId": "tr-u9fa8oux",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.56.114.73",
+        "sourceIp": "103.54.100.194",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
+        "id": "SEC-LOG-16938",
+        "timestamp": "2026-08-05T15:00:48.581Z",
+        "traceId": "tr-lf9gx05y",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.173.248.203",
+        "sourceIp": "103.111.234.151",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
+        "id": "SEC-LOG-40090",
+        "timestamp": "2026-08-05T15:00:38.578Z",
+        "traceId": "tr-xkwx6mwi",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.53.83.155",
+        "sourceIp": "103.23.118.34",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
+        "id": "SEC-LOG-58669",
+        "timestamp": "2026-08-05T15:00:28.573Z",
+        "traceId": "tr-jqj4uejn",
+        "level": "INFO",
+        "service": "TLS Gateway",
+        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
+        "sourceIp": "192.168.1.108",
+        "destination": "internal-mesh:8443",
+        "action": "ALLOWED",
+        "details": {
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "certSubject": "CN=xHunter-Microservice"
         }
       }
     ],
