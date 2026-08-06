@@ -3,6 +3,21 @@
     "users": [],
     "logs": [
       {
+        "id": "SEC-LOG-83245",
+        "timestamp": "2026-08-06T08:56:52.238Z",
+        "traceId": "tr-s3g1dp8j",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.175.55.217",
+        "sourceIp": "103.172.113.229",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
         "id": "SEC-LOG-44004",
         "timestamp": "2026-08-06T08:56:42.236Z",
         "traceId": "tr-vatxd59j",
@@ -2985,21 +3000,6 @@
         "details": {
           "protocol": "TCP/SYN",
           "bytesSent": 64
-        }
-      },
-      {
-        "id": "SEC-LOG-94995",
-        "timestamp": "2026-08-06T05:28:04.631Z",
-        "traceId": "tr-1o7v1sy4",
-        "level": "CRITICAL",
-        "service": "WAF Guard",
-        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.218.122.177",
-        "sourceIp": "185.228.29.60",
-        "destination": "ingress-gateway:443",
-        "action": "BLOCKED",
-        "details": {
-          "matchedRule": "OWASP-CRS-942100",
-          "userAgent": "Go-http-client/1.1"
         }
       }
     ],
@@ -3011,6 +3011,21 @@
     "users": [],
     "logs": [
       {
+        "id": "SEC-LOG-83245",
+        "timestamp": "2026-08-06T08:56:52.238Z",
+        "traceId": "tr-s3g1dp8j",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.175.55.217",
+        "sourceIp": "103.172.113.229",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
         "id": "SEC-LOG-44004",
         "timestamp": "2026-08-06T08:56:42.236Z",
         "traceId": "tr-vatxd59j",
@@ -5993,21 +6008,6 @@
         "details": {
           "protocol": "TCP/SYN",
           "bytesSent": 64
-        }
-      },
-      {
-        "id": "SEC-LOG-94995",
-        "timestamp": "2026-08-06T05:28:04.631Z",
-        "traceId": "tr-1o7v1sy4",
-        "level": "CRITICAL",
-        "service": "WAF Guard",
-        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.218.122.177",
-        "sourceIp": "185.228.29.60",
-        "destination": "ingress-gateway:443",
-        "action": "BLOCKED",
-        "details": {
-          "matchedRule": "OWASP-CRS-942100",
-          "userAgent": "Go-http-client/1.1"
         }
       }
     ],
