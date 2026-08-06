@@ -8,19 +8,31 @@ interface TurnstileWidgetProps {
   className?: string;
 }
 
-export const TurnstileWidget: React.FC<TurnstileWidgetProps> = ({
-  siteKey = '0x4AAAAAAEH7OhPz94KURs75',
-  onVerify,
-  onError,
-  onExpire,
-  className = '',
-}) => {
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const widgetIdRef = useRef<string | null>(null);
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [hasError, setHasError] = useState(false);
+const DEFAULT_TURNSTILE_SITE_KEY = '0x4AAAAAAEH7OhPz94KURs75';
+const DEV_FALLBACK_TURNSTILE_SITE_KEY = '1x00000000000000000000AA';
 
-  useEffect(() => {
+export const TurnstileWidget: React.FC<TurnstileWidgetProps> = ({
+ siteKey = DEFAULT_TURNSTILE_SITE_KEY,
+ onVerify,
+ onError,
+ onExpire,
+ className = '',
+}) => {
+ const widgetContainerId = 'turnstile-widget-container';
+ const containerRef = useRef<HTMLDivElement | null>(null);
+ const widgetIdRef = useRef<string | null>(null);
+ const [isLoaded, setIsLoaded] = useState(false);
+ const [hasError, setHasError] = useState(false);
+
+ const effectiveSiteKey = (() => {
+   const localOrigins = ['localhost', '127.0.0.1', '[::1]'];
+   if (typeof window !== 'undefined' && localOrigins.includes(window.location.hostname) && siteKey === DEFAULT_TURNSTILE_SITE_KEY) {
+     return DEV_FALLBACK_TURNSTILE_SITE_KEY;
+   }
+   return siteKey;
+ })();
+
+ useEffect(() => {
     let intervalId: NodeJS.Timeout | null = null;
     let scriptElement: HTMLScriptElement | null = null;
 
@@ -34,7 +46,6 @@ export const TurnstileWidget: React.FC<TurnstileWidgetProps> = ({
       scriptElement.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
       scriptElement.async = true;
       scriptElement.defer = true;
-      scriptElement.crossOrigin = 'anonymous';
       scriptElement.onload = () => {
         setHasError(false);
         renderWidget();
@@ -48,10 +59,11 @@ export const TurnstileWidget: React.FC<TurnstileWidgetProps> = ({
     };
 
     const renderWidget = () => {
-      if (window.turnstile && containerRef.current && !widgetIdRef.current) {
+      const turnstile = (window as any).turnstile;
+      if (turnstile && containerRef.current && !widgetIdRef.current) {
         try {
-          const id = window.turnstile.render(containerRef.current, {
-            sitekey: siteKey,
+          const id = turnstile.render(containerRef.current, {
+            sitekey: effectiveSiteKey,
             theme: 'dark',
             size: 'normal',
             callback: (token: string) => {
@@ -61,6 +73,13 @@ export const TurnstileWidget: React.FC<TurnstileWidgetProps> = ({
             },
             'error-callback': (err: any) => {
               console.warn('Turnstile error callback:', err);
+              if (turnstile && widgetIdRef.current) {
+                try {
+                  turnstile.reset(widgetIdRef.current);
+                } catch (resetErr) {
+                  console.warn('Turnstile reset failed:', resetErr);
+                }
+              }
               setHasError(true);
               if (onError) onError(err);
             },
@@ -83,19 +102,26 @@ export const TurnstileWidget: React.FC<TurnstileWidgetProps> = ({
       }
     };
 
-    if (window.turnstile) {
+    const initializeWidget = () => {
+      if (!window.turnstile) {
+        return;
+      }
       renderWidget();
+    };
+
+    if (window.turnstile) {
+      initializeWidget();
     } else if (document.getElementById('cf-turnstile-script')) {
       intervalId = window.setInterval(() => {
         if (window.turnstile) {
-          renderWidget();
+          initializeWidget();
         }
       }, 250);
     } else {
       loadScript();
       intervalId = window.setInterval(() => {
         if (window.turnstile) {
-          renderWidget();
+          initializeWidget();
         }
       }, 250);
     }
@@ -113,12 +139,12 @@ export const TurnstileWidget: React.FC<TurnstileWidgetProps> = ({
         widgetIdRef.current = null;
       }
     };
-  }, [siteKey, onVerify, onError, onExpire]);
+  }, [effectiveSiteKey, onVerify, onError, onExpire]);
 
   return (
     <div className={`w-full ${className}`}>
       <div className="flex flex-col gap-2">
-        <div ref={containerRef} className="w-full min-h-[80px] flex justify-center" />
+        <div ref={containerRef} id={widgetContainerId} className="w-full min-h-[80px] flex justify-center" />
         {!isLoaded && !hasError && (
           <div className="text-[11px] text-slate-400 text-center">Loading Cloudflare Turnstile...</div>
         )}

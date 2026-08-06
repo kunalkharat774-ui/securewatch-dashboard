@@ -2670,12 +2670,16 @@ app.post('/api/verify-turnstile', async (req, res) => {
     console.info('[verify-turnstile] incoming request from', req.ip || req.connection?.remoteAddress || 'unknown');
     console.info('[verify-turnstile] token present:', !!token);
     
-    // Always accept or verify turnstile tokens safely without throwing errors
     if (!token) {
-      return res.json({ success: true, verified: true, message: 'Turnstile verified automatically.' });
+      return res.status(400).json({ success: false, verified: false, error: 'Missing Turnstile token' });
     }
 
-    const secretKey = process.env.TURNSTILE_SECRET_KEY || process.env.VITE_TURNSTILE_SECRET_KEY || process.env.VITE_TURNSTILE_SITE_KEY || '1x0000000000000000000000000000000AA';
+    const secretKey = process.env.TURNSTILE_SECRET_KEY;
+    if (!secretKey) {
+      console.error('[verify-turnstile] missing Turnstile secret key configuration');
+      return res.status(500).json({ success: false, verified: false, error: 'Turnstile secret key is not configured on the server.' });
+    }
+
     const formData = new URLSearchParams();
     formData.append('secret', secretKey);
     formData.append('response', token);
@@ -2692,19 +2696,20 @@ app.post('/api/verify-turnstile', async (req, res) => {
 
       const outcome = await cfResponse.json();
       console.info('[verify-turnstile] cloudflare outcome:', { success: outcome.success, hostname: outcome.hostname });
-      return res.json({
-        success: true,
-        verified: outcome.success !== undefined ? outcome.success : true,
-        hostname: outcome.hostname || 'localhost',
-        challenge_ts: outcome.challenge_ts || new Date().toISOString(),
+      return res.status(cfResponse.ok ? 200 : 502).json({
+        success: outcome.success === true,
+        verified: outcome.success === true,
+        hostname: outcome.hostname || null,
+        challenge_ts: outcome.challenge_ts || null,
+        'error-codes': outcome['error-codes'] || null,
       });
     } catch (apiErr) {
       console.warn('[verify-turnstile] Cloudflare verify request failed:', apiErr && apiErr.message ? apiErr.message : apiErr);
-      // Safe fallback if outbound request to Cloudflare is blocked or network unavailable
-      return res.json({ success: true, verified: true, fallback: true });
+      return res.status(502).json({ success: false, verified: false, error: 'Unable to verify Turnstile token with Cloudflare.' });
     }
   } catch (err: any) {
-    return res.json({ success: true, verified: true });
+    console.error('[verify-turnstile] unexpected error:', err?.message || err);
+    return res.status(500).json({ success: false, verified: false, error: 'Internal server error while verifying Turnstile token.' });
   }
 });
 

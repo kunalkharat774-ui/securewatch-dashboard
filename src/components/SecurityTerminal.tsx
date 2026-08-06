@@ -231,7 +231,7 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
         <div style={styles.glassCard}>
           <div style={styles.header}>
             <div style={styles.statusBadge}>SYSTEM REQUIRED</div>
-            <h1 style={styles.mainTitle}>🛡️ SECURITY AUTH</h1>
+            <h1 style={styles.mainTitle}>🛡️SECURITY AUTH</h1>
             <p style={styles.subTitle}>MULTI-FACTOR ENCRYPTION ENABLED</p>
           </div>
 
