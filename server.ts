@@ -19,6 +19,41 @@ const PORT = Number(process.env.PORT) || 3000;
 
 app.use(express.json());
 
+app.post('/api/turnstile-verify', async (req, res) => {
+  const token = req.body?.token;
+  const secretKey = process.env.VITE_TURNSTILE_SECRET_KEY || process.env.TURNSTILE_SECRET_KEY;
+
+  if (!token) {
+    return res.status(400).json({ success: false, message: 'Missing Turnstile token' });
+  }
+  if (!secretKey) {
+    return res.status(500).json({ success: false, message: 'Turnstile secret key is not configured' });
+  }
+
+  try {
+    const verifyResponse = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ secret: secretKey, response: token }),
+    });
+
+    const verifyResult = await verifyResponse.json();
+
+    if (!verifyResult.success) {
+      return res.status(400).json({
+        success: false,
+        message: 'Turnstile verification failed',
+        errors: verifyResult['error-codes'] || [],
+      });
+    }
+
+    return res.status(200).json({ success: true });
+  } catch (error) {
+    console.error('Turnstile verification error:', error);
+    return res.status(500).json({ success: false, message: 'Turnstile verification error' });
+  }
+});
+
 // Initialize Gemini Client lazily
 let aiClient: GoogleGenAI | null = null;
 function getGeminiClient() {
