@@ -25,10 +25,39 @@ function getGeminiClient() {
   dotenv.config({ path: '.env.local', override: true });
   dotenv.config({ override: true });
 
+  // Support multiple auth modes:
+  // 1) API Key: set GEMINI_API_KEY or GOOGLE_API_KEY
+  // 2) Service Account JSON (recommended for server deployments): set GOOGLE_APPLICATION_CREDENTIALS_JSON
   const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || process.env.GEMINI_KEY;
-  if (!aiClient && apiKey) {
-    aiClient = new GoogleGenAI({ apiKey });
+
+  // If the service account JSON is provided as an env var (useful on Vercel), write it to a temp file
+  try {
+    const gacJson = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
+    if (gacJson && !process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+      const gacPath = path.join(os.tmpdir(), 'gac-securewatch.json');
+      // Only write if file doesn't already exist to avoid repeated writes
+      if (!fs.existsSync(gacPath)) {
+        fs.writeFileSync(gacPath, gacJson, { encoding: 'utf8', mode: 0o600 });
+      }
+      process.env.GOOGLE_APPLICATION_CREDENTIALS = gacPath;
+    }
+  } catch (e) {
+    console.warn('Failed to materialize GOOGLE_APPLICATION_CREDENTIALS_JSON:', (e as any)?.message || e);
   }
+
+  if (!aiClient) {
+    if (apiKey) {
+      console.log('Initializing Gemini client using API key (GEMINI_API_KEY).');
+      aiClient = new GoogleGenAI({ apiKey });
+    } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+      console.log('Initializing Gemini client using Google Application Default Credentials (service account).');
+      // Let the library pick up ADC from GOOGLE_APPLICATION_CREDENTIALS
+      aiClient = new GoogleGenAI();
+    } else {
+      console.warn('No Gemini credentials found. Set GEMINI_API_KEY or GOOGLE_APPLICATION_CREDENTIALS_JSON.');
+    }
+  }
+
   return aiClient;
 }
 

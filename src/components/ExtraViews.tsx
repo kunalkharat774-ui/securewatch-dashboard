@@ -4,7 +4,6 @@ import { NavView } from '../types';
 import { TextEncryptView } from './TextEncryptView';
 import { SteganographyView } from './SteganographyView';
 import { IpLocationView } from './IpLocationView';
-import { AiAssistantView } from './AiAssistantView';
 import { MobileTrackerView } from './MobileTrackerView';
 import { TvGardenView } from './TvGardenView';
 import { DomainInfoView } from './DomainInfoView';
@@ -396,20 +395,18 @@ export const ExtraViews: React.FC<ExtraViewsProps> = ({ view, onBackToDashboard 
   return (
     <div className="space-y-6">
       {/* Top Navigation Bar */}
-      {view !== 'ai-assistant' && (
-        <div className="flex items-center justify-between border-b border-[#1f2335] pb-4">
-          <div>
-            <h2 className="text-xl font-bold text-white capitalize">{view.replace('-', ' ')}</h2>
-            <p className="text-xs text-gray-400">SecureWatch Telemetry & Security Operations</p>
-          </div>
-          <button
-            onClick={onBackToDashboard}
-            className="px-3.5 py-1.5 bg-[#1a1e30] hover:bg-[#252b42] text-gray-200 text-xs rounded border border-[#1f2335] transition flex items-center gap-2 cursor-pointer font-medium"
-          >
-            <i className="fa-solid fa-arrow-left text-xs" /> Back to Dashboard
-          </button>
+      <div className="flex items-center justify-between border-b border-[#1f2335] pb-4">
+        <div>
+          <h2 className="text-xl font-bold text-white capitalize">{view.replace('-', ' ')}</h2>
+          <p className="text-xs text-gray-400">SecureWatch Telemetry & Security Operations</p>
         </div>
-      )}
+        <button
+          onClick={onBackToDashboard}
+          className="px-3.5 py-1.5 bg-[#1a1e30] hover:bg-[#252b42] text-gray-200 text-xs rounded border border-[#1f2335] transition flex items-center gap-2 cursor-pointer font-medium"
+        >
+          <i className="fa-solid fa-arrow-left text-xs" /> Back to Dashboard
+        </button>
+      </div>
 
       {/* 1. API MONITORING */}
       {view === 'api-monitoring' && (
@@ -620,9 +617,6 @@ export const ExtraViews: React.FC<ExtraViewsProps> = ({ view, onBackToDashboard 
 
       {/* 7.55 STEGANOGRAPHY TOOL */}
       {view === 'steganography' && <SteganographyView />}
-
-      {/* 7.6 AI SECURITY ASSISTANT */}
-      {view === 'ai-assistant' && <AiAssistantView onBackToDashboard={onBackToDashboard} />}
 
       {/* 8. IP LOCATION LOOKUP */}
       {view === 'ip-location' && <IpLocationView />}

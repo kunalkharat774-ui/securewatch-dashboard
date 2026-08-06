@@ -96,7 +96,6 @@ export type NavView =
   | 'dashboard'
   | 'live-map'
   | 'tv-garden'
-  | 'ai-assistant'
   | 'api-monitoring'
   | 'alerts'
   | 'vulnerability-scanner'
