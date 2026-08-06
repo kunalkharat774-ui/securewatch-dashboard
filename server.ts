@@ -15,7 +15,7 @@ dotenv.config({ path: '.env.local', override: true });
 dotenv.config({ override: true });
 
 const app = express();
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
 app.use(express.json());
 
@@ -596,6 +596,40 @@ app.get('/api/mobile-lookup', async (req, res) => {
   } catch (err: any) {
     console.error('Error in /api/mobile-lookup:', err);
     return res.status(500).json({ error: 'Failed to process mobile number lookup.' });
+  }
+});
+
+// ---------------------------------------------------------
+// API ENDPOINT: CLOUDFLARE TURNSTILE TOKEN VERIFICATION
+// ---------------------------------------------------------
+app.post('/api/verify-turnstile', async (req, res) => {
+  try {
+    const token = req.body?.token;
+    if (!token) {
+      return res.status(400).json({ verified: false, error: 'Missing Turnstile token' });
+    }
+
+    const secretKey = process.env.TURNSTILE_SECRET_KEY || process.env.VITE_TURNSTILE_SECRET_KEY;
+    if (!secretKey) {
+      console.error('Turnstile secret key is not configured. Set TURNSTILE_SECRET_KEY or VITE_TURNSTILE_SECRET_KEY.');
+      return res.status(500).json({ verified: false, error: 'Turnstile secret key not configured' });
+    }
+
+    const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ secret: secretKey, response: token }),
+    });
+
+    const result = await response.json();
+    if (!result?.success) {
+      return res.status(400).json({ verified: false, error: 'Turnstile verification failed', details: result });
+    }
+
+    return res.json({ verified: true, success: true });
+  } catch (err: any) {
+    console.error('Error in /api/verify-turnstile:', err);
+    return res.status(500).json({ verified: false, error: err.message || 'Failed to verify Turnstile token' });
   }
 });
 
