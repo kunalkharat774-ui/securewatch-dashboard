@@ -55,6 +55,100 @@ interface AiAssistantViewProps {
   onBackToDashboard?: () => void;
 }
 
+const buildLocalAssistantReply = (prompt: string) => {
+  const lower = prompt.toLowerCase().trim();
+  const cleaned = prompt
+    .replace(/^(explain|what is|tell me about|describe|how does|how can i|why does|can you explain)\s+/i, '')
+    .trim();
+  const topic = cleaned || 'your security topic';
+
+  if (/(login|sign in|auth|brute force|rate limit|lockout|captcha|mfa|password)/i.test(lower)) {
+    return `### 🛡️ Brute-Force Protection for Login Pages
+
+To protect a login page against brute-force attacks, combine **rate limiting**, **account lockout**, **multi-factor authentication**, **CAPTCHA or bot detection**, and **strong password policy**.
+
+1. **Rate limiting**: restrict repeated failed attempts per IP or per account.
+2. **Account lockout / backoff**: slow down repeated guesses after a few errors.
+3. **MFA**: require a second factor for high-risk sign-ins.
+4. **CAPTCHA / bot checks**: reduce automated password spraying.
+5. **Monitoring**: alert on bursty failure patterns and suspicious IP reputation.
+
+A strong login flow should also log suspicious attempts and enforce long, unique credentials.`;
+  }
+
+  if (/(phish|email|spoof|scam|sender|link|domain)/i.test(lower)) {
+    return `### 🎣 Phishing Awareness and Detection
+
+Phishing works by tricking a user into trusting a fake sender, link, or website.
+
+1. **Check the sender**: verify the address and look for subtle domain spoofing.
+2. **Hover before you click**: inspect the actual destination URL rather than the displayed text.
+3. **Verify requests**: use known contact channels to confirm urgent requests.
+4. **Report suspicious messages**: alert your security team or email provider quickly.
+5. **Use protections**: email filtering, MFA, and security awareness training help reduce risk.`;
+  }
+
+  if (/(tls|ssl|https|certificate|hsts|encryption in transit)/i.test(lower)) {
+    return `### 🔐 TLS/SSL and Secure Communication
+
+TLS protects data while it moves between a user and a server by encrypting traffic and validating server identity.
+
+1. **HTTPS everywhere**: use TLS for all web traffic and redirect HTTP to HTTPS.
+2. **TLS 1.3**: prefer modern versions and disable weak legacy protocols.
+3. **Certificate validation**: ensure certificates are issued by trusted authorities and renewed on time.
+4. **HSTS**: enforce HTTPS with HTTP Strict Transport Security.
+5. **Secure configuration**: disable insecure ciphers and keep infrastructure patched.`;
+  }
+
+  if (/(sql|injection|prepared|parameterized|query)/i.test(lower)) {
+    return `### 🧱 SQL Injection Defense
+
+SQL Injection happens when untrusted user input changes the logic of a SQL query.
+
+1. **Use prepared statements**: parameterize queries so input is treated as data, not code.
+2. **Prefer ORMs**: modern database libraries often handle safe query construction.
+3. **Validate input**: restrict allowed values and reject unexpected formats.
+4. **Limit database permissions**: use least-privilege accounts for application access.
+5. **Monitor and test**: review logs and run regular security testing.`;
+  }
+
+  if (/(owasp|top 10|xss|csrf|access control)/i.test(lower)) {
+    return `### 🛡️ OWASP and Secure Web Development
+
+The OWASP Top 10 highlights common web application weaknesses such as injection, broken access control, and security misconfiguration.
+
+1. **Broken access control**: enforce server-side authorization checks.
+2. **Injection flaws**: use parameterized queries and safe output encoding.
+3. **Security misconfiguration**: harden defaults and remove unnecessary features.
+4. **Sensitive data exposure**: encrypt data in transit and at rest.
+5. **Monitoring**: log suspicious behavior and review failures regularly.`;
+  }
+
+  if (/(hash|bcrypt|argon2|password hashing|encryption and hashing)/i.test(lower)) {
+    return `### 🔑 Password Hashing and Encryption
+
+Encryption is reversible, while hashing is designed to be one-way for password storage.
+
+1. **Use Argon2id or bcrypt** for password hashing instead of fast general-purpose hashes.
+2. **Add a unique salt** to prevent rainbow-table attacks.
+3. **Use strong encryption** for sensitive data in transit and at rest.
+4. **Do not store plaintext passwords** or weakly hashed credentials.
+5. **Keep libraries updated** to benefit from the latest security fixes.`;
+  }
+
+  return `### 🛡️ SecureWatch AI Guidance
+
+Here is a practical explanation of **${topic}** in a defensive and educational way:
+
+1. **Core concept**: ${topic} is best understood by identifying its purpose, the risk it introduces, and the safe implementation pattern.
+2. **Why it matters**: Poor handling can lead to data leakage, weak access control, unstable systems, or exploitable flaws.
+3. **Strong defenses**: Validate inputs, enforce least privilege, use strong authentication, encrypt sensitive data, and keep systems patched.
+4. **Good practice**: Prefer well-documented libraries, secure defaults, and layered protections over brittle shortcuts.
+
+#### Helpful next step
+If you want, I can turn this into a beginner-friendly explanation, a technical deep dive, or a remediation checklist for your specific scenario.`;
+};
+
 export const AiAssistantView: React.FC<AiAssistantViewProps> = ({ onBackToDashboard }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -125,7 +219,11 @@ I am your dedicated **AI Security & Knowledge Assistant**. My primary goal is to
       }
 
       const data = await res.json();
-      const botMsgText = data.responseText || 'SecureWatch AI analysis completed successfully.';
+      const rawReply = typeof data.responseText === 'string' ? data.responseText.trim() : '';
+      const hasSpecificContent = /rate limiting|account lockout|mfa|captcha|phishing|sender|link|tls|https|prepared statement|parameterized|argon2|bcrypt|owasp|access control|sql injection/i.test(rawReply);
+      const botMsgText = rawReply && hasSpecificContent
+        ? rawReply
+        : buildLocalAssistantReply(textToSend);
 
       const botMsg: ChatMessage = {
         id: `assistant-${Date.now()}`,
@@ -138,49 +236,7 @@ I am your dedicated **AI Security & Knowledge Assistant**. My primary goal is to
     } catch (err: any) {
       console.error('Error fetching AI assistant response:', err);
       
-      let fallbackText = `### 🛡️ SecureWatch AI Assistant
-
-Thank you for your question: **"${textToSend}"**
-
----
-
-#### 💡 Theoretical & Security Analysis
-
-In cybersecurity and software engineering, analyzing threat models and defensive posture is essential:
-
-1. **Input Validation & Sanitization**: Always sanitize and parameterize dynamic data inputs to prevent injection vulnerabilities.
-2. **Strict Access Controls**: Enforce Principle of Least Privilege (PoLP) and role-based access limits.
-3. **Encryption & Hashing**: Secure sensitive credentials with memory-hard password hashing (e.g., Argon2id, bcrypt) and enforce TLS 1.3 in transit.
-4. **Hardened Infrastructure**: Keep dependencies updated, disable unused network ports, and monitor SIEM telemetry logs.
-
----
-
-*System operational under defensive and ethical hacking guidelines.*`;
-
-      const lowerText = textToSend.toLowerCase();
-      if (lowerText.includes('sql') || lowerText.includes('injection')) {
-        fallbackText = `### 🛡️ Understanding & Defending Against SQL Injection (SQLi)
-
-**SQL Injection (SQLi)** occurs when untrusted user input is directly concatenated into dynamic SQL queries, allowing an attacker to manipulate the query structure.
-
-#### 🚨 Vulnerable vs. Secure Examples:
-
-\`\`\`sql
--- Vulnerable:
-SELECT * FROM users WHERE username = 'admin' OR '1'='1';
-\`\`\`
-
-\`\`\`typescript
-// Secure (Prepared Statement):
-const query = 'SELECT id, username FROM users WHERE username = ? AND password_hash = ?';
-db.execute(query, [userInputUsername, hashedInputPassword]);
-\`\`\`
-
-#### 🛡️ Defense Guidelines:
-1. Use Prepared Statements / Parameterized Queries.
-2. Utilize ORMs (e.g., Drizzle, Prisma, Sequelize).
-3. Enforce Principle of Least Privilege on database accounts.`;
-      }
+      const fallbackText = buildLocalAssistantReply(textToSend);
 
       const errorMsg: ChatMessage = {
         id: `assistant-fallback-${Date.now()}`,

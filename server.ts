@@ -1912,121 +1912,83 @@ Return JSON with exact keys:
 function buildLocalAssistantResponse(prompt: string): string {
   const lowerP = prompt.toLowerCase().trim();
   const cleanedPrompt = prompt
-    .replace(/^(explain|what is|tell me about|describe|how does|why does|can you explain)\s+/i, '')
+    .replace(/^(explain|what is|tell me about|describe|how does|how can i|why does|can you explain)\s+/i, '')
     .trim();
   const topicLabel = cleanedPrompt ? cleanedPrompt.replace(/\s+/g, ' ').slice(0, 90) : 'your security topic';
   const topicDisplay = topicLabel.charAt(0).toUpperCase() + topicLabel.slice(1);
 
-  if (lowerP.includes('sql injection') || lowerP.includes('sqli')) {
-    return `### 🛡️ Understanding & Defending Against SQL Injection (SQLi)
+  if (/(login|sign in|auth|brute force|rate limit|lockout|captcha|mfa|password)/i.test(lowerP)) {
+    return `### 🛡️ Brute-Force Protection for Login Pages
 
-**SQL Injection (SQLi)** occurs when untrusted user input is directly concatenated into dynamic SQL queries, allowing an attacker to manipulate the query structure, bypass authentication, exfiltrate database records, or corrupt data.
+To protect a login page against brute-force attacks, combine **rate limiting**, **account lockout**, **multi-factor authentication**, **CAPTCHA or bot detection**, and **strong password policy**.
 
----
+1. **Rate limiting**: restrict repeated failed attempts per IP or per account.
+2. **Account lockout / backoff**: slow down repeated guesses after a few errors.
+3. **MFA**: require a second factor for high-risk sign-ins.
+4. **CAPTCHA / bot checks**: reduce automated password spraying.
+5. **Monitoring**: alert on bursty failure patterns and suspicious IP reputation.
 
-#### 🚨 Example of Vulnerable Code vs. Secure Code
-
-##### ❌ Vulnerable (String Concatenation):
-\`\`\`sql
--- Attacker enters input: admin' OR '1'='1
-SELECT * FROM users WHERE username = 'admin' OR '1'='1' AND password = '...';
-\`\`\`
-
-##### ✅ Secure Countermeasure (Prepared Statements / Parameterized Queries):
-\`\`\`typescript
-// Node.js Prepared Query Example
-const query = 'SELECT id, username, role FROM users WHERE username = ? AND password_hash = ?';
-db.execute(query, [userInputUsername, hashedInputPassword]);
-\`\`\`
-
----
-
-#### 🛡️ Core Defense Best Practices
-1. **Parameterized Queries / Prepared Statements**: Completely decouples data inputs from executable SQL logic.
-2. **ORMs (Object Relational Mapping)**: Libraries like Prisma, Drizzle, or Sequelize parameterize queries natively.
-3. **Least Privilege Database Accounts**: Ensure web applications connect using non-administrative SQL roles.
-4. **Input Validation & Sanitization**: Enforce type-checking and whitelist validation on incoming parameters.`;
+A strong login flow should also log suspicious attempts and enforce long, unique credentials.`;
   }
 
-  if (lowerP.includes('owasp') || lowerP.includes('top 10')) {
-    return `### 🔒 OWASP Top 10 Web Application Security Breakdown
+  if (/(phish|email|spoof|scam|sender|link|domain)/i.test(lowerP)) {
+    return `### 🎣 Phishing Awareness and Detection
 
-The **OWASP Top 10** represents the standard awareness document for developers and web application security professionals.
+Phishing works by tricking a user into trusting a fake sender, link, or website.
 
----
-
-#### 1. A01:2021 – Broken Access Control
-- **Issue**: Users can act outside of their intended permissions (e.g., accessing another user's private data via IDOR).
-- **Defense**: Implement strict server-side role-based access control (RBAC) and avoid relying on client-side security checks.
-
-#### 2. A02:2021 – Cryptographic Failures
-- **Issue**: Exposing sensitive data in transit (HTTP instead of HTTPS) or at rest (weak password hashing).
-- **Defense**: Use TLS 1.3, AES-256 for symmetric data, and bcrypt/Argon2id for passwords.
-
-#### 3. A03:2021 – Injection (SQLi, Command, XSS)
-- **Issue**: Untrusted user input is interpreted as code or queries.
-- **Defense**: Use parameterized APIs, context-aware encoding, and Content Security Policy (CSP).
-
-#### 4. A04:2021 – Insecure Design
-- **Issue**: Threat modeling and security design patterns were missing during architecture planning.
-- **Defense**: Integrate security threat modeling early in the SDLC pipeline.
-
-#### 5. A05:2021 – Security Misconfiguration
-- **Issue**: Default credentials left unchanged, overly verbose error stack traces enabled in production.
-- **Defense**: Hardened baseline deployment configurations and automated security auditing.`;
+1. **Check the sender**: verify the address and look for subtle domain spoofing.
+2. **Hover before you click**: inspect the actual destination URL rather than the displayed text.
+3. **Verify requests**: use known contact channels to confirm urgent requests.
+4. **Report suspicious messages**: alert your security team or email provider quickly.
+5. **Use protections**: email filtering, MFA, and security awareness training help reduce risk.`;
   }
 
-  if (lowerP.includes('tcp') || lowerP.includes('handshake') || lowerP.includes('syn flood')) {
-    return `### 🌐 Network Fundamentals: TCP 3-Way Handshake & SYN Flood Mitigation
+  if (/(tls|ssl|https|certificate|hsts|encryption in transit)/i.test(lowerP)) {
+    return `### 🔐 TLS/SSL and Secure Communication
 
-The **TCP 3-Way Handshake** is the foundational mechanism used to establish a reliable, connection-oriented socket between a client and a server.
+TLS protects data while it moves between a user and a server by encrypting traffic and validating server identity.
 
----
-
-#### 🤝 The 3-Way Handshake Process
-
-1. **SYN (Synchronize)**: Client sends a TCP packet with the \`SYN\` flag set and an initial sequence number (\`ISN_C\`).
-2. **SYN-ACK (Synchronize-Acknowledge)**: Server responds with \`SYN-ACK\` flags set, acknowledging client's sequence number and sending its own (\`ISN_S\`).
-3. **ACK (Acknowledge)**: Client responds with an \`ACK\` packet, establishing a connection ready for data transfer.
-
----
-
-#### 💥 SYN Flood Attack & Defense
-
-In a **SYN Flood**, an attacker sends thousands of spoofed \`SYN\` packets without completing the final \`ACK\`, exhausting the server's connection backlog pool.
-
-##### 🛡️ Countermeasures:
-- **SYN Cookies**: Enables the server to remain stateless until the client completes the full 3-way handshake.
-- **TCP Connection Rate Limiting**: Restricting maximum incoming connection requests per IP address.
-- **Firewall & Anycast Scrubbing**: Offloading volumetric TCP traffic to DDoS mitigation layers like Cloudflare or AWS Shield.`;
+1. **HTTPS everywhere**: use TLS for all web traffic and redirect HTTP to HTTPS.
+2. **TLS 1.3**: prefer modern versions and disable weak legacy protocols.
+3. **Certificate validation**: ensure certificates are issued by trusted authorities and renewed on time.
+4. **HSTS**: enforce HTTPS with HTTP Strict Transport Security.
+5. **Secure configuration**: disable insecure ciphers and keep infrastructure patched.`;
   }
 
-  if (lowerP.includes('hash') || lowerP.includes('bcrypt') || lowerP.includes('argon2') || lowerP.includes('password')) {
-    return `### 🔑 Cryptographic Concepts: Encryption vs. Hashing
+  if (/(sql|injection|prepared|parameterized|query)/i.test(lowerP)) {
+    return `### 🧱 SQL Injection Defense
 
-Understanding the fundamental difference between **symmetric/asymmetric encryption** and **cryptographic hashing** is critical for secure system design.
+SQL Injection happens when untrusted user input changes the logic of a SQL query.
 
----
+1. **Use prepared statements**: parameterize queries so input is treated as data, not code.
+2. **Prefer ORMs**: modern database libraries often handle safe query construction.
+3. **Validate input**: restrict allowed values and reject unexpected formats.
+4. **Limit database permissions**: use least-privilege accounts for application access.
+5. **Monitor and test**: review logs and run regular security testing.`;
+  }
 
-#### 🔄 Encryption vs. Hashing
+  if (/(owasp|top 10|xss|csrf|access control)/i.test(lowerP)) {
+    return `### 🛡️ OWASP and Secure Web Development
 
-| Feature | Encryption (e.g., AES-256, RSA) | Hashing (e.g., SHA-256, Argon2id) |
-| :--- | :--- | :--- |
-| **Direction** | Two-way (Encrypt & Decrypt) | One-way (Irreversible mathematical transformation) |
-| **Primary Use** | Confidential data storage & transfer | Password storage, message integrity checks |
-| **Key Requirement** | Requires Secret Key / Key Pair | No key required (uses Salt to prevent rainbow tables) |
+The OWASP Top 10 highlights common web application weaknesses such as injection, broken access control, and security misconfiguration.
 
----
+1. **Broken access control**: enforce server-side authorization checks.
+2. **Injection flaws**: use parameterized queries and safe output encoding.
+3. **Security misconfiguration**: harden defaults and remove unnecessary features.
+4. **Sensitive data exposure**: encrypt data in transit and at rest.
+5. **Monitoring**: log suspicious behavior and review failures regularly.`;
+  }
 
-#### 🛡️ Modern Secure Password Hashing
+  if (/(hash|bcrypt|argon2|password hashing|encryption and hashing)/i.test(lowerP)) {
+    return `### 🔑 Password Hashing and Encryption
 
-##### Why SHA-256 is Inadequate for Passwords:
-General cryptographic hash functions (SHA-256, MD5) are designed to be **fast**, allowing GPUs to calculate billions of guesses per second during brute-force or dictionary attacks.
+Encryption is reversible, while hashing is designed to be one-way for password storage.
 
-##### Password-Hardened Hashing Functions:
-1. **Argon2id** *(OWASP Recommended)*: Memory-hard and time-hard algorithm resistant to GPU/ASIC acceleration.
-2. **bcrypt**: Uses a configurable cost factor (work factor) to slow down hash calculation speed exponentially.
-3. **Salt**: Unique random string appended to passwords prior to hashing to render pre-computed Rainbow Tables useless.`;
+1. **Use Argon2id or bcrypt** for password hashing instead of fast general-purpose hashes.
+2. **Add a unique salt** to prevent rainbow-table attacks.
+3. **Use strong encryption** for sensitive data in transit and at rest.
+4. **Do not store plaintext passwords** or weakly hashed credentials.
+5. **Keep libraries updated** to benefit from the latest security fixes.`;
   }
 
   return `### 🛡️ SecureWatch AI Guidance
