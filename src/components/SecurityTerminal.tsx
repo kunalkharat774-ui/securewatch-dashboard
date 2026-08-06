@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { TurnstileWidget } from './TurnstileWidget';
 
 // --- Matrix Rain Animation Canvas ---
 const BinaryBackground: React.FC = () => {
@@ -74,6 +75,8 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
   const [inputPassword, setInputPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [isDecrypting, setIsDecrypting] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [isVerifying, setIsVerifying] = useState<boolean>(false);
 
   // Voice Feedback logic
   const playVoiceFeedback = useCallback((text: string) => {
@@ -136,9 +139,38 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
     return () => clearInterval(timerId);
   }, [isAuthenticated, isDecrypting, activeCreds.username, generateNewCredentials]);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Require Turnstile token first
+    if (!turnstileToken) {
+      setErrorMsg('Please complete the Cloudflare Turnstile verification.');
+      return;
+    }
+
+    setIsVerifying(true);
+    try {
+      const resp = await fetch('/api/verify-turnstile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: turnstileToken }),
+      });
+
+      const body = await resp.json();
+      if (!body || body.verified === false) {
+        setErrorMsg('Turnstile verification failed. Please try again.');
+        setIsVerifying(false);
+        return;
+      }
+    } catch (err) {
+      setErrorMsg('Turnstile verification error. Please try again.');
+      setIsVerifying(false);
+      return;
+    }
+
+    setIsVerifying(false);
+
+    // Proceed with existing credential check
     if (
       inputUsername.trim().toUpperCase() === activeCreds.username.toUpperCase() &&
       inputPassword.trim() === activeCreds.password
@@ -250,9 +282,18 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
                   required
                 />
 
+                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                  <TurnstileWidget
+                    siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || import.meta.env.VITE_TURNSTILE_PUBLIC_KEY}
+                    onVerify={(token) => setTurnstileToken(token)}
+                    onExpire={() => setTurnstileToken(null)}
+                    className="mt-2"
+                  />
+                </div>
+
                 {errorMsg && <p style={styles.errorText}>{errorMsg}</p>}
-                <button type="submit" style={styles.authBtn}>
-                  AUTHORIZE LOGIN
+                <button type="submit" style={styles.authBtn} disabled={isVerifying || !turnstileToken}>
+                  {isVerifying ? 'VERIFYING...' : 'AUTHORIZE LOGIN'}
                 </button>
               </form>
             </>
