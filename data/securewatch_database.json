@@ -3,6 +3,21 @@
     "users": [],
     "logs": [
       {
+        "id": "SEC-LOG-85514",
+        "timestamp": "2026-08-06T03:55:23.753Z",
+        "traceId": "tr-ferv4zrm",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.84.84.213",
+        "sourceIp": "103.42.43.78",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
         "id": "SEC-LOG-71963",
         "timestamp": "2026-08-06T03:55:13.750Z",
         "traceId": "tr-wie2zcx6",
@@ -2985,21 +3000,6 @@
         "details": {
           "protocol": "TCP/SYN",
           "bytesSent": 64
-        }
-      },
-      {
-        "id": "SEC-LOG-30755",
-        "timestamp": "2026-08-05T15:26:50.037Z",
-        "traceId": "tr-5px8xn2r",
-        "level": "INFO",
-        "service": "TLS Gateway",
-        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
-        "sourceIp": "192.168.1.108",
-        "destination": "internal-mesh:8443",
-        "action": "ALLOWED",
-        "details": {
-          "cipher": "TLS_AES_256_GCM_SHA384",
-          "certSubject": "CN=xHunter-Microservice"
         }
       }
     ],
