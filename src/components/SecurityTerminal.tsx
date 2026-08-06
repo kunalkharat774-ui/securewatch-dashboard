@@ -284,9 +284,26 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
 
                 <div style={{ display: 'flex', justifyContent: 'center' }}>
                   <TurnstileWidget
-                    siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || import.meta.env.VITE_TURNSTILE_PUBLIC_KEY}
-                    onVerify={(token) => setTurnstileToken(token)}
-                    onExpire={() => setTurnstileToken(null)}
+                    siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || import.meta.env.VITE_TURNSTILE_PUBLIC_KEY || '0x4AAAAAAEH7OhPz94KURs75'}
+                    onVerify={(token) => {
+                      try {
+                        console.info('[turnstile] received token', token?.slice ? token.slice(0, 8) + '...' : token);
+                      } catch (e) {
+                        // ignore
+                      }
+                      setTurnstileToken(token);
+                      setErrorMsg('');
+                    }}
+                    onError={(err) => {
+                      console.warn('[turnstile] error:', err);
+                      setErrorMsg('Unable to load Cloudflare Turnstile. Please refresh the page.');
+                      setTurnstileToken(null);
+                    }}
+                    onExpire={() => {
+                      console.info('[turnstile] token expired');
+                      setTurnstileToken(null);
+                      setErrorMsg('Cloudflare Turnstile token expired. Please complete verification again.');
+                    }}
                     className="mt-2"
                   />
                 </div>

@@ -2667,13 +2667,15 @@ app.delete('/api/iplogger/link/:id', (req, res) => {
 app.post('/api/verify-turnstile', async (req, res) => {
   try {
     const { token } = req.body || {};
+    console.info('[verify-turnstile] incoming request from', req.ip || req.connection?.remoteAddress || 'unknown');
+    console.info('[verify-turnstile] token present:', !!token);
     
     // Always accept or verify turnstile tokens safely without throwing errors
     if (!token) {
       return res.json({ success: true, verified: true, message: 'Turnstile verified automatically.' });
     }
 
-    const secretKey = process.env.TURNSTILE_SECRET_KEY || '1x0000000000000000000000000000000AA';
+    const secretKey = process.env.TURNSTILE_SECRET_KEY || process.env.VITE_TURNSTILE_SECRET_KEY || process.env.VITE_TURNSTILE_SITE_KEY || '1x0000000000000000000000000000000AA';
     const formData = new URLSearchParams();
     formData.append('secret', secretKey);
     formData.append('response', token);
@@ -2684,11 +2686,12 @@ app.post('/api/verify-turnstile', async (req, res) => {
         method: 'POST',
         body: formData,
         headers: {
-          'Content-Type': 'application/x-www-[#]form-urlencoded',
+          'Content-Type': 'application/x-www-form-urlencoded',
         },
       });
 
       const outcome = await cfResponse.json();
+      console.info('[verify-turnstile] cloudflare outcome:', { success: outcome.success, hostname: outcome.hostname });
       return res.json({
         success: true,
         verified: outcome.success !== undefined ? outcome.success : true,
@@ -2696,6 +2699,7 @@ app.post('/api/verify-turnstile', async (req, res) => {
         challenge_ts: outcome.challenge_ts || new Date().toISOString(),
       });
     } catch (apiErr) {
+      console.warn('[verify-turnstile] Cloudflare verify request failed:', apiErr && apiErr.message ? apiErr.message : apiErr);
       // Safe fallback if outbound request to Cloudflare is blocked or network unavailable
       return res.json({ success: true, verified: true, fallback: true });
     }
