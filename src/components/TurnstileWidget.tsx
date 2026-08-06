@@ -9,7 +9,6 @@ interface TurnstileWidgetProps {
 }
 
 const DEFAULT_TURNSTILE_SITE_KEY = '0x4AAAAAAEH7OhPz94KURs75';
-const DEV_FALLBACK_TURNSTILE_SITE_KEY = '1x00000000000000000000AA';
 
 export const TurnstileWidget: React.FC<TurnstileWidgetProps> = ({
  siteKey = DEFAULT_TURNSTILE_SITE_KEY,
@@ -24,13 +23,7 @@ export const TurnstileWidget: React.FC<TurnstileWidgetProps> = ({
  const [isLoaded, setIsLoaded] = useState(false);
  const [hasError, setHasError] = useState(false);
 
- const effectiveSiteKey = (() => {
-   const localOrigins = ['localhost', '127.0.0.1', '[::1]'];
-   if (typeof window !== 'undefined' && localOrigins.includes(window.location.hostname) && siteKey === DEFAULT_TURNSTILE_SITE_KEY) {
-     return DEV_FALLBACK_TURNSTILE_SITE_KEY;
-   }
-   return siteKey;
- })();
+ const effectiveSiteKey = siteKey;
 
  useEffect(() => {
     let intervalId: NodeJS.Timeout | null = null;
@@ -40,6 +33,10 @@ export const TurnstileWidget: React.FC<TurnstileWidgetProps> = ({
       if (document.getElementById('cf-turnstile-script')) {
         return;
       }
+ 
+      (window as any).onTurnstileSuccess = onSuccess;
+      (window as any).onTurnstileExpired = onExpired;
+      (window as any).onTurnstileError = onErrorCallback;
 
       scriptElement = document.createElement('script');
       scriptElement.id = 'cf-turnstile-script';
@@ -48,7 +45,6 @@ export const TurnstileWidget: React.FC<TurnstileWidgetProps> = ({
       scriptElement.defer = true;
       scriptElement.onload = () => {
         setHasError(false);
-        renderWidget();
       };
       scriptElement.onerror = (event) => {
         console.error('Failed to load Cloudflare Turnstile script:', event);
@@ -58,35 +54,42 @@ export const TurnstileWidget: React.FC<TurnstileWidgetProps> = ({
       document.head.appendChild(scriptElement);
     };
 
+    const onSuccess = (token: string) => {
+      setHasError(false);
+      setIsLoaded(true);
+      if (onVerify) onVerify(token);
+    };
+
+    const onExpired = () => {
+      setIsLoaded(false);
+      if (onExpire) onExpire();
+    };
+
+    const onErrorCallback = (err: any) => {
+      console.warn('Turnstile error callback:', err);
+      if ((window as any).turnstile && widgetIdRef.current) {
+        try {
+          (window as any).turnstile.reset(widgetIdRef.current);
+        } catch (resetErr) {
+          console.warn('Turnstile reset failed:', resetErr);
+        }
+      }
+      setHasError(true);
+      if (onError) onError(err);
+    };
+
     const renderWidget = () => {
       const turnstile = (window as any).turnstile;
       if (turnstile && containerRef.current && !widgetIdRef.current) {
         try {
-          const id = turnstile.render(containerRef.current, {
+          containerRef.current.innerHTML = '';
+          const id = turnstile.render(`#${widgetContainerId}`, {
             sitekey: effectiveSiteKey,
             theme: 'dark',
             size: 'normal',
-            callback: (token: string) => {
-              setHasError(false);
-              setIsLoaded(true);
-              if (onVerify) onVerify(token);
-            },
-            'error-callback': (err: any) => {
-              console.warn('Turnstile error callback:', err);
-              if (turnstile && widgetIdRef.current) {
-                try {
-                  turnstile.reset(widgetIdRef.current);
-                } catch (resetErr) {
-                  console.warn('Turnstile reset failed:', resetErr);
-                }
-              }
-              setHasError(true);
-              if (onError) onError(err);
-            },
-            'expired-callback': () => {
-              setIsLoaded(false);
-              if (onExpire) onExpire();
-            },
+            callback: onSuccess,
+            'error-callback': onErrorCallback,
+            'expired-callback': onExpired,
           });
           widgetIdRef.current = id;
           setIsLoaded(true);
@@ -102,13 +105,17 @@ export const TurnstileWidget: React.FC<TurnstileWidgetProps> = ({
       }
     };
 
+    (window as any).onTurnstileSuccess = onSuccess;
+    (window as any).onTurnstileExpired = onExpired;
+    (window as any).onTurnstileError = onErrorCallback;
+
     const initializeWidget = () => {
       if (!window.turnstile) {
         return;
       }
       renderWidget();
     };
-
+ 
     if (window.turnstile) {
       initializeWidget();
     } else if (document.getElementById('cf-turnstile-script')) {
@@ -138,13 +145,31 @@ export const TurnstileWidget: React.FC<TurnstileWidgetProps> = ({
         }
         widgetIdRef.current = null;
       }
+      if ((window as any).onTurnstileSuccess === onSuccess) {
+        delete (window as any).onTurnstileSuccess;
+      }
+      if ((window as any).onTurnstileExpired === onExpired) {
+        delete (window as any).onTurnstileExpired;
+      }
+      if ((window as any).onTurnstileError === onErrorCallback) {
+        delete (window as any).onTurnstileError;
+      }
     };
   }, [effectiveSiteKey, onVerify, onError, onExpire]);
 
   return (
     <div className={`w-full ${className}`}>
       <div className="flex flex-col gap-2">
-        <div ref={containerRef} id={widgetContainerId} className="w-full min-h-[80px] flex justify-center" />
+        <div
+          ref={containerRef}
+          id={widgetContainerId}
+          className="cf-turnstile w-full min-h-[80px] flex justify-center"
+          data-sitekey={effectiveSiteKey}
+          data-theme="dark"
+          data-callback="onTurnstileSuccess"
+          data-expired-callback="onTurnstileExpired"
+          data-error-callback="onTurnstileError"
+        />
         {!isLoaded && !hasError && (
           <div className="text-[11px] text-slate-400 text-center">Loading Cloudflare Turnstile...</div>
         )}
