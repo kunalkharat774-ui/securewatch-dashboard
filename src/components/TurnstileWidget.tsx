@@ -86,22 +86,12 @@ export const TurnstileWidget: React.FC<TurnstileWidgetProps> = ({
     <div className={`p-3 bg-[#0a1128]/80 border border-cyan-500/20 rounded-xl space-y-2 ${className}`}>
       <div className="flex items-center justify-between text-xs">
         <span className="text-gray-300 font-semibold flex items-center gap-1.5">
-          <ShieldCheck className="w-4 h-4 text-cyan-400" />
-          Cloudflare Turnstile Verification
-        </span>
         {isVerified && (
-          <span className="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30 flex items-center gap-1">
-            <CheckCircle2 className="w-3 h-3" /> VERIFIED HUMAN
-          </span>
         )}
       </div>
 
       <div className="flex justify-center my-1 min-h-[65px] items-center">
         <div ref={containerRef} />
-      </div>
-
-      <div className="text-[10px] text-gray-500 text-center font-mono flex items-center justify-center gap-1">
-        <Lock className="w-3 h-3 text-cyan-500/60" /> Protected by Cloudflare Bot Management & Threat Protection
       </div>
     </div>
   );
