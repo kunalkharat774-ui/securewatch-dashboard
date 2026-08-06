@@ -80,10 +80,18 @@ export const TurnstileWidget: React.FC<TurnstileWidgetProps> = ({
 
     const renderWidget = () => {
       const turnstile = (window as any).turnstile;
-      if (turnstile && containerRef.current && !widgetIdRef.current) {
+      if (turnstile && containerRef.current) {
         try {
+          if (widgetIdRef.current && typeof turnstile.getResponse === 'function') {
+            const existingResponse = turnstile.getResponse(widgetIdRef.current);
+            if (existingResponse !== undefined) {
+              turnstile.remove(widgetIdRef.current);
+            }
+            widgetIdRef.current = null;
+          }
+
           containerRef.current.innerHTML = '';
-          const id = turnstile.render(`#${widgetContainerId}`, {
+          const widgetId = turnstile.render(`#${widgetContainerId}`, {
             sitekey: effectiveSiteKey,
             theme: 'dark',
             size: 'normal',
@@ -91,7 +99,7 @@ export const TurnstileWidget: React.FC<TurnstileWidgetProps> = ({
             'error-callback': onErrorCallback,
             'expired-callback': onExpired,
           });
-          widgetIdRef.current = id;
+          widgetIdRef.current = widgetId;
           setIsLoaded(true);
           if (intervalId) {
             clearInterval(intervalId);
@@ -139,7 +147,9 @@ export const TurnstileWidget: React.FC<TurnstileWidgetProps> = ({
       }
       if (widgetIdRef.current && window.turnstile) {
         try {
-          window.turnstile.remove(widgetIdRef.current);
+          if (typeof window.turnstile.getResponse === 'function' && window.turnstile.getResponse(widgetIdRef.current) !== undefined) {
+            window.turnstile.remove(widgetIdRef.current);
+          }
         } catch (err) {
           console.warn('Failed to remove Turnstile widget:', err);
         }
