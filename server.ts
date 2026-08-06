@@ -10,9 +10,9 @@ import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
 
-// Load .env.local first, then fallback to .env
-dotenv.config({ path: '.env.local' });
-dotenv.config();
+// Load .env.local first, then fallback to .env and allow overrides
+dotenv.config({ path: '.env.local', override: true });
+dotenv.config({ override: true });
 
 const app = express();
 const PORT = 3000;
@@ -22,8 +22,12 @@ app.use(express.json());
 // Initialize Gemini Client lazily
 let aiClient: GoogleGenAI | null = null;
 function getGeminiClient() {
-  if (!aiClient && process.env.GEMINI_API_KEY) {
-    aiClient = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  dotenv.config({ path: '.env.local', override: true });
+  dotenv.config({ override: true });
+
+  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || process.env.GEMINI_KEY;
+  if (!aiClient && apiKey) {
+    aiClient = new GoogleGenAI({ apiKey });
   }
   return aiClient;
 }
@@ -1371,6 +1375,23 @@ function getTenantDb(req: express.Request): { sessionId: string; db: TenantDatab
 }
 
 // ---------------------------------------------------------
+// HEALTH & AUTH COMPATIBILITY ROUTES
+// ---------------------------------------------------------
+app.get('/api/health', (_req, res) => {
+  res.json({
+    status: 'ok',
+    service: 'securewatch-dashboard',
+    timestamp: new Date().toISOString(),
+    uptimeSeconds: Number(process.uptime().toFixed(2)),
+  });
+});
+
+app.get('/api/auth/users', (req, res) => {
+  const { db } = getTenantDb(req);
+  return res.json(db.users);
+});
+
+// ---------------------------------------------------------
 // REAL SECURITY USER MANAGEMENT (RBAC) API ENDPOINTS
 // ---------------------------------------------------------
 
@@ -1888,6 +1909,139 @@ Return JSON with exact keys:
   }
 });
 
+function buildLocalAssistantResponse(prompt: string): string {
+  const lowerP = prompt.toLowerCase().trim();
+  const cleanedPrompt = prompt
+    .replace(/^(explain|what is|tell me about|describe|how does|why does|can you explain)\s+/i, '')
+    .trim();
+  const topicLabel = cleanedPrompt ? cleanedPrompt.replace(/\s+/g, ' ').slice(0, 90) : 'your security topic';
+  const topicDisplay = topicLabel.charAt(0).toUpperCase() + topicLabel.slice(1);
+
+  if (lowerP.includes('sql injection') || lowerP.includes('sqli')) {
+    return `### 🛡️ Understanding & Defending Against SQL Injection (SQLi)
+
+**SQL Injection (SQLi)** occurs when untrusted user input is directly concatenated into dynamic SQL queries, allowing an attacker to manipulate the query structure, bypass authentication, exfiltrate database records, or corrupt data.
+
+---
+
+#### 🚨 Example of Vulnerable Code vs. Secure Code
+
+##### ❌ Vulnerable (String Concatenation):
+\`\`\`sql
+-- Attacker enters input: admin' OR '1'='1
+SELECT * FROM users WHERE username = 'admin' OR '1'='1' AND password = '...';
+\`\`\`
+
+##### ✅ Secure Countermeasure (Prepared Statements / Parameterized Queries):
+\`\`\`typescript
+// Node.js Prepared Query Example
+const query = 'SELECT id, username, role FROM users WHERE username = ? AND password_hash = ?';
+db.execute(query, [userInputUsername, hashedInputPassword]);
+\`\`\`
+
+---
+
+#### 🛡️ Core Defense Best Practices
+1. **Parameterized Queries / Prepared Statements**: Completely decouples data inputs from executable SQL logic.
+2. **ORMs (Object Relational Mapping)**: Libraries like Prisma, Drizzle, or Sequelize parameterize queries natively.
+3. **Least Privilege Database Accounts**: Ensure web applications connect using non-administrative SQL roles.
+4. **Input Validation & Sanitization**: Enforce type-checking and whitelist validation on incoming parameters.`;
+  }
+
+  if (lowerP.includes('owasp') || lowerP.includes('top 10')) {
+    return `### 🔒 OWASP Top 10 Web Application Security Breakdown
+
+The **OWASP Top 10** represents the standard awareness document for developers and web application security professionals.
+
+---
+
+#### 1. A01:2021 – Broken Access Control
+- **Issue**: Users can act outside of their intended permissions (e.g., accessing another user's private data via IDOR).
+- **Defense**: Implement strict server-side role-based access control (RBAC) and avoid relying on client-side security checks.
+
+#### 2. A02:2021 – Cryptographic Failures
+- **Issue**: Exposing sensitive data in transit (HTTP instead of HTTPS) or at rest (weak password hashing).
+- **Defense**: Use TLS 1.3, AES-256 for symmetric data, and bcrypt/Argon2id for passwords.
+
+#### 3. A03:2021 – Injection (SQLi, Command, XSS)
+- **Issue**: Untrusted user input is interpreted as code or queries.
+- **Defense**: Use parameterized APIs, context-aware encoding, and Content Security Policy (CSP).
+
+#### 4. A04:2021 – Insecure Design
+- **Issue**: Threat modeling and security design patterns were missing during architecture planning.
+- **Defense**: Integrate security threat modeling early in the SDLC pipeline.
+
+#### 5. A05:2021 – Security Misconfiguration
+- **Issue**: Default credentials left unchanged, overly verbose error stack traces enabled in production.
+- **Defense**: Hardened baseline deployment configurations and automated security auditing.`;
+  }
+
+  if (lowerP.includes('tcp') || lowerP.includes('handshake') || lowerP.includes('syn flood')) {
+    return `### 🌐 Network Fundamentals: TCP 3-Way Handshake & SYN Flood Mitigation
+
+The **TCP 3-Way Handshake** is the foundational mechanism used to establish a reliable, connection-oriented socket between a client and a server.
+
+---
+
+#### 🤝 The 3-Way Handshake Process
+
+1. **SYN (Synchronize)**: Client sends a TCP packet with the \`SYN\` flag set and an initial sequence number (\`ISN_C\`).
+2. **SYN-ACK (Synchronize-Acknowledge)**: Server responds with \`SYN-ACK\` flags set, acknowledging client's sequence number and sending its own (\`ISN_S\`).
+3. **ACK (Acknowledge)**: Client responds with an \`ACK\` packet, establishing a connection ready for data transfer.
+
+---
+
+#### 💥 SYN Flood Attack & Defense
+
+In a **SYN Flood**, an attacker sends thousands of spoofed \`SYN\` packets without completing the final \`ACK\`, exhausting the server's connection backlog pool.
+
+##### 🛡️ Countermeasures:
+- **SYN Cookies**: Enables the server to remain stateless until the client completes the full 3-way handshake.
+- **TCP Connection Rate Limiting**: Restricting maximum incoming connection requests per IP address.
+- **Firewall & Anycast Scrubbing**: Offloading volumetric TCP traffic to DDoS mitigation layers like Cloudflare or AWS Shield.`;
+  }
+
+  if (lowerP.includes('hash') || lowerP.includes('bcrypt') || lowerP.includes('argon2') || lowerP.includes('password')) {
+    return `### 🔑 Cryptographic Concepts: Encryption vs. Hashing
+
+Understanding the fundamental difference between **symmetric/asymmetric encryption** and **cryptographic hashing** is critical for secure system design.
+
+---
+
+#### 🔄 Encryption vs. Hashing
+
+| Feature | Encryption (e.g., AES-256, RSA) | Hashing (e.g., SHA-256, Argon2id) |
+| :--- | :--- | :--- |
+| **Direction** | Two-way (Encrypt & Decrypt) | One-way (Irreversible mathematical transformation) |
+| **Primary Use** | Confidential data storage & transfer | Password storage, message integrity checks |
+| **Key Requirement** | Requires Secret Key / Key Pair | No key required (uses Salt to prevent rainbow tables) |
+
+---
+
+#### 🛡️ Modern Secure Password Hashing
+
+##### Why SHA-256 is Inadequate for Passwords:
+General cryptographic hash functions (SHA-256, MD5) are designed to be **fast**, allowing GPUs to calculate billions of guesses per second during brute-force or dictionary attacks.
+
+##### Password-Hardened Hashing Functions:
+1. **Argon2id** *(OWASP Recommended)*: Memory-hard and time-hard algorithm resistant to GPU/ASIC acceleration.
+2. **bcrypt**: Uses a configurable cost factor (work factor) to slow down hash calculation speed exponentially.
+3. **Salt**: Unique random string appended to passwords prior to hashing to render pre-computed Rainbow Tables useless.`;
+  }
+
+  return `### 🛡️ SecureWatch AI Guidance
+
+Here is a practical explanation of **${topicDisplay}** in a defensive and educational way:
+
+1. **Core concept**: ${topicDisplay} is best understood by identifying its purpose, the risk it introduces, and the safe implementation pattern.
+2. **Why it matters**: Poor handling can lead to data leakage, weak access control, unstable systems, or exploitable flaws.
+3. **Strong defenses**: Validate inputs, enforce least privilege, use strong authentication, encrypt sensitive data, and keep systems patched.
+4. **Good practice**: Prefer well-documented libraries, secure defaults, and layered protections over brittle shortcuts.
+
+#### Helpful next step
+If you want, I can turn this into a beginner-friendly explanation, a technical deep dive, or a remediation checklist for your specific scenario.`;
+}
+
 // ---------------------------------------------------------
 // API ENDPOINT: AI SECURITY ASSISTANT
 // ---------------------------------------------------------
@@ -1971,132 +2125,7 @@ Guidelines:
 
     // Comprehensive Cyber Security Local Knowledge Fallback Engine
     if (!responseText) {
-      const lowerP = prompt.toLowerCase();
-      if (lowerP.includes('sql injection') || lowerP.includes('sqli')) {
-        responseText = `### 🛡️ Understanding & Defending Against SQL Injection (SQLi)
-
-**SQL Injection (SQLi)** occurs when untrusted user input is directly concatenated into dynamic SQL queries, allowing an attacker to manipulate the query structure, bypass authentication, exfiltrate database records, or corrupt data.
-
----
-
-#### 🚨 Example of Vulnerable Code vs. Secure Code
-
-##### ❌ Vulnerable (String Concatenation):
-\`\`\`sql
--- Attacker enters input: admin' OR '1'='1
-SELECT * FROM users WHERE username = 'admin' OR '1'='1' AND password = '...';
-\`\`\`
-
-##### ✅ Secure Countermeasure (Prepared Statements / Parameterized Queries):
-\`\`\`typescript
-// Node.js Prepared Query Example
-const query = 'SELECT id, username, role FROM users WHERE username = ? AND password_hash = ?';
-db.execute(query, [userInputUsername, hashedInputPassword]);
-\`\`\`
-
----
-
-#### 🛡️ Core Defense Best Practices
-1. **Parameterized Queries / Prepared Statements**: Completely decouples data inputs from executable SQL logic.
-2. **ORMs (Object Relational Mapping)**: Libraries like Prisma, Drizzle, or Sequelize parameterize queries natively.
-3. **Least Privilege Database Accounts**: Ensure web applications connect using non-administrative SQL roles.
-4. **Input Validation & Sanitization**: Enforce type-checking and whitelist validation on incoming parameters.`;
-      } else if (lowerP.includes('owasp') || lowerP.includes('top 10')) {
-        responseText = `### 🔒 OWASP Top 10 Web Application Security Breakdown
-
-The **OWASP Top 10** represents the standard awareness document for developers and web application security professionals.
-
----
-
-#### 1. A01:2021 – Broken Access Control
-- **Issue**: Users can act outside of their intended permissions (e.g., accessing another user's private data via IDOR).
-- **Defense**: Implement strict server-side role-based access control (RBAC) and avoid relying on client-side security checks.
-
-#### 2. A02:2021 – Cryptographic Failures
-- **Issue**: Exposing sensitive data in transit (HTTP instead of HTTPS) or at rest (weak password hashing).
-- **Defense**: Use TLS 1.3, AES-256 for symmetric data, and bcrypt/Argon2id for passwords.
-
-#### 3. A03:2021 – Injection (SQLi, Command, XSS)
-- **Issue**: Untrusted user input is interpreted as code or queries.
-- **Defense**: Use parameterized APIs, context-aware encoding, and Content Security Policy (CSP).
-
-#### 4. A04:2021 – Insecure Design
-- **Issue**: Threat modeling and security design patterns were missing during architecture planning.
-- **Defense**: Integrate security threat modeling early in the SDLC pipeline.
-
-#### 5. A05:2021 – Security Misconfiguration
-- **Issue**: Default credentials left unchanged, overly verbose error stack traces enabled in production.
-- **Defense**: Hardened baseline deployment configurations and automated security auditing.`;
-      } else if (lowerP.includes('tcp') || lowerP.includes('handshake') || lowerP.includes('syn flood')) {
-        responseText = `### 🌐 Network Fundamentals: TCP 3-Way Handshake & SYN Flood Mitigation
-
-The **TCP 3-Way Handshake** is the foundational mechanism used to establish a reliable, connection-oriented socket between a client and a server.
-
----
-
-#### 🤝 The 3-Way Handshake Process
-
-1. **SYN (Synchronize)**: Client sends a TCP packet with the \`SYN\` flag set and an initial sequence number (\`ISN_C\`).
-2. **SYN-ACK (Synchronize-Acknowledge)**: Server responds with \`SYN-ACK\` flags set, acknowledging client's sequence number and sending its own (\`ISN_S\`).
-3. **ACK (Acknowledge)**: Client responds with an \`ACK\` packet, establishing a connection ready for data transfer.
-
----
-
-#### 💥 SYN Flood Attack & Defense
-
-In a **SYN Flood**, an attacker sends thousands of spoofed \`SYN\` packets without completing the final \`ACK\`, exhausting the server's connection backlog pool.
-
-##### 🛡️ Countermeasures:
-- **SYN Cookies**: Enables the server to remain stateless until the client completes the full 3-way handshake.
-- **TCP Connection Rate Limiting**: Restricting maximum incoming connection requests per IP address.
-- **Firewall & Anycast Scrubbing**: Offloading volumetric TCP traffic to DDoS mitigation layers like Cloudflare or AWS Shield.`;
-      } else if (lowerP.includes('hash') || lowerP.includes('bcrypt') || lowerP.includes('argon2') || lowerP.includes('password')) {
-        responseText = `### 🔑 Cryptographic Concepts: Encryption vs. Hashing
-
-Understanding the fundamental difference between **symmetric/asymmetric encryption** and **cryptographic hashing** is critical for secure system design.
-
----
-
-#### 🔄 Encryption vs. Hashing
-
-| Feature | Encryption (e.g., AES-256, RSA) | Hashing (e.g., SHA-256, Argon2id) |
-| :--- | :--- | :--- |
-| **Direction** | Two-way (Encrypt & Decrypt) | One-way (Irreversible mathematical transformation) |
-| **Primary Use** | Confidential data storage & transfer | Password storage, message integrity checks |
-| **Key Requirement** | Requires Secret Key / Key Pair | No key required (uses Salt to prevent rainbow tables) |
-
----
-
-#### 🛡️ Modern Secure Password Hashing
-
-##### Why SHA-256 is Inadequate for Passwords:
-General cryptographic hash functions (SHA-256, MD5) are designed to be **fast**, allowing GPUs to calculate billions of guesses per second during brute-force or dictionary attacks.
-
-##### Password-Hardened Hashing Functions:
-1. **Argon2id** *(OWASP Recommended)*: Memory-hard and time-hard algorithm resistant to GPU/ASIC acceleration.
-2. **bcrypt**: Uses a configurable cost factor (work factor) to slow down hash calculation speed exponentially.
-3. **Salt**: Unique random string appended to passwords prior to hashing to render pre-computed Rainbow Tables useless.`;
-      } else {
-        responseText = `### 🛡️ SecureWatch AI Security & Technical Intelligence
-
-Thank you for your question: **"${prompt}"**
-
----
-
-#### 💡 Core Security & Defensive Analysis
-
-In modern system architecture and cybersecurity operations, maintaining high availability, data integrity, and strict access control is essential.
-
-##### Key Engineering Principles:
-1. **Defense-in-Depth**: Implement security controls at every layer—network firewalls, application authentication, database parameterization, and OS hardening.
-2. **Zero Trust Architecture (ZTA)**: *"Never Trust, Always Verify."* Require continuous authentication and authorization for all network entities.
-3. **Principle of Least Privilege (PoLP)**: Grant system users and services only the minimum permissions required to execute their functions.
-4. **Continuous Threat Monitoring & SIEM**: Implement centralized log ingestion and automated threat detection rules.
-
----
-
-*Feel free to ask follow-up questions regarding specific protocols, programming languages, OWASP guidelines, or defensive configurations!*`;
-      }
+      responseText = buildLocalAssistantResponse(prompt);
     }
 
     return res.json({ responseText });
@@ -3069,10 +3098,19 @@ async function startServer() {
       appType: 'spa',
     });
     app.use(vite.middlewares);
+    app.get('*', (req, res, next) => {
+      if (req.method !== 'GET' || req.path.startsWith('/api') || req.path.startsWith('/@') || req.path.includes('.')) {
+        return next();
+      }
+      return res.sendFile(path.join(process.cwd(), 'index.html'));
+    });
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
+      if (req.path.startsWith('/api')) {
+        return res.status(404).json({ error: 'API route not found' });
+      }
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
