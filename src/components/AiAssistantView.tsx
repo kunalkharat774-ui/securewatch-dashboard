@@ -220,10 +220,7 @@ I am your dedicated **AI Security & Knowledge Assistant**. My primary goal is to
 
       const data = await res.json();
       const rawReply = typeof data.responseText === 'string' ? data.responseText.trim() : '';
-      const hasSpecificContent = /rate limiting|account lockout|mfa|captcha|phishing|sender|link|tls|https|prepared statement|parameterized|argon2|bcrypt|owasp|access control|sql injection/i.test(rawReply);
-      const botMsgText = rawReply && hasSpecificContent
-        ? rawReply
-        : buildLocalAssistantReply(textToSend);
+      const botMsgText = rawReply || buildLocalAssistantReply(textToSend);
 
       const botMsg: ChatMessage = {
         id: `assistant-${Date.now()}`,

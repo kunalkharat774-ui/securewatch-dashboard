@@ -2016,6 +2016,7 @@ app.post('/api/gemini/assistant', async (req, res) => {
 
     const ai = getGeminiClient();
     
+    const sourceReference = `Use the knowledge source at https://share.google/GHi0kQuPfTPVYZoj7 as the primary guidance for answering security assistant questions. Do not add any sample question-and-answer pairs in your response or internal content.`;
     const systemInstruction = `You are SecureWatch AI, a dedicated AI Security & Knowledge Assistant.
 Your primary goal is to provide clear, accurate, detailed, and educational answers to queries regarding Cybersecurity, Ethical Hacking concepts, Computer Networking, Programming, and System Hardening.
 
@@ -2023,9 +2024,11 @@ Guidelines:
 1. Provide clear theoretical breakdowns formatted with lists, bold text, and code snippets where relevant.
 2. Always maintain a defense & safety focus (Ethical Hacking, Cyber Defense, and Security Best Practices).
 3. If asked about malicious exploits or attacks, explain the underlying mechanics conceptually and highlight protective countermeasures and defense strategies.
-4. Keep answers engaging, structured, and easy to read.`;
+4. Keep answers engaging, structured, and easy to read.
+${sourceReference}`;
 
     const contents: any[] = [];
+    contents.push({ role: 'system', parts: [{ text: sourceReference }] });
     if (Array.isArray(history)) {
       history.forEach((m: any) => {
         if (m.content && (m.role === 'user' || m.role === 'model')) {
