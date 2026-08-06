@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { TurnstileWidget } from './TurnstileWidget';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 
 // --- Matrix Rain Animation Canvas ---
 const BinaryBackground: React.FC = () => {
@@ -75,8 +74,6 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
   const [inputPassword, setInputPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [isDecrypting, setIsDecrypting] = useState(false);
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
-  const [isVerifying, setIsVerifying] = useState<boolean>(false);
 
   // Voice Feedback logic
   const playVoiceFeedback = useCallback((text: string) => {
@@ -142,34 +139,6 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Require Turnstile token first
-    if (!turnstileToken) {
-      setErrorMsg('Please complete the Cloudflare Turnstile verification.');
-      return;
-    }
-
-    setIsVerifying(true);
-    try {
-      const resp = await fetch('/api/verify-turnstile', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: turnstileToken }),
-      });
-
-      const body = await resp.json();
-      if (!body || body.verified === false) {
-        setErrorMsg('Turnstile verification failed. Please try again.');
-        setIsVerifying(false);
-        return;
-      }
-    } catch (err) {
-      setErrorMsg('Turnstile verification error. Please try again.');
-      setIsVerifying(false);
-      return;
-    }
-
-    setIsVerifying(false);
-
     // Proceed with existing credential check
     if (
       inputUsername.trim().toUpperCase() === activeCreds.username.toUpperCase() &&
@@ -186,7 +155,7 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
       }, 2500);
     } else {
       playVoiceFeedback('Access Denied. Identity verification failed.');
-      setErrorMsg('CRITICAL: INVALID_TOKEN_MISMATCH');
+      setErrorMsg('Invalid credentials. Please try again.');
       setInputUsername('');
       setInputPassword('');
     }
@@ -282,35 +251,9 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
                   required
                 />
 
-                <div style={{ display: 'flex', justifyContent: 'center' }}>
-                  <TurnstileWidget
-                    siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || import.meta.env.VITE_TURNSTILE_PUBLIC_KEY || '0x4AAAAAAEH7OhPz94KURs75'}
-                    onVerify={(token) => {
-                      try {
-                        console.info('[turnstile] received token', token?.slice ? token.slice(0, 8) + '...' : token);
-                      } catch (e) {
-                        // ignore
-                      }
-                      setTurnstileToken(token);
-                      setErrorMsg('');
-                    }}
-                    onError={(err) => {
-                      console.warn('[turnstile] error:', err);
-                      setErrorMsg('Unable to load Cloudflare Turnstile. Please refresh the page.');
-                      setTurnstileToken(null);
-                    }}
-                    onExpire={() => {
-                      console.info('[turnstile] token expired');
-                      setTurnstileToken(null);
-                      setErrorMsg('Cloudflare Turnstile token expired. Please complete verification again.');
-                    }}
-                    className="mt-2"
-                  />
-                </div>
-
                 {errorMsg && <p style={styles.errorText}>{errorMsg}</p>}
-                <button type="submit" style={styles.authBtn} disabled={isVerifying || !turnstileToken}>
-                  {isVerifying ? 'VERIFYING...' : 'AUTHORIZE LOGIN'}
+                <button type="submit" style={styles.authBtn}>
+                  AUTHORIZE LOGIN
                 </button>
               </form>
             </>

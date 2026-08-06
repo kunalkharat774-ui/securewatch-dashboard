@@ -114,23 +114,3 @@ export type NavView =
   | 'database-store'
   | 'settings';
 
-declare global {
-  interface Window {
-    turnstile?: {
-      render: (
-        container: string | HTMLElement,
-        options: {
-          sitekey: string;
-          callback?: (token: string) => void;
-          'error-callback'?: (errorCode: any) => void;
-          'expired-callback'?: () => void;
-          theme?: 'dark' | 'light' | 'auto';
-          size?: 'normal' | 'compact' | 'flexible';
-        }
-      ) => string;
-      reset: (widgetId?: string) => void;
-      remove: (widgetId?: string) => void;
-      getResponse: (widgetId?: string) => string;
-    };
-  }
-}
