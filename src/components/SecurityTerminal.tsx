@@ -132,8 +132,14 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token }),
       });
-      const result = await response.json();
-      return response.ok && result.success;
+
+      if (!response.ok || response.status === 204) {
+        console.error('Server returned an error or empty response:', response.status);
+        return false;
+      }
+
+      const data = await response.json();
+      return data.success;
     } catch (error) {
       console.error('Turnstile verification failed:', error);
       return false;
