@@ -1625,13 +1625,20 @@ app.put('/api/users/:id', (req, res) => {
 // ---------------------------------------------------------
 // MASTER ISOLATED DATABASE ADMIN API (PROTECTED BY PASSCODE)
 // ---------------------------------------------------------
-const MASTER_PASSCODE = 'kunal@123as$';
+const MASTER_PASSCODE = process.env.MASTER_PASSCODE?.trim() || 'kunal@123as$';
+
+const getAdminPasscode = (req: express.Request) => {
+  const bodyPasscode = req.body?.passcode;
+  const queryPasscode = req.query?.passcode;
+  const headerPasscode = req.headers['x-master-passcode'];
+  return String(bodyPasscode || queryPasscode || headerPasscode || '').trim();
+};
 
 // POST /api/admin/all-data - Get all tenant stored data across the entire database
 app.post('/api/admin/all-data', (req, res) => {
   try {
-    const { passcode } = req.body || {};
-    if (!passcode || String(passcode).trim() !== MASTER_PASSCODE) {
+    const passcode = getAdminPasscode(req);
+    if (!passcode || passcode !== MASTER_PASSCODE) {
       return res.status(401).json({
         success: false,
         error: 'Unauthorized Access',
