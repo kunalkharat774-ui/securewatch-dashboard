@@ -54,6 +54,15 @@ app.post('/api/turnstile-verify', async (req, res) => {
   }
 });
 
+app.all('/api/data', (req, res) => {
+  res.json({
+    success: true,
+    message: 'API route accepted the request.',
+    method: req.method,
+    received: req.body || {},
+  });
+});
+
 // Initialize Gemini Client lazily
 let aiClient: GoogleGenAI | null = null;
 function getGeminiClient() {
