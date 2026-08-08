@@ -51,29 +51,25 @@ export const DatabaseStoreView: React.FC = () => {
     setPasscodeError(null);
 
     try {
+      const trimmedPasscode = passcodeToUse.trim();
       const res = await fetch('/api/admin/all-data', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ passcode: passcodeToUse.trim() }),
+        body: JSON.stringify({ passcode: trimmedPasscode }),
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success) {
-          setSummaryStats(data.summaryStats);
-          setTenants(data.tenants || []);
-          setIsAuthorized(true);
-          sessionStorage.setItem('db_store_authorized', 'true');
-          sessionStorage.setItem('db_store_passcode', passcodeToUse.trim());
-          setPasscodeError(null);
-          setInputPasscode('');
-        } else {
-          setPasscodeError(data.message || 'Unauthorized Access. Invalid Master Security Passcode.');
-          setIsAuthorized(false);
-          sessionStorage.removeItem('db_store_authorized');
-        }
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.success) {
+        setSummaryStats(data.summaryStats);
+        setTenants(data.tenants || []);
+        setIsAuthorized(true);
+        sessionStorage.setItem('db_store_authorized', 'true');
+        sessionStorage.setItem('db_store_passcode', trimmedPasscode);
+        setPasscodeError(null);
+        setInputPasscode('');
       } else {
-        setPasscodeError('Unauthorized Access! Invalid Master Security Passcode.');
+        const message = data?.message || 'Unauthorized Access. Invalid Master Security Passcode.';
+        setPasscodeError(message);
         setIsAuthorized(false);
         sessionStorage.removeItem('db_store_authorized');
       }
