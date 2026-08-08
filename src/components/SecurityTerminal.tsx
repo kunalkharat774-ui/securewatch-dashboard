@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Turnstile } from '@marsidev/react-turnstile';
 
 // --- Matrix Rain Animation Canvas ---
 const BinaryBackground: React.FC = () => {
@@ -73,9 +72,6 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
   const [timeLeft, setTimeLeft] = useState(30);
   const [inputUsername, setInputUsername] = useState('');
   const [inputPassword, setInputPassword] = useState('');
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
-  const [turnstileError, setTurnstileError] = useState('');
-  const [isTurnstileUnavailable, setIsTurnstileUnavailable] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [isDecrypting, setIsDecrypting] = useState(false);
 
@@ -118,33 +114,9 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
     });
     setTimeLeft(30);
     setErrorMsg('');
-    setTurnstileToken(null);
-    setTurnstileError('');
-    setIsTurnstileUnavailable(false);
     setInputUsername('');
     setInputPassword('');
   }, []);
-
-  const verifyTurnstileToken = async (token: string) => {
-    try {
-      const response = await fetch('/api/turnstile-verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token }),
-      });
-
-      if (!response.ok || response.status === 204) {
-        console.error('Server returned an error or empty response:', response.status);
-        return false;
-      }
-
-      const data = await response.json();
-      return data.success;
-    } catch (error) {
-      console.error('Turnstile verification failed:', error);
-      return false;
-    }
-  };
 
   // Timer Logic - 30 Seconds rotation
   useEffect(() => {
@@ -167,26 +139,6 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const turnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY;
-    const requiresTurnstile = Boolean(turnstileSiteKey);
-
-    if (requiresTurnstile && !turnstileToken && !isTurnstileUnavailable) {
-      setTurnstileError('Please complete the Turnstile challenge.');
-      setErrorMsg('Turnstile verification required.');
-      return;
-    }
-
-    if (requiresTurnstile && !isTurnstileUnavailable && turnstileToken) {
-      const tokenValid = await verifyTurnstileToken(turnstileToken);
-      if (!tokenValid) {
-        setTurnstileError('Cloudflare Turnstile verification failed.');
-        setErrorMsg('Turnstile verification failed. Please refresh and try again.');
-        setTurnstileToken(null);
-        setIsTurnstileUnavailable(true);
-        return;
-      }
-    }
-
     // Proceed with existing credential check
     if (
       inputUsername.trim().toUpperCase() === activeCreds.username.toUpperCase() &&
@@ -194,7 +146,6 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
     ) {
       setIsDecrypting(true);
       setErrorMsg('');
-      setTurnstileError('');
 
       setTimeout(() => {
         playVoiceFeedback('Access Granted. Welcome to Securewatch Dashboard.');
@@ -300,36 +251,8 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
                   required
                 />
 
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-                  {import.meta.env.VITE_TURNSTILE_SITE_KEY ? (
-                    <Turnstile
-                      siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
-                      onSuccess={(token) => {
-                        setTurnstileToken(token);
-                        setTurnstileError('');
-                        setIsTurnstileUnavailable(false);
-                      }}
-                      onExpire={() => {
-                        setTurnstileToken(null);
-                        setTurnstileError('Turnstile challenge expired.');
-                        setIsTurnstileUnavailable(true);
-                      }}
-                      onError={() => {
-                        setTurnstileToken(null);
-                        setTurnstileError('Turnstile challenge unavailable. Continuing with local fallback verification.');
-                        setIsTurnstileUnavailable(true);
-                      }}
-                    />
-                  ) : (
-                    <p style={{ ...styles.errorText, marginTop: 0 }}>
-                      Turnstile is not configured. Continuing with local fallback verification.
-                    </p>
-                  )}
-                  {turnstileError && <p style={{ ...styles.errorText, marginTop: 0 }}>{turnstileError}</p>}
-                </div>
-
                 {errorMsg && <p style={styles.errorText}>{errorMsg}</p>}
-                <button type="submit" style={styles.authBtn} disabled={isDecrypting || (!turnstileToken && !isTurnstileUnavailable && Boolean(import.meta.env.VITE_TURNSTILE_SITE_KEY))}>
+                <button type="submit" style={styles.authBtn} disabled={isDecrypting}>
                   AUTHORIZE LOGIN
                 </button>
               </form>
