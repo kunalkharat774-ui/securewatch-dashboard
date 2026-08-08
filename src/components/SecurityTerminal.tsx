@@ -75,6 +75,7 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
   const [inputPassword, setInputPassword] = useState('');
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [turnstileError, setTurnstileError] = useState('');
+  const [isTurnstileUnavailable, setIsTurnstileUnavailable] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [isDecrypting, setIsDecrypting] = useState(false);
 
@@ -119,6 +120,7 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
     setErrorMsg('');
     setTurnstileToken(null);
     setTurnstileError('');
+    setIsTurnstileUnavailable(false);
     setInputUsername('');
     setInputPassword('');
   }, []);
@@ -159,18 +161,24 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!turnstileToken) {
+    const turnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY;
+    const requiresTurnstile = Boolean(turnstileSiteKey);
+
+    if (requiresTurnstile && !turnstileToken && !isTurnstileUnavailable) {
       setTurnstileError('Please complete the Turnstile challenge.');
       setErrorMsg('Turnstile verification required.');
       return;
     }
 
-    const tokenValid = await verifyTurnstileToken(turnstileToken);
-    if (!tokenValid) {
-      setTurnstileError('Cloudflare Turnstile verification failed.');
-      setErrorMsg('Turnstile verification failed. Please refresh and try again.');
-      setTurnstileToken(null);
-      return;
+    if (requiresTurnstile && !isTurnstileUnavailable && turnstileToken) {
+      const tokenValid = await verifyTurnstileToken(turnstileToken);
+      if (!tokenValid) {
+        setTurnstileError('Cloudflare Turnstile verification failed.');
+        setErrorMsg('Turnstile verification failed. Please refresh and try again.');
+        setTurnstileToken(null);
+        setIsTurnstileUnavailable(true);
+        return;
+      }
     }
 
     // Proceed with existing credential check
@@ -287,22 +295,35 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
                 />
 
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-                  <Turnstile
-                    siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
-                    onSuccess={(token) => {
-                      setTurnstileToken(token);
-                      setTurnstileError('');
-                    }}
-                    onExpire={() => {
-                      setTurnstileToken(null);
-                      setTurnstileError('Turnstile challenge expired.');
-                    }}
-                  />
+                  {import.meta.env.VITE_TURNSTILE_SITE_KEY ? (
+                    <Turnstile
+                      siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
+                      onSuccess={(token) => {
+                        setTurnstileToken(token);
+                        setTurnstileError('');
+                        setIsTurnstileUnavailable(false);
+                      }}
+                      onExpire={() => {
+                        setTurnstileToken(null);
+                        setTurnstileError('Turnstile challenge expired.');
+                        setIsTurnstileUnavailable(true);
+                      }}
+                      onError={() => {
+                        setTurnstileToken(null);
+                        setTurnstileError('Turnstile challenge unavailable. Continuing with local fallback verification.');
+                        setIsTurnstileUnavailable(true);
+                      }}
+                    />
+                  ) : (
+                    <p style={{ ...styles.errorText, marginTop: 0 }}>
+                      Turnstile is not configured. Continuing with local fallback verification.
+                    </p>
+                  )}
                   {turnstileError && <p style={{ ...styles.errorText, marginTop: 0 }}>{turnstileError}</p>}
                 </div>
 
                 {errorMsg && <p style={styles.errorText}>{errorMsg}</p>}
-                <button type="submit" style={styles.authBtn} disabled={!turnstileToken || isDecrypting}>
+                <button type="submit" style={styles.authBtn} disabled={isDecrypting || (!turnstileToken && !isTurnstileUnavailable && Boolean(import.meta.env.VITE_TURNSTILE_SITE_KEY))}>
                   AUTHORIZE LOGIN
                 </button>
               </form>
