@@ -10,7 +10,6 @@ import { RecentTables } from './components/RecentTables';
 import { ExtraViews } from './components/ExtraViews';
 import { BinaryBackground } from './components/BinaryBackground';
 import { SecurityTerminal } from './components/SecurityTerminal';
-import { DatabaseStoreView } from './components/DatabaseStoreView';
 import { NavView, UrlScanResult, FileActivity } from './types';
 
 export default function App() {
@@ -117,8 +116,6 @@ export default function App() {
                 <FileSecurity onFileActivity={handleFileActivity} />
                 <RecentTables urlScans={urlScans} fileActivities={fileActivities} />
               </div>
-            ) : currentView === 'database-store' ? (
-              <DatabaseStoreView />
             ) : currentView !== 'dashboard' ? (
               /* OTHER SIDEBAR MODULE VIEWS */
               <ExtraViews view={currentView} onBackToDashboard={() => setCurrentView('dashboard')} />

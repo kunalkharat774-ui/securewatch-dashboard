@@ -111,6 +111,5 @@ export type NavView =
   | 'logs'
   | 'reports'
   | 'users'
-  | 'database-store'
   | 'settings';
 
