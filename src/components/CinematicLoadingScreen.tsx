@@ -25,7 +25,7 @@ export const CinematicLoadingScreen: React.FC<CinematicLoadingScreenProps> = ({ 
 
     const glitchInterval = setInterval(() => {
       if (Math.random() > 0.6) {
-        let glitched = original
+        const glitched = original
           .split('')
           .map((char) => {
             if (char === ' ') return ' ';
@@ -34,11 +34,9 @@ export const CinematicLoadingScreen: React.FC<CinematicLoadingScreenProps> = ({ 
               : char;
           })
           .join('');
-        setGlitchText(glitched);
 
-        setTimeout(() => {
-          setGlitchText(original);
-        }, 120);
+        setGlitchText(glitched);
+        setTimeout(() => setGlitchText(original), 120);
       }
     }, 400);
 
@@ -52,7 +50,6 @@ export const CinematicLoadingScreen: React.FC<CinematicLoadingScreenProps> = ({ 
     const timer = setInterval(() => {
       const elapsed = Date.now() - startTime;
       const rawProgress = Math.min(100, Math.floor((elapsed / duration) * 100));
-
       setProgress(rawProgress);
 
       const stepIdx = Math.min(
@@ -63,9 +60,7 @@ export const CinematicLoadingScreen: React.FC<CinematicLoadingScreenProps> = ({ 
 
       if (rawProgress >= 100) {
         clearInterval(timer);
-        setTimeout(() => {
-          onComplete();
-        }, 400);
+        setTimeout(() => onComplete(), 400);
       }
     }, 50);
 
@@ -96,7 +91,7 @@ export const CinematicLoadingScreen: React.FC<CinematicLoadingScreenProps> = ({ 
               initial={{ scale: 1.15, opacity: 0.3 }}
               animate={{ scale: [1.1, 1, 1.03, 1], opacity: 1 }}
               transition={{ duration: 1.2, ease: 'easeOut' }}
-              src="/eye_providence_symbol.jpg"
+              src="/eye_providence_symbol.svg"
               alt="Golden Eye Security Emblem"
               loading="eager"
               decoding="sync"

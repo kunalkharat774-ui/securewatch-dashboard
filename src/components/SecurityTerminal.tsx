@@ -122,7 +122,7 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
   // Preload intro image in memory for zero-latency display
   useEffect(() => {
     const img = new Image();
-    img.src = '/eye_providence_symbol.jpg';
+    img.src = '/eye_providence_symbol.svg';
   }, []);
 
   // Timer Logic - 30 Seconds rotation
