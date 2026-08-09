@@ -106,11 +106,6 @@ export const CinematicLoadingScreen: React.FC<CinematicLoadingScreenProps> = ({ 
           </div>
         </motion.div>
 
-        <div className="mb-4 inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/40 text-amber-300 text-[11px] font-bold tracking-widest uppercase shadow-[0_0_15px_rgba(245,158,11,0.25)]">
-          <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
-          SECUREWATCH SYSTEM INITIATED
-        </div>
-
         <div className="relative mb-6">
           <h1
             className="text-2xl sm:text-3xl md:text-4xl font-black tracking-[0.24em] leading-tight text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-amber-400 to-yellow-500 uppercase font-mono filter drop-shadow-[0_0_18px_rgba(245,158,11,0.6)] glitch-text-effect animate-glow"
