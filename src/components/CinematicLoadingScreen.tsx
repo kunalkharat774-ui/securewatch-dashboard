@@ -111,8 +111,8 @@ export const CinematicLoadingScreen: React.FC<CinematicLoadingScreenProps> = ({ 
               initial={{ scale: 1.15, opacity: 0.3 }}
               animate={{ scale: [1.1, 1, 1.03, 1], opacity: 1 }}
               transition={{ duration: 1.2, ease: 'easeOut' }}
-              src="https://www.ancient-origins.net/sites/default/files/styles/article_image/public/field/image/eye-of-horus.jpg?itok=FnEy8Qex"
-              alt="Eye of Horus"
+              src="https://cdn.vectorstock.com/i/500p/86/40/magic-eye-pentagram-with-solar-rays-vector-44898640.jpg"
+              alt="Magic Eye Pentagram with Solar Rays"
               loading="eager"
               decoding="sync"
               className="w-full h-full object-cover rounded-full shadow-2xl filter brightness-105 contrast-110"
