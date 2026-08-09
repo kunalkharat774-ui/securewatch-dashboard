@@ -108,6 +108,7 @@ export type NavView =
   | 'domain-info'
   | 'url-reputation'
   | 'file-security'
+  | 'ip-chat'
   | 'logs'
   | 'reports'
   | 'users'

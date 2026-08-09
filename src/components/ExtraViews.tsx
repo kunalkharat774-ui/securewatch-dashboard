@@ -4,6 +4,7 @@ import { NavView } from '../types';
 import { TextEncryptView } from './TextEncryptView';
 import { SteganographyView } from './SteganographyView';
 import { IpLocationView } from './IpLocationView';
+import { IpChatView } from './IPChatView';
 import { MobileTrackerView } from './MobileTrackerView';
 import { TvGardenView } from './TvGardenView';
 import { DomainInfoView } from './DomainInfoView';
@@ -433,6 +434,11 @@ export const ExtraViews: React.FC<ExtraViewsProps> = ({ view, onBackToDashboard 
       {/* 6. EMAIL BREACH CHECKER */}
       {view === 'email-breach' && (
         <EmailBreachView onBackToDashboard={onBackToDashboard} />
+      )}
+
+      {/* 6.5 IP CHAT PORTAL */}
+      {view === 'ip-chat' && (
+        <IpChatView onBackToDashboard={onBackToDashboard} />
       )}
 
       {/* 7. PASSWORD STRENGTH & GENERATOR */}
