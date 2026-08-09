@@ -41,7 +41,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onSelectView, ale
     { id: 'logs', label: 'Security Logs', icon: 'fa-file-lines' },
     { id: 'reports', label: 'Reports', icon: 'fa-chart-pie' },
     { id: 'users', label: 'User Management', icon: 'fa-users' },
-    { id: 'database-store', label: 'Database Store', icon: 'fa-database', badge: { text: 'PERSISTENT', type: 'green' } },
     { id: 'settings', label: 'Settings', icon: 'fa-gear' },
   ];
 
