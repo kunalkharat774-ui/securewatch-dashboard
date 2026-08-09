@@ -262,7 +262,7 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false, onExpa
       .height(initialHeight)
       .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-night.jpg')
       .showAtmosphere(true)
-      .atmosphereColor('#06b6d4')
+      .atmosphereColor('#f59e0b')
       .atmosphereAltitude(0.24)
       .arcStartLat((d: any) => d.startLat)
       .arcStartLng((d: any) => d.startLng)
@@ -282,7 +282,7 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false, onExpa
       .pointsData(ALL_COUNTRIES)
       .pointLat((d: any) => d.lat)
       .pointLng((d: any) => d.lng)
-      .pointColor(() => '#38bdf8')
+      .pointColor(() => '#f59e0b')
       .pointAltitude(0.02)
       .pointRadius(0.35)
       .onGlobeClick(({ lat, lng }: { lat: number; lng: number }) => {
