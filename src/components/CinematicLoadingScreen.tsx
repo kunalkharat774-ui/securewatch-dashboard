@@ -113,7 +113,7 @@ export const CinematicLoadingScreen: React.FC<CinematicLoadingScreenProps> = ({ 
 
         <div className="relative mb-6">
           <h1
-            className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-amber-400 to-yellow-500 uppercase font-mono filter drop-shadow-[0_0_15px_rgba(245,158,11,0.5)] glitch-text-effect"
+            className="text-2xl sm:text-3xl md:text-4xl font-black tracking-[0.24em] leading-tight text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-amber-400 to-yellow-500 uppercase font-mono filter drop-shadow-[0_0_18px_rgba(245,158,11,0.6)] glitch-text-effect animate-glow"
             data-text={glitchText}
           >
             {glitchText}
@@ -164,6 +164,12 @@ export const CinematicLoadingScreen: React.FC<CinematicLoadingScreenProps> = ({ 
         .glitch-text-effect {
           position: relative;
           display: inline-block;
+          letter-spacing: 0.24em;
+          text-shadow:
+            0 0 20px rgba(255, 239, 143, 0.8),
+            0 0 40px rgba(245, 158, 11, 0.35),
+            0 0 70px rgba(255, 216, 82, 0.15);
+          animation: glow-pulse 2.5s ease-in-out infinite alternate;
         }
         .glitch-text-effect::before,
         .glitch-text-effect::after {
@@ -173,32 +179,55 @@ export const CinematicLoadingScreen: React.FC<CinematicLoadingScreenProps> = ({ 
           left: 0;
           width: 100%;
           height: 100%;
-          clip: rect(0, 0, 0, 0);
+          overflow: hidden;
+          opacity: 0.85;
+          mix-blend-mode: screen;
         }
         .glitch-text-effect::before {
-          left: -2px;
-          text-shadow: 2px 0 #f59e0b;
-          animation: glitch-anim-1 2s infinite linear alternate-reverse;
+          left: 2px;
+          text-shadow: 2px 0 1px rgba(255, 145, 0, 0.8);
+          animation: glitch-anim-1 1.8s infinite linear alternate-reverse;
         }
         .glitch-text-effect::after {
-          left: 2px;
-          text-shadow: -2px 0 #fbbf24;
-          animation: glitch-anim-2 3s infinite linear alternate-reverse;
+          left: -2px;
+          text-shadow: -2px 0 1px rgba(255, 221, 92, 0.8);
+          animation: glitch-anim-2 1.5s infinite linear alternate-reverse;
+        }
+        @keyframes glow-pulse {
+          from {
+            transform: translateY(0px);
+            filter: drop-shadow(0 0 18px rgba(245, 158, 11, 0.55));
+          }
+          to {
+            transform: translateY(-2px);
+            filter: drop-shadow(0 0 28px rgba(255, 239, 143, 0.9));
+          }
         }
         @keyframes glitch-anim-1 {
-          0% { clip: rect(10px, 9999px, 30px, 0); }
-          20% { clip: rect(40px, 9999px, 60px, 0); }
-          40% { clip: rect(15px, 9999px, 45px, 0); }
-          60% { clip: rect(50px, 9999px, 80px, 0); }
-          80% { clip: rect(25px, 9999px, 55px, 0); }
-          100% { clip: rect(65px, 9999px, 95px, 0); }
+          0% { clip: rect(12px, 9999px, 32px, 0); transform: translate(0, 0); }
+          10% { clip: rect(72px, 9999px, 84px, 0); transform: translate(-2px, -2px); }
+          20% { clip: rect(32px, 9999px, 52px, 0); transform: translate(1px, 1px); }
+          30% { clip: rect(12px, 9999px, 26px, 0); transform: translate(-1px, 0); }
+          40% { clip: rect(48px, 9999px, 62px, 0); transform: translate(2px, -1px); }
+          50% { clip: rect(28px, 9999px, 42px, 0); transform: translate(-2px, 1px); }
+          60% { clip: rect(68px, 9999px, 92px, 0); transform: translate(1px, -2px); }
+          70% { clip: rect(18px, 9999px, 38px, 0); transform: translate(0, 2px); }
+          80% { clip: rect(42px, 9999px, 58px, 0); transform: translate(-1px, -1px); }
+          90% { clip: rect(10px, 9999px, 26px, 0); transform: translate(2px, 0); }
+          100% { clip: rect(52px, 9999px, 66px, 0); transform: translate(-2px, 1px); }
         }
         @keyframes glitch-anim-2 {
-          0% { clip: rect(20px, 9999px, 50px, 0); }
-          25% { clip: rect(60px, 9999px, 90px, 0); }
-          50% { clip: rect(10px, 9999px, 35px, 0); }
-          75% { clip: rect(45px, 9999px, 75px, 0); }
-          100% { clip: rect(30px, 9999px, 65px, 0); }
+          0% { clip: rect(22px, 9999px, 46px, 0); transform: translate(0, 0); }
+          10% { clip: rect(62px, 9999px, 76px, 0); transform: translate(2px, 1px); }
+          20% { clip: rect(18px, 9999px, 34px, 0); transform: translate(-1px, 2px); }
+          30% { clip: rect(52px, 9999px, 74px, 0); transform: translate(1px, -1px); }
+          40% { clip: rect(32px, 9999px, 56px, 0); transform: translate(-2px, 0); }
+          50% { clip: rect(14px, 9999px, 26px, 0); transform: translate(2px, -2px); }
+          60% { clip: rect(74px, 9999px, 86px, 0); transform: translate(0, 1px); }
+          70% { clip: rect(26px, 9999px, 38px, 0); transform: translate(-1px, -1px); }
+          80% { clip: rect(46px, 9999px, 64px, 0); transform: translate(1px, 0); }
+          90% { clip: rect(16px, 9999px, 32px, 0); transform: translate(-2px, 2px); }
+          100% { clip: rect(58px, 9999px, 80px, 0); transform: translate(1px, -1px); }
         }
       `}</style>
     </div>
