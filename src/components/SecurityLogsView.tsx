@@ -240,23 +240,23 @@ export const SecurityLogsView: React.FC<SecurityLogsViewProps> = ({ onBackToDash
       </AnimatePresence>
 
       {/* HEADER & STREAM CONTROLS */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-[#0d111c] border border-[#1f2335] rounded-xl p-5">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-[#0a0803]/80 backdrop-blur-md border border-amber-500/30 rounded-xl p-5 shadow-xl">
         <div>
           <div className="flex items-center gap-3">
             <button
               onClick={onBackToDashboard}
-              className="px-2.5 py-1 bg-[#15192b] hover:bg-[#1f243d] text-gray-300 rounded text-xs transition cursor-pointer flex items-center gap-1"
+              className="px-2.5 py-1 bg-[#141008] hover:bg-[#20180a] text-amber-300 border border-amber-500/30 rounded text-xs transition cursor-pointer flex items-center gap-1"
             >
               <i className="fa-solid fa-arrow-left text-[10px]" /> Back
             </button>
             <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <i className="fa-solid fa-shield-halved text-purple-400" /> xHunter SIEM Security Telemetry Logs
+              <i className="fa-solid fa-shield-halved text-amber-400" /> xHunter SIEM Security Telemetry Logs
             </h2>
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 font-mono">
               Real Backend Telemetry
             </span>
           </div>
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-xs text-amber-200/70 mt-1">
             Real-time audit trails, WAF mitigation logs, authentication telemetry, and threat telemetry events.
           </p>
         </div>

@@ -406,7 +406,7 @@ export const FileSecurity: React.FC<FileSecurityProps> = ({ onFileActivity }) =>
       </AnimatePresence>
 
       {/* HEADER TABS NAVBAR */}
-      <div className="bg-[#0e1322] border border-[#1a2035] rounded-xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:border-amber-500/30 transition">
+      <div className="bg-[#0a0803]/80 backdrop-blur-md border border-amber-500/30 rounded-xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:border-amber-400/50 transition shadow-xl">
         <div>
           <div className="flex items-center gap-2 font-bold text-sm text-white">
             <i className="fa-solid fa-file-shield text-amber-400 text-lg" />
@@ -415,17 +415,17 @@ export const FileSecurity: React.FC<FileSecurityProps> = ({ onFileActivity }) =>
               AES-256 GCM + SHA-256
             </span>
           </div>
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-xs text-amber-200/70 mt-1">
             Client-side Web Crypto AES-256 encryption, PBKDF2 key derivation, real-time SHA-256 hashing, byte-entropy analysis & AI threat scanning.
           </p>
         </div>
 
-        <div className="flex items-center gap-1 bg-[#080a10] border border-[#1f2335] p-1 rounded-lg">
+        <div className="flex items-center gap-1 bg-[#050505] border border-amber-500/30 p-1 rounded-lg">
           <button
             onClick={() => setActiveTab('encrypt')}
             className={`px-3 py-1.5 rounded-md text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
               activeTab === 'encrypt'
-                ? 'bg-[#3b28cc] text-white shadow'
+                ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-black shadow'
                 : 'text-gray-400 hover:text-white'
             }`}
           >
@@ -435,7 +435,7 @@ export const FileSecurity: React.FC<FileSecurityProps> = ({ onFileActivity }) =>
             onClick={() => setActiveTab('decrypt')}
             className={`px-3 py-1.5 rounded-md text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
               activeTab === 'decrypt'
-                ? 'bg-[#3b28cc] text-white shadow'
+                ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-black shadow'
                 : 'text-gray-400 hover:text-white'
             }`}
           >
@@ -445,7 +445,7 @@ export const FileSecurity: React.FC<FileSecurityProps> = ({ onFileActivity }) =>
             onClick={() => setActiveTab('scan')}
             className={`px-3 py-1.5 rounded-md text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
               activeTab === 'scan'
-                ? 'bg-purple-600 text-white shadow'
+                ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-black shadow'
                 : 'text-gray-400 hover:text-white'
             }`}
           >
@@ -456,13 +456,13 @@ export const FileSecurity: React.FC<FileSecurityProps> = ({ onFileActivity }) =>
 
       {/* TAB 1: ENCRYPT FILE */}
       {activeTab === 'encrypt' && (
-        <div className="bg-[#0d111c] border border-[#1f2335] rounded-xl p-6 shadow-sm space-y-6">
-          <div className="flex items-center justify-between border-b border-[#1f2335] pb-3">
+        <div className="bg-[#0a0803]/80 backdrop-blur-md border border-amber-500/30 rounded-xl p-6 shadow-xl space-y-6">
+          <div className="flex items-center justify-between border-b border-amber-500/20 pb-3">
             <div>
               <h3 className="font-bold text-sm text-white flex items-center gap-2">
-                <i className="fa-solid fa-lock text-emerald-400" /> AES-256-GCM Military-Grade File Encryption
+                <i className="fa-solid fa-lock text-amber-400" /> AES-256-GCM Military-Grade File Encryption
               </h3>
-              <p className="text-xs text-gray-400 mt-0.5">
+              <p className="text-xs text-amber-200/70 mt-0.5">
                 Uses Web Crypto PBKDF2 (100,000 iterations) with SHA-256 & 256-bit AES-GCM authenticated cipher.
               </p>
             </div>
@@ -471,9 +471,9 @@ export const FileSecurity: React.FC<FileSecurityProps> = ({ onFileActivity }) =>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div
               onClick={() => encFileInputRef.current?.click()}
-              className="border-2 border-dashed border-[#1f2335] hover:border-[#3b28cc] transition rounded-xl p-8 text-center bg-[#080a10] cursor-pointer flex flex-col items-center justify-center space-y-3"
+              className="border-2 border-dashed border-amber-500/30 hover:border-amber-400/70 transition rounded-xl p-8 text-center bg-[#050505] cursor-pointer flex flex-col items-center justify-center space-y-3"
             >
-              <i className="fa-solid fa-cloud-arrow-up text-4xl text-purple-400 mb-1 block" />
+              <i className="fa-solid fa-cloud-arrow-up text-4xl text-amber-400 mb-1 block" />
               <div>
                 <p className="text-xs font-semibold text-white">
                   {encryptFile ? encryptFile.name : 'Drag & Drop file to encrypt'}
@@ -482,7 +482,7 @@ export const FileSecurity: React.FC<FileSecurityProps> = ({ onFileActivity }) =>
                   {encryptFile ? formatSize(encryptFile.size) : 'Supports PDF, DOCX, XLSX, Images, ZIP, Exe (Max 500MB)'}
                 </p>
               </div>
-              <button className="bg-[#3b28cc] hover:bg-[#4d3be3] text-white px-4 py-2 rounded-lg text-xs font-bold transition cursor-pointer">
+              <button className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black px-4 py-2 rounded-lg text-xs font-bold transition cursor-pointer shadow-[0_0_12px_rgba(245,158,11,0.3)]">
                 Choose File
               </button>
               <input
@@ -494,8 +494,8 @@ export const FileSecurity: React.FC<FileSecurityProps> = ({ onFileActivity }) =>
             </div>
 
             <div className="flex flex-col justify-between space-y-4">
-              <div className="bg-[#111524] border border-[#1f2335] p-3.5 rounded-xl flex items-center gap-3">
-                <i className="fa-solid fa-file-contract text-2xl text-purple-400 shrink-0" />
+              <div className="bg-[#141008] border border-amber-500/30 p-3.5 rounded-xl flex items-center gap-3">
+                <i className="fa-solid fa-file-contract text-2xl text-amber-400 shrink-0" />
                 <div className="min-w-0 flex-1">
                   <h5 className="text-xs font-bold text-white truncate">
                     {encryptFile ? encryptFile.name : 'xHunter_Security_Audit.pdf'}
@@ -516,7 +516,7 @@ export const FileSecurity: React.FC<FileSecurityProps> = ({ onFileActivity }) =>
                     type={showEncPassword ? 'text' : 'password'}
                     value={encPassword}
                     onChange={(e) => setEncPassword(e.target.value)}
-                    className="w-full px-3.5 py-2 bg-[#080a10] border border-[#1f2335] text-white rounded-lg text-xs outline-none focus:border-[#3b28cc] font-mono"
+                    className="w-full px-3.5 py-2 bg-[#050505] border border-amber-500/30 text-white rounded-lg text-xs outline-none focus:border-amber-400 font-mono"
                   />
                   <i
                     onClick={() => setShowEncPassword(!showEncPassword)}

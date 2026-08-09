@@ -244,18 +244,18 @@ export const RiskAssessmentView: React.FC<RiskAssessmentViewProps> = ({ onBackTo
   return (
     <div className="space-y-6">
       {/* Header Banner */}
-      <div className="bg-[#0d111c] border border-[#1f2335] rounded-xl p-5 md:p-6 shadow-xl relative overflow-hidden">
-        <div className="absolute -top-24 -right-24 w-72 h-72 bg-[#3b28cc]/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="bg-[#0a0803]/80 backdrop-blur-md border border-amber-500/30 rounded-xl p-5 md:p-6 shadow-xl relative overflow-hidden">
+        <div className="absolute -top-24 -right-24 w-72 h-72 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-[#1f2335] pb-5">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-amber-500/20 pb-5">
           <div>
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
+              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <i className="fa-solid fa-clipboard-check text-[#9f86ff]" /> Cybersecurity Risk Assessment Framework & Matrix
+                <i className="fa-solid fa-clipboard-check text-amber-400" /> Cybersecurity Risk Assessment Framework & Matrix
               </h2>
             </div>
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs text-amber-200/70 mt-1">
               Enterprise Risk Quantification based on NIST SP 800-30, ISO 27001 & FAIR quantitative risk modeling standards.
             </p>
           </div>
@@ -264,7 +264,7 @@ export const RiskAssessmentView: React.FC<RiskAssessmentViewProps> = ({ onBackTo
             {onBackToDashboard && (
               <button
                 onClick={onBackToDashboard}
-                className="px-3.5 py-1.5 bg-[#111524] hover:bg-[#1a1e30] border border-[#1f2335] text-gray-300 hover:text-white text-xs font-semibold rounded-lg transition cursor-pointer flex items-center gap-2"
+                className="px-3.5 py-1.5 bg-[#141008] hover:bg-[#20180a] border border-amber-500/30 text-amber-300 hover:text-amber-200 text-xs font-semibold rounded-lg transition cursor-pointer flex items-center gap-2"
               >
                 <i className="fa-solid fa-arrow-left" /> Back to Dashboard
               </button>

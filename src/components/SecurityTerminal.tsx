@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { CinematicLoadingScreen } from './CinematicLoadingScreen';
 
 // --- Matrix Rain Animation Canvas ---
 const BinaryBackground: React.FC = () => {
@@ -24,7 +25,7 @@ const BinaryBackground: React.FC = () => {
 
       for (let i = 0; i < drops.length; i++) {
         const text = Math.random() > 0.5 ? '0' : '1';
-        ctx.fillStyle = Math.random() > 0.98 ? '#00f2ff' : 'rgba(0, 242, 255, 0.2)';
+        ctx.fillStyle = Math.random() > 0.98 ? '#fbbf24' : 'rgba(245, 158, 11, 0.22)';
         ctx.fillText(text, i * fontSize, drops[i] * fontSize);
 
         if (drops[i] * fontSize > height && Math.random() > 0.975) {
@@ -118,6 +119,12 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
     setInputPassword('');
   }, []);
 
+  // Preload intro image in memory for zero-latency display
+  useEffect(() => {
+    const img = new Image();
+    img.src = '/eye_providence_symbol.jpg';
+  }, []);
+
   // Timer Logic - 30 Seconds rotation
   useEffect(() => {
     if (isAuthenticated || isDecrypting) return;
@@ -136,36 +143,39 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
     return () => clearInterval(timerId);
   }, [isAuthenticated, isDecrypting, activeCreds.username, generateNewCredentials]);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Proceed with existing credential check
     if (
       inputUsername.trim().toUpperCase() === activeCreds.username.toUpperCase() &&
       inputPassword.trim() === activeCreds.password
     ) {
       setIsDecrypting(true);
       setErrorMsg('');
-
-      setTimeout(() => {
-        playVoiceFeedback('Access Granted. Welcome to Securewatch Dashboard.');
-        setIsAuthenticated(true);
-        localStorage.setItem('securewatch_authenticated', 'true');
-        setIsDecrypting(false);
-      }, 2500);
     } else {
       playVoiceFeedback('Access Denied. Identity verification failed.');
-      setErrorMsg('Invalid credentials. Please try again.');
+      setErrorMsg('CRITICAL: INVALID_TOKEN_MISMATCH');
       setInputUsername('');
       setInputPassword('');
     }
   };
+
+  const handleCinematicComplete = useCallback(() => {
+    playVoiceFeedback('Access Granted. Welcome to Web Application and API Security Intelligence Dashboard.');
+    setIsAuthenticated(true);
+    localStorage.setItem('securewatch_authenticated', 'true');
+    setIsDecrypting(false);
+  }, [playVoiceFeedback]);
 
   const handleLogout = () => {
     setIsAuthenticated(false);
     localStorage.removeItem('securewatch_authenticated');
     generateNewCredentials();
   };
+
+  if (isDecrypting) {
+    return <CinematicLoadingScreen onComplete={handleCinematicComplete} />;
+  }
 
   if (!isAuthenticated) {
     return (
@@ -184,11 +194,11 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
             background-size: 100% 3px, 3px 100%; pointer-events: none; z-index: 5;
           }
           .marquee-container {
-            position: fixed; bottom: 0; width: 100%; background: rgba(0, 10, 20, 0.95);
-            border-top: 1px solid #00f2ff; padding: 12px 0; overflow: hidden; z-index: 100;
+            position: fixed; bottom: 0; width: 100%; background: rgba(5, 5, 5, 0.95);
+            border-top: 1px solid #f59e0b; padding: 12px 0; overflow: hidden; z-index: 100;
           }
           .marquee-text {
-            display: inline-block; font-family: monospace; color: #00f2ff;
+            display: inline-block; font-family: monospace; color: #fbbf24;
             white-space: nowrap;
             animation: marquee 30s linear infinite; text-transform: uppercase; font-size: 13px;
           }
@@ -252,7 +262,7 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
                 />
 
                 {errorMsg && <p style={styles.errorText}>{errorMsg}</p>}
-                <button type="submit" style={styles.authBtn} disabled={isDecrypting}>
+                <button type="submit" style={styles.authBtn}>
                   AUTHORIZE LOGIN
                 </button>
               </form>
@@ -318,43 +328,44 @@ const styles: { [key: string]: React.CSSProperties } = {
     width: '100%',
     maxWidth: '400px',
     padding: '35px',
-    backgroundColor: 'rgba(2, 5, 10, 0.95)',
-    border: '1px solid rgba(0, 242, 255, 0.2)',
+    backgroundColor: 'rgba(5, 5, 5, 0.95)',
+    border: '1px solid rgba(245, 158, 11, 0.4)',
     position: 'relative',
     zIndex: 10,
-    boxShadow: '0 0 50px rgba(0, 0, 0, 1)',
+    boxShadow: '0 0 50px rgba(0, 0, 0, 0.9), 0 0 30px rgba(245, 158, 11, 0.15)',
     backdropFilter: 'blur(10px)',
     margin: '20px',
   },
   header: { textAlign: 'center', marginBottom: '25px' },
   statusBadge: {
     fontSize: '8px',
-    color: '#00f2ff',
-    border: '1px solid #00f2ff',
+    color: '#f59e0b',
+    border: '1px solid #f59e0b',
     display: 'inline-block',
     padding: '2px 8px',
+    letterSpacing: '1px',
   },
-  mainTitle: { color: '#fff', fontSize: '24px', letterSpacing: '4px', margin: '15px 0 5px', fontWeight: 'bold' },
-  subTitle: { color: '#00f2ff', fontSize: '9px', opacity: 0.5, letterSpacing: '1px' },
+  mainTitle: { color: '#ffffff', fontSize: '24px', letterSpacing: '4px', margin: '15px 0 5px', fontWeight: 'bold' },
+  subTitle: { color: '#fbbf24', fontSize: '9px', opacity: 0.8, letterSpacing: '1px' },
   tokenBox: {
-    background: 'rgba(0,0,0,0.8)',
+    background: 'rgba(10, 8, 2, 0.9)',
     padding: '20px',
-    border: '1px solid #111',
+    border: '1px solid rgba(245, 158, 11, 0.25)',
     marginBottom: '25px',
     position: 'relative',
   },
-  progressBarWrapper: { position: 'absolute', top: 0, left: 0, width: '100%', height: '2px', background: '#0a0a0a' },
-  progressBar: { height: '100%', background: '#00f2ff', boxShadow: '0 0 10px #00f2ff' },
+  progressBarWrapper: { position: 'absolute', top: 0, left: 0, width: '100%', height: '2px', background: '#111' },
+  progressBar: { height: '100%', background: 'linear-gradient(90deg, #d97706, #fbbf24)', boxShadow: '0 0 10px #f59e0b' },
   credItem: { display: 'flex', justifyContent: 'space-between', margin: '8px 0' },
-  label: { color: '#00f2ff', fontSize: '10px' },
-  value: { color: '#fff', fontSize: '15px', fontWeight: 'bold' },
-  timerText: { fontSize: '9px', color: '#666', textAlign: 'right', marginTop: '10px' },
+  label: { color: '#f59e0b', fontSize: '10px' },
+  value: { color: '#ffffff', fontSize: '15px', fontWeight: 'bold' },
+  timerText: { fontSize: '9px', color: '#888', textAlign: 'right', marginTop: '10px' },
   form: { display: 'flex', flexDirection: 'column', gap: '15px' },
   terminalInput: {
-    background: '#050505',
-    border: '1px solid #222',
+    background: '#0a0802',
+    border: '1px solid rgba(245, 158, 11, 0.35)',
     padding: '14px',
-    color: '#00f2ff',
+    color: '#fbbf24',
     outline: 'none',
     textAlign: 'center',
     fontSize: '13px',
@@ -362,26 +373,27 @@ const styles: { [key: string]: React.CSSProperties } = {
     boxSizing: 'border-box',
   },
   authBtn: {
-    background: '#00f2ff',
-    color: '#000',
+    background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+    color: '#000000',
     border: 'none',
     padding: '15px',
     fontWeight: 'bold',
     cursor: 'pointer',
     letterSpacing: '2px',
+    boxShadow: '0 0 20px rgba(245, 158, 11, 0.3)',
   },
-  errorText: { color: '#ff3333', fontSize: '10px', textAlign: 'center', margin: 0, fontWeight: 'bold' },
+  errorText: { color: '#ff4444', fontSize: '10px', textAlign: 'center', margin: 0, fontWeight: 'bold' },
   loadingArea: { textAlign: 'center', padding: '40px' },
   spinner: {
     width: '40px',
     height: '40px',
-    border: '2px solid #0a0a0a',
-    borderTopColor: '#00f2ff',
+    border: '2px solid #1a1a1a',
+    borderTopColor: '#f59e0b',
     borderRadius: '50%',
     margin: '0 auto 20px',
   },
-  decryptText: { color: '#00f2ff', fontSize: '11px', letterSpacing: '2px' },
+  decryptText: { color: '#fbbf24', fontSize: '11px', letterSpacing: '2px' },
   footerBranding: { marginTop: '30px', textAlign: 'center', fontSize: '10px' },
-  kunalBranding: { color: '#444' },
-  kunalName: { color: '#00f2ff', fontWeight: 'bold' },
+  kunalBranding: { color: '#777' },
+  kunalName: { color: '#fbbf24', fontWeight: 'bold' },
 };

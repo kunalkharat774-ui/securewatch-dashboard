@@ -449,21 +449,21 @@ export const SecurityAlertsView: React.FC<SecurityAlertsViewProps> = ({
       </AnimatePresence>
 
       {/* Header Banner */}
-      <div className="bg-[#0d111c] border border-[#1f2335] rounded-xl p-5 md:p-6 shadow-xl relative overflow-hidden">
-        <div className="absolute -top-24 -right-24 w-72 h-72 bg-red-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="bg-[#0a0803]/80 backdrop-blur-md border border-amber-500/30 rounded-xl p-5 md:p-6 shadow-xl relative overflow-hidden">
+        <div className="absolute -top-24 -right-24 w-72 h-72 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-[#1f2335] pb-5">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-amber-500/20 pb-5">
           <div>
             <div className="flex items-center gap-2.5">
               <span className="relative flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500" />
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500" />
               </span>
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <i className="fa-solid fa-bell text-red-400" /> Security Threat Alerts & SIEM Incident Monitor
+                <i className="fa-solid fa-bell text-amber-400" /> Security Threat Alerts & SIEM Incident Monitor
               </h2>
             </div>
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs text-amber-200/70 mt-1">
               Real-time anomaly detection, automated WAF response, and AI incident threat analysis.
             </p>
           </div>
@@ -474,8 +474,8 @@ export const SecurityAlertsView: React.FC<SecurityAlertsViewProps> = ({
               onClick={() => setIsLiveStreaming(!isLiveStreaming)}
               className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition cursor-pointer flex items-center gap-2 ${
                 isLiveStreaming
-                  ? 'bg-red-500/20 text-red-400 border-red-500/40 shadow-[0_0_10px_rgba(239,68,68,0.2)]'
-                  : 'bg-[#111524] text-gray-400 border-[#1f2335]'
+                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-[0_0_10px_rgba(245,158,11,0.2)]'
+                  : 'bg-[#141008] text-gray-400 border-amber-500/30'
               }`}
             >
               <i className={`fa-solid ${isLiveStreaming ? 'fa-signal-stream animate-pulse' : 'fa-pause'}`} />
@@ -485,7 +485,7 @@ export const SecurityAlertsView: React.FC<SecurityAlertsViewProps> = ({
             {/* Custom Alert Modal Trigger */}
             <button
               onClick={() => setIsAddModalOpen(true)}
-              className="px-3.5 py-1.5 bg-[#3b28cc] hover:bg-[#4d3be3] text-white text-xs font-bold rounded-lg transition shadow-lg cursor-pointer flex items-center gap-1.5"
+              className="px-3.5 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black text-xs font-bold rounded-lg transition shadow-lg cursor-pointer flex items-center gap-1.5"
             >
               <i className="fa-solid fa-plus-circle" /> Log Threat Alert
             </button>
@@ -493,7 +493,7 @@ export const SecurityAlertsView: React.FC<SecurityAlertsViewProps> = ({
             {/* Export CSV Report */}
             <button
               onClick={handleExportCsv}
-              className="px-3.5 py-1.5 bg-[#111524] hover:bg-[#1a1e30] border border-[#1f2335] text-cyan-300 hover:text-cyan-200 text-xs font-bold rounded-lg transition cursor-pointer flex items-center gap-1.5"
+              className="px-3.5 py-1.5 bg-[#141008] hover:bg-[#20180a] border border-amber-500/30 text-amber-300 hover:text-amber-200 text-xs font-bold rounded-lg transition cursor-pointer flex items-center gap-1.5"
             >
               <i className="fa-solid fa-file-csv text-amber-400" /> Export CSV
             </button>

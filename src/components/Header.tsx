@@ -123,7 +123,7 @@ export const Header: React.FC = () => {
   }, []);
 
   return (
-    <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 border-b border-blue-500/30 pb-4 relative z-30 p-4 rounded-2xl bg-[#031528]/80 backdrop-blur-2xl border border-blue-500/35 shadow-[0_12px_40px_-10px_rgba(2,11,24,0.9)]">
+    <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 border-b border-amber-500/30 pb-4 relative z-30 p-4 rounded-2xl bg-[#090703]/85 backdrop-blur-2xl border border-amber-500/40 shadow-[0_12px_40px_-10px_rgba(0,0,0,0.9)]">
       <div>
         <div className="flex items-center gap-2">
           <h1 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
@@ -131,21 +131,21 @@ export const Header: React.FC = () => {
               initial={{ opacity: 0, y: -5 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
-              className="animated-gradient-text font-extrabold tracking-wide drop-shadow-[0_0_16px_rgba(37,99,235,0.6)]"
+              className="animated-gradient-text font-extrabold tracking-wide drop-shadow-[0_0_16px_rgba(245,158,11,0.6)]"
             >
               Web Application &amp; API Security Dashboard
             </motion.span>
           </h1>
-          <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-400/40 font-mono glass-glow-sm tracking-wider">
+          <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-400/40 font-mono glass-glow-sm tracking-wider">
             v2.6 Version
           </span>
         </div>
-        <p className="text-xs text-blue-200/80 mt-0.5">Real-time Cyber Threat Monitoring &amp; Deep Security Intelligence</p>
+        <p className="text-xs text-amber-200/80 mt-0.5">Real-time Cyber Threat Monitoring &amp; Deep Security Intelligence</p>
       </div>
 
       <div className="flex items-center gap-4 self-end sm:self-auto">
         {/* Live Clock Indicator */}
-        <div className="flex items-center gap-3 bg-[#061e38]/80 border border-blue-500/35 px-3.5 py-2 rounded-xl backdrop-blur-md shadow-[0_0_15px_rgba(37,99,235,0.25)]">
+        <div className="flex items-center gap-3 bg-[#0d0a03]/80 border border-amber-500/40 px-3.5 py-2 rounded-xl backdrop-blur-md shadow-[0_0_15px_rgba(245,158,11,0.2)]">
           <div className="relative flex items-center justify-center">
             <span className="animate-ping absolute inline-flex h-3 w-3 rounded-full bg-emerald-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
@@ -155,10 +155,10 @@ export const Header: React.FC = () => {
               <i className="fa-regular fa-clock text-emerald-400"></i>
               LIVE
             </div>
-            <strong className="text-base text-cyan-300 block leading-tight font-mono drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]">
+            <strong className="text-base text-amber-300 block leading-tight font-mono drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]">
               {time || '14:35:42'}
             </strong>
-            <span className="text-[10px] text-blue-200/70 font-mono block">
+            <span className="text-[10px] text-amber-200/70 font-mono block">
               {date || '26 Jul 2026, Sunday'}
             </span>
           </div>
@@ -173,11 +173,11 @@ export const Header: React.FC = () => {
               setShowNotifications(!showNotifications);
               if (unreadCount > 0) setUnreadCount(0);
             }}
-            className="w-9 h-9 bg-[#06243d]/80 hover:bg-blue-500/25 border border-blue-500/40 hover:border-blue-400/60 rounded-xl flex items-center justify-center text-gray-300 relative cursor-pointer transition backdrop-blur-md shadow-lg"
+            className="w-9 h-9 bg-[#0d0a03]/80 hover:bg-amber-500/25 border border-amber-500/40 hover:border-amber-400/60 rounded-xl flex items-center justify-center text-gray-300 relative cursor-pointer transition backdrop-blur-md shadow-lg"
           >
-            <i className="fa-solid fa-bell text-sm text-blue-400" />
+            <i className="fa-solid fa-bell text-sm text-amber-400" />
             {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-cyan-400 text-black rounded-full text-[9px] font-extrabold flex items-center justify-center animate-bounce shadow-[0_0_10px_#22d3ee]">
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-400 text-black rounded-full text-[9px] font-extrabold flex items-center justify-center animate-bounce shadow-[0_0_10px_#f59e0b]">
                 {unreadCount}
               </span>
             )}
@@ -191,19 +191,19 @@ export const Header: React.FC = () => {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
                 transition={{ duration: 0.15 }}
-                className="absolute right-0 mt-2 w-80 bg-slate-900/90 backdrop-blur-2xl border border-sky-500/30 rounded-xl shadow-2xl p-3 z-50 space-y-2"
+                className="absolute right-0 mt-2 w-80 bg-neutral-900/95 backdrop-blur-2xl border border-amber-500/30 rounded-xl shadow-2xl p-3 z-50 space-y-2"
               >
                 <div className="flex justify-between items-center pb-2 border-b border-white/10">
-                  <span className="font-bold text-xs text-sky-400 flex items-center gap-1.5">
+                  <span className="font-bold text-xs text-amber-400 flex items-center gap-1.5">
                     <i className="fa-solid fa-radar text-xs" /> System Threat Alerts
                   </span>
-                  <span className="text-[10px] text-sky-300 font-mono bg-sky-500/20 px-1.5 py-0.5 rounded border border-sky-500/30">
+                  <span className="text-[10px] text-amber-300 font-mono bg-amber-500/20 px-1.5 py-0.5 rounded border border-amber-500/30">
                     Live Feed
                   </span>
                 </div>
                 <div className="space-y-2 max-h-64 overflow-y-auto">
                   {notifications.map((n) => (
-                    <div key={n.id} className="p-2.5 bg-slate-800/80 rounded-lg border border-white/10 text-xs space-y-1 backdrop-blur-md">
+                    <div key={n.id} className="p-2.5 bg-neutral-800/80 rounded-lg border border-amber-500/20 text-xs space-y-1 backdrop-blur-md">
                       <div className="flex justify-between items-center">
                         <strong className="text-white font-semibold">{n.title}</strong>
                         <span className="text-[10px] text-gray-400">{n.time}</span>
@@ -221,16 +221,16 @@ export const Header: React.FC = () => {
         <div className="relative">
           <div
             onClick={() => setShowUserDropdown(!showUserDropdown)}
-            className="flex items-center gap-2.5 bg-slate-800/60 border border-white/15 hover:border-sky-500/50 px-3 py-1.5 rounded-lg cursor-pointer transition select-none shadow-lg backdrop-blur-md"
+            className="flex items-center gap-2.5 bg-neutral-900/80 border border-amber-500/30 hover:border-amber-400/60 px-3 py-1.5 rounded-lg cursor-pointer transition select-none shadow-lg backdrop-blur-md"
           >
-            <div className="w-8 h-8 bg-sky-500/20 border border-sky-500/40 rounded-full flex items-center justify-center text-sky-300 font-extrabold text-xs uppercase shrink-0 shadow-[0_0_10px_rgba(56,189,248,0.3)]">
+            <div className="w-8 h-8 bg-amber-500/20 border border-amber-400/50 rounded-full flex items-center justify-center text-amber-300 font-extrabold text-xs uppercase shrink-0 shadow-[0_0_10px_rgba(245,158,11,0.3)]">
               {activeUser && activeUser.name ? activeUser.name.charAt(0).toUpperCase() : 'K'}
             </div>
             <div className="min-w-0">
               <div className="font-bold text-xs text-white truncate max-w-[130px]">
                 {activeUser ? activeUser.name : 'Loading...'}
               </div>
-              <div className="text-[10px] text-sky-400 font-semibold truncate max-w-[130px] font-mono">
+              <div className="text-[10px] text-amber-400 font-semibold truncate max-w-[130px] font-mono">
                 {activeUser ? activeUser.role : 'SOC Analyst'}
               </div>
             </div>
@@ -244,11 +244,11 @@ export const Header: React.FC = () => {
                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                className="absolute right-0 mt-2 w-64 bg-slate-900/95 border border-white/15 rounded-xl shadow-2xl p-2 z-50 space-y-1 backdrop-blur-2xl"
+                className="absolute right-0 mt-2 w-64 bg-neutral-900/95 border border-amber-500/30 rounded-xl shadow-2xl p-2 z-50 space-y-1 backdrop-blur-2xl"
               >
                 <div className="p-2 border-b border-white/10 flex justify-between items-center">
-                  <span className="text-[10px] font-bold text-sky-400 uppercase tracking-wider font-mono">Active Security User</span>
-                  <span className="text-[9px] bg-sky-500/20 text-sky-300 px-1.5 py-0.5 rounded border border-sky-500/30 font-mono">
+                  <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider font-mono">Active Security User</span>
+                  <span className="text-[9px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded border border-amber-500/30 font-mono">
                     RBAC Synced
                   </span>
                 </div>
@@ -260,13 +260,13 @@ export const Header: React.FC = () => {
                       onClick={() => handleSelectUser(usr)}
                       className={`p-2 rounded-lg text-xs cursor-pointer transition flex items-center justify-between ${
                         activeUser?.id === usr.id || activeUser?.email === usr.email
-                          ? 'bg-sky-500/20 border border-sky-500/40 text-white font-bold'
-                          : 'hover:bg-slate-800/80 text-gray-300'
+                          ? 'bg-amber-500/20 border border-amber-400/40 text-white font-bold'
+                          : 'hover:bg-neutral-800/80 text-gray-300'
                       }`}
                     >
                       <div className="min-w-0 pr-2">
                         <div className="font-semibold text-white truncate">{usr.name}</div>
-                        <div className="text-[10px] text-sky-300/80 truncate font-mono">{usr.role}</div>
+                        <div className="text-[10px] text-amber-300/80 truncate font-mono">{usr.role}</div>
                       </div>
                       <span
                         className={`w-2 h-2 rounded-full shrink-0 ${

@@ -40,13 +40,13 @@ export const KpiCards: React.FC<KpiCardsProps> = ({ onSelectView }) => {
       id: 'requests',
       title: 'Total Requests',
       value: formatMillions(totalRequests),
-      badge: <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping shadow-[0_0_6px_#06b6d4]" />,
+      badge: <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping shadow-[0_0_6px_#f59e0b]" />,
       subtext: '12.5% live request rate',
       subIcon: 'fa-arrow-up',
-      subColor: 'text-cyan-400',
+      subColor: 'text-amber-400',
       icon: 'fa-shield',
-      iconBg: 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20',
-      borderColor: 'hover:border-cyan-500/50',
+      iconBg: 'bg-amber-500/10 text-amber-400 border border-amber-500/20',
+      borderColor: 'hover:border-amber-500/50',
       targetView: 'api-monitoring',
     },
     {
@@ -71,8 +71,8 @@ export const KpiCards: React.FC<KpiCardsProps> = ({ onSelectView }) => {
       subIcon: 'fa-arrow-down',
       subColor: 'text-emerald-400',
       icon: 'fa-bug',
-      iconBg: 'bg-cyan-500/10 text-sky-300 border border-cyan-500/20',
-      borderColor: 'hover:border-cyan-500/40',
+      iconBg: 'bg-amber-500/10 text-amber-300 border border-amber-500/20',
+      borderColor: 'hover:border-amber-500/40',
       targetView: 'vulnerabilities',
     },
     {
@@ -82,10 +82,10 @@ export const KpiCards: React.FC<KpiCardsProps> = ({ onSelectView }) => {
       badge: null,
       subtext: 'Medium Risk Shield',
       subIcon: 'fa-circle-check',
-      subColor: 'text-cyan-400',
+      subColor: 'text-amber-400',
       icon: 'fa-shield-halved',
-      iconBg: 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30',
-      borderColor: 'hover:border-cyan-500/50',
+      iconBg: 'bg-amber-500/15 text-amber-400 border border-amber-500/30',
+      borderColor: 'hover:border-amber-500/50',
       targetView: 'risk',
     },
   ];
@@ -101,7 +101,7 @@ export const KpiCards: React.FC<KpiCardsProps> = ({ onSelectView }) => {
             transition={{ duration: 0.3, delay: index * 0.08 }}
             whileHover={{ y: -3, transition: { duration: 0.15 } }}
             onClick={() => setActiveModal(card.id as any)}
-            className={`bg-[#030e1e]/50 backdrop-blur-md border border-cyan-500/20 rounded-xl p-4 flex items-center justify-between ${card.borderColor} transition-all shadow-xl hover:bg-[#061830]/75 relative overflow-hidden group cursor-pointer select-none`}
+            className={`bg-[#0a0803]/80 backdrop-blur-md border border-amber-500/30 rounded-xl p-4 flex items-center justify-between ${card.borderColor} transition-all shadow-xl hover:bg-[#141008]/85 relative overflow-hidden group cursor-pointer select-none`}
           >
             <div className="flex items-center gap-4">
               <div className={`w-12 h-12 rounded-lg ${card.iconBg} flex items-center justify-center text-xl shrink-0 transition-transform group-hover:scale-110`}>
@@ -120,7 +120,7 @@ export const KpiCards: React.FC<KpiCardsProps> = ({ onSelectView }) => {
                 </div>
               </div>
             </div>
-            <div className="text-gray-500 group-hover:text-cyan-400 transition text-xs pr-1">
+            <div className="text-gray-500 group-hover:text-amber-400 transition text-xs pr-1">
               <i className="fa-solid fa-chevron-right" />
             </div>
           </motion.div>
@@ -129,19 +129,19 @@ export const KpiCards: React.FC<KpiCardsProps> = ({ onSelectView }) => {
 
       {/* Real-time KPI Modal Detail Overlays */}
       {activeModal && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-xs flex items-center justify-center p-4">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-[#061426] border border-[#0d2138] rounded-2xl p-6 max-w-xl w-full shadow-2xl space-y-4 relative"
+            className="bg-[#0a0803] border border-amber-500/40 rounded-2xl p-6 max-w-xl w-full shadow-2xl space-y-4 relative"
           >
-            <div className="flex justify-between items-center border-b border-[#0d2138] pb-3">
+            <div className="flex justify-between items-center border-b border-amber-500/30 pb-3">
               <div className="flex items-center gap-2">
                 <i className={`fa-solid ${
-                  activeModal === 'requests' ? 'fa-shield text-cyan-400' :
+                  activeModal === 'requests' ? 'fa-shield text-amber-400' :
                   activeModal === 'threats' ? 'fa-triangle-exclamation text-red-400' :
-                  activeModal === 'vulns' ? 'fa-bug text-sky-300' : 'fa-shield-halved text-cyan-400'
+                  activeModal === 'vulns' ? 'fa-bug text-amber-300' : 'fa-shield-halved text-amber-400'
                 } text-lg`} />
                 <div>
                   <h3 className="font-bold text-white text-base">
@@ -150,12 +150,12 @@ export const KpiCards: React.FC<KpiCardsProps> = ({ onSelectView }) => {
                     {activeModal === 'vulns' && 'Vulnerability Assessment Audit'}
                     {activeModal === 'risk' && 'Enterprise Risk Score Factors'}
                   </h3>
-                  <p className="text-xs text-cyan-400/80 font-mono">Live Real-time Metrics & Controls</p>
+                  <p className="text-xs text-amber-400/80 font-mono">Live Real-time Metrics & Controls</p>
                 </div>
               </div>
               <button
                 onClick={() => setActiveModal(null)}
-                className="w-8 h-8 rounded-full bg-[#040d1a] hover:bg-[#0a1e36] text-gray-400 hover:text-white flex items-center justify-center cursor-pointer transition border border-[#0d2138]"
+                className="w-8 h-8 rounded-full bg-[#141008] hover:bg-[#1f190d] text-gray-400 hover:text-white flex items-center justify-center cursor-pointer transition border border-amber-500/30"
               >
                 <i className="fa-solid fa-xmark text-sm" />
               </button>
@@ -267,14 +267,14 @@ export const KpiCards: React.FC<KpiCardsProps> = ({ onSelectView }) => {
             )}
 
             {/* Action buttons */}
-            <div className="flex justify-between items-center pt-2 border-t border-[#0d2138]">
+            <div className="flex justify-between items-center pt-2 border-t border-amber-500/30">
               <button
                 onClick={() => {
                   const view = cards.find((c) => c.id === activeModal)?.targetView;
                   setActiveModal(null);
                   if (view && onSelectView) onSelectView(view);
                 }}
-                className="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-black font-extrabold rounded-lg cursor-pointer transition text-xs flex items-center gap-2 ocean-glow-sm"
+                className="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-extrabold rounded-lg cursor-pointer transition text-xs flex items-center gap-2 shadow-[0_0_15px_rgba(245,158,11,0.4)]"
               >
                 <span>Go to Full Module</span>
                 <i className="fa-solid fa-arrow-right text-[11px]" />
@@ -282,7 +282,7 @@ export const KpiCards: React.FC<KpiCardsProps> = ({ onSelectView }) => {
 
               <button
                 onClick={() => setActiveModal(null)}
-                className="px-4 py-2 bg-[#0d2138] hover:bg-[#163354] text-gray-200 text-xs font-semibold rounded-lg cursor-pointer transition"
+                className="px-4 py-2 bg-[#141008] hover:bg-[#1f190d] text-gray-200 text-xs font-semibold rounded-lg cursor-pointer transition border border-amber-500/30"
               >
                 Close
               </button>

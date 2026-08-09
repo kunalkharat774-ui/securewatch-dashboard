@@ -239,22 +239,22 @@ Scanned At: ${scanResult.lastScanned}`;
   };
 
   return (
-    <div className="bg-[#030e1e]/60 backdrop-blur-md border border-cyan-500/20 hover:border-cyan-400/40 transition rounded-xl p-5 shadow-xl flex flex-col h-full relative overflow-hidden">
+    <div className="bg-[#0a0803]/80 backdrop-blur-md border border-amber-500/30 hover:border-amber-400/50 transition rounded-xl p-5 shadow-xl flex flex-col h-full relative overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
         <div className="flex items-center gap-2 font-bold text-sm text-white">
-          <i className="fa-solid fa-globe text-cyan-400 text-base" />
+          <i className="fa-solid fa-globe text-amber-400 text-base" />
           <span>URL Reputation Checker</span>
-          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-mono">
+          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 font-mono">
             LIVE ENGINE
           </span>
         </div>
-        <span className="text-[11px] text-cyan-300/80 font-mono">
+        <span className="text-[11px] text-amber-300/80 font-mono">
           48 Feeds Synced
         </span>
       </div>
 
-      <p className="text-cyan-200/70 text-xs mb-3">
+      <p className="text-amber-200/70 text-xs mb-3">
         Analyze domain safety, phishing risks, malware payloads, SSL chains, and blacklist databases in real-time.
       </p>
 
@@ -266,14 +266,14 @@ Scanned At: ${scanResult.lastScanned}`;
           onChange={(e) => setInputUrl(e.target.value)}
           placeholder="Enter website domain or full URL (e.g., google.com)..."
           onKeyDown={(e) => e.key === 'Enter' && handleScan()}
-          className="flex-1 px-3.5 py-2.5 bg-[#020b18]/80 border border-cyan-500/30 text-white rounded-l-md outline-none text-xs focus:border-cyan-400 transition font-mono placeholder:text-gray-500"
+          className="flex-1 px-3.5 py-2.5 bg-[#050505] border border-amber-500/30 text-white rounded-l-md outline-none text-xs focus:border-amber-400 transition font-mono placeholder:text-gray-500"
         />
         <motion.button
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => handleScan()}
           disabled={isScanning || !inputUrl.trim()}
-          className="px-5 py-2.5 bg-cyan-500 hover:bg-cyan-400 text-black font-extrabold rounded-r-md text-xs cursor-pointer transition flex items-center gap-2 disabled:opacity-50 ocean-glow-sm shrink-0"
+          className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-extrabold rounded-r-md text-xs cursor-pointer transition flex items-center gap-2 disabled:opacity-50 shadow-[0_0_15px_rgba(245,158,11,0.3)] shrink-0"
         >
           {isScanning ? (
             <>
@@ -294,9 +294,9 @@ Scanned At: ${scanResult.lastScanned}`;
             initial={{ opacity: 0, y: -5 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -5 }}
-            className="p-3.5 mb-4 bg-[#081020] border border-cyan-500/40 rounded-lg space-y-2"
+            className="p-3.5 mb-4 bg-[#141008] border border-amber-500/40 rounded-lg space-y-2"
           >
-            <div className="flex items-center justify-between text-xs font-mono text-cyan-300">
+            <div className="flex items-center justify-between text-xs font-mono text-amber-300">
               <span className="flex items-center gap-2">
                 <i className="fa-solid fa-spinner animate-spin text-cyan-400" />
                 {scanStep}

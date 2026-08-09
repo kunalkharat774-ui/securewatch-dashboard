@@ -24,7 +24,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onSelectView, ale
 
   const navItems: { id: NavView; label: string; icon: string; badge?: { text: string; type: 'live' | 'new' | 'count' | 'green' } }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: 'fa-gauge-high' },
-    { id: 'tv-garden', label: 'World TV Garden', icon: 'fa-tv', badge: { text: 'LIVE TV', type: 'green' } },
+    { id: 'tv-garden', label: 'World TV & Webcams', icon: 'fa-video', badge: { text: 'CAM & TV', type: 'green' } },
     { id: 'live-map', label: 'Live Attack Map', icon: 'fa-map-location-dot', badge: { text: 'LIVE', type: 'live' } },
     { id: 'api-monitoring', label: 'API Monitoring', icon: 'fa-network-wired' },
     { id: 'alerts', label: 'Security Alerts', icon: 'fa-bell', badge: { text: `${alertCount}`, type: 'count' } },
@@ -41,21 +41,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onSelectView, ale
     { id: 'logs', label: 'Security Logs', icon: 'fa-file-lines' },
     { id: 'reports', label: 'Reports', icon: 'fa-chart-pie' },
     { id: 'users', label: 'User Management', icon: 'fa-users' },
+    { id: 'database-store', label: 'Database Store', icon: 'fa-database', badge: { text: 'PERSISTENT', type: 'green' } },
     { id: 'settings', label: 'Settings', icon: 'fa-gear' },
   ];
 
   return (
-    <aside className="w-64 bg-[#031326]/85 backdrop-blur-2xl border-r border-blue-500/25 flex flex-col p-4 shrink-0 overflow-y-auto relative z-20 shadow-[0_0_40px_rgba(2,11,24,0.8)]">
+    <aside className="w-64 bg-[#080705]/90 backdrop-blur-2xl border-r border-amber-500/30 flex flex-col p-4 shrink-0 overflow-y-auto relative z-20 shadow-[0_0_40px_rgba(0,0,0,0.9)]">
       {/* Logo */}
-      <div className="flex items-center gap-2.5 pb-4 mb-4 border-b border-blue-500/25">
-        <div className="w-9 h-9 rounded-xl bg-blue-500/20 border border-blue-400/40 flex items-center justify-center text-blue-300 glass-glow-sm">
-          <i className="fa-solid fa-shield-halved text-lg text-blue-400 drop-shadow-[0_0_8px_rgba(59,130,246,0.6)]" />
+      <div className="flex items-center gap-2.5 pb-4 mb-4 border-b border-amber-500/30">
+        <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-400/50 flex items-center justify-center text-amber-300 glass-glow-sm">
+          <i className="fa-solid fa-shield-halved text-lg text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.6)]" />
         </div>
         <div>
-          <div className="font-extrabold text-white text-base leading-tight tracking-wide bg-gradient-to-r from-white via-blue-100 to-blue-300 bg-clip-text text-transparent">
+          <div className="font-extrabold text-white text-base leading-tight tracking-wide bg-gradient-to-r from-white via-amber-100 to-amber-400 bg-clip-text text-transparent">
             SecureWatch
           </div>
-          <span className="text-[10px] text-blue-300/90 block font-mono tracking-wider font-semibold">WEB APP &amp; API SECURITY</span>
+          <span className="text-[10px] text-amber-300/90 block font-mono tracking-wider font-semibold">WEB APP &amp; API SECURITY</span>
         </div>
       </div>
 
@@ -70,19 +71,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onSelectView, ale
               onClick={() => onSelectView(item.id)}
               className={`w-full flex items-center px-3 py-2.5 text-xs rounded-xl transition-all cursor-pointer text-left relative ${
                 isActive
-                  ? 'text-white font-bold bg-blue-600/25 border border-blue-400/50 shadow-[0_0_24px_rgba(37,99,235,0.45)] backdrop-blur-md'
-                  : 'text-gray-300 hover:bg-[#062442]/60 hover:text-white'
+                  ? 'text-white font-bold bg-amber-500/20 border border-amber-400/50 shadow-[0_0_24px_rgba(245,158,11,0.35)] backdrop-blur-md'
+                  : 'text-gray-300 hover:bg-amber-950/40 hover:text-white'
               }`}
             >
               {isActive && (
                 <motion.div
                   layoutId="sidebarActivePill"
-                  className="absolute left-0 top-0 bottom-0 w-1 bg-blue-400 rounded-r shadow-[0_0_12px_#3b82f6]"
+                  className="absolute left-0 top-0 bottom-0 w-1 bg-amber-400 rounded-r shadow-[0_0_12px_#f59e0b]"
                   transition={{ type: 'spring', stiffness: 350, damping: 30 }}
                 />
               )}
 
-              <i className={`fa-solid ${item.icon} w-5 text-center mr-2.5 text-sm ${isActive ? 'text-blue-400' : 'text-slate-400'}`} />
+              <i className={`fa-solid ${item.icon} w-5 text-center mr-2.5 text-sm ${isActive ? 'text-amber-400' : 'text-slate-400'}`} />
               <span className="truncate">{item.label}</span>
 
               {item.badge && (
@@ -91,7 +92,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onSelectView, ale
                     item.badge.type === 'live'
                       ? 'bg-red-500/20 text-red-400 border border-red-500/30'
                       : item.badge.type === 'new'
-                      ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
                       : item.badge.type === 'count'
                       ? 'bg-red-500/20 text-red-400 rounded-full px-2'
                       : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
@@ -106,13 +107,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onSelectView, ale
       </nav>
 
       {/* System Status Panel */}
-      <div className="mt-6 p-3.5 bg-[#041a33]/70 backdrop-blur-xl rounded-xl border border-blue-500/25 shadow-lg">
+      <div className="mt-6 p-3.5 bg-[#0a0803]/80 backdrop-blur-xl rounded-xl border border-amber-500/30 shadow-lg">
         <div className="flex justify-between items-center text-xs font-semibold mb-3 text-white">
           <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse shadow-[0_0_10px_#3b82f6]" />
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse shadow-[0_0_10px_#f59e0b]" />
             System Status
           </span>
-          <span className="text-blue-300 text-[11px] font-medium font-mono">Protected</span>
+          <span className="text-amber-300 text-[11px] font-medium font-mono">Protected</span>
         </div>
 
         <div className="space-y-2.5 text-[11px]">
@@ -121,8 +122,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onSelectView, ale
               <span>CPU Usage</span>
               <span className="text-white font-mono">{cpu}%</span>
             </div>
-            <div className="h-1 bg-[#02101c] rounded-full overflow-hidden">
-              <div className="h-full bg-cyan-400 rounded-full transition-all duration-500 shadow-[0_0_6px_#22d3ee]" style={{ width: `${cpu}%` }} />
+            <div className="h-1 bg-[#050505] rounded-full overflow-hidden">
+              <div className="h-full bg-amber-400 rounded-full transition-all duration-500 shadow-[0_0_6px_#f59e0b]" style={{ width: `${cpu}%` }} />
             </div>
           </div>
 
@@ -131,8 +132,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onSelectView, ale
               <span>Memory Usage</span>
               <span className="text-white font-mono">{memory}%</span>
             </div>
-            <div className="h-1 bg-[#02101c] rounded-full overflow-hidden">
-              <div className="h-full bg-teal-400 rounded-full transition-all duration-500 shadow-[0_0_6px_#2dd4bf]" style={{ width: `${memory}%` }} />
+            <div className="h-1 bg-[#050505] rounded-full overflow-hidden">
+              <div className="h-full bg-yellow-400 rounded-full transition-all duration-500 shadow-[0_0_6px_#facc15]" style={{ width: `${memory}%` }} />
             </div>
           </div>
 
@@ -141,8 +142,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onSelectView, ale
               <span>Disk Usage</span>
               <span className="text-white font-mono">31%</span>
             </div>
-            <div className="h-1 bg-[#02101c] rounded-full overflow-hidden">
-              <div className="h-full bg-sky-400 rounded-full" style={{ width: '31%' }} />
+            <div className="h-1 bg-[#050505] rounded-full overflow-hidden">
+              <div className="h-full bg-amber-500 rounded-full" style={{ width: '31%' }} />
             </div>
           </div>
 
@@ -151,7 +152,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onSelectView, ale
               <span>Network Traffic</span>
               <span className="text-white font-mono">{network}%</span>
             </div>
-            <div className="h-1 bg-[#02101c] rounded-full overflow-hidden">
+            <div className="h-1 bg-[#050505] rounded-full overflow-hidden">
               <div className="h-full bg-emerald-400 rounded-full transition-all duration-500" style={{ width: `${network}%` }} />
             </div>
           </div>
