@@ -80,7 +80,16 @@ const Osiris: React.FC = () => {
                 })
             });
 
-            const data = await response.json();
+            // Check if response is empty (204 No Content or zero content-length)
+            let data: any = {};
+            if (response.status !== 204 && response.headers.get("content-length") !== "0") {
+                try {
+                    data = await response.json();
+                } catch (parseError) {
+                    console.warn("Received invalid JSON response:", parseError);
+                    data = {};
+                }
+            }
 
             if (!response.ok) {
                 throw new Error(data?.error || 'Gemini request failed');
