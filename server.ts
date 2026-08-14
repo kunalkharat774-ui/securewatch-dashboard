@@ -2131,7 +2131,7 @@ ${sourceReference}`;
     let responseText = '';
 
     if (ai) {
-      const modelsToTry = ['gemini-3.6-flash', 'gemini-flash-latest'];
+      const modelsToTry = ['gemini-2.0-flash', 'gemini-1.5-flash'];
       let apiSuccess = false;
 
       for (const modelName of modelsToTry) {
