@@ -3,6 +3,21 @@
     "users": [],
     "logs": [
       {
+        "id": "SEC-LOG-45763",
+        "timestamp": "2026-08-14T06:57:43.020Z",
+        "traceId": "tr-zry7o9cm",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.121.249.194",
+        "sourceIp": "45.147.21.25",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
         "id": "SEC-LOG-45339",
         "timestamp": "2026-08-14T06:57:33.005Z",
         "traceId": "tr-uhwtqb3q",
@@ -2985,21 +3000,6 @@
         "details": {
           "cipher": "TLS_AES_256_GCM_SHA384",
           "certSubject": "CN=xHunter-Microservice"
-        }
-      },
-      {
-        "id": "SEC-LOG-29424",
-        "timestamp": "2026-08-14T06:24:21.516Z",
-        "traceId": "tr-yedvimsv",
-        "level": "CRITICAL",
-        "service": "WAF Guard",
-        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.174.207.149",
-        "sourceIp": "185.225.72.109",
-        "destination": "ingress-gateway:443",
-        "action": "BLOCKED",
-        "details": {
-          "matchedRule": "OWASP-CRS-942100",
-          "userAgent": "Go-http-client/1.1"
         }
       }
     ],
@@ -3011,6 +3011,21 @@
     "users": [],
     "logs": [
       {
+        "id": "SEC-LOG-45763",
+        "timestamp": "2026-08-14T06:57:43.020Z",
+        "traceId": "tr-zry7o9cm",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.121.249.194",
+        "sourceIp": "45.147.21.25",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
         "id": "SEC-LOG-45339",
         "timestamp": "2026-08-14T06:57:33.005Z",
         "traceId": "tr-uhwtqb3q",
@@ -5993,21 +6008,6 @@
         "details": {
           "cipher": "TLS_AES_256_GCM_SHA384",
           "certSubject": "CN=xHunter-Microservice"
-        }
-      },
-      {
-        "id": "SEC-LOG-29424",
-        "timestamp": "2026-08-14T06:24:21.516Z",
-        "traceId": "tr-yedvimsv",
-        "level": "CRITICAL",
-        "service": "WAF Guard",
-        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.174.207.149",
-        "sourceIp": "185.225.72.109",
-        "destination": "ingress-gateway:443",
-        "action": "BLOCKED",
-        "details": {
-          "matchedRule": "OWASP-CRS-942100",
-          "userAgent": "Go-http-client/1.1"
         }
       }
     ],
@@ -6019,6 +6019,21 @@
     "users": [],
     "logs": [
       {
+        "id": "SEC-LOG-45763",
+        "timestamp": "2026-08-14T06:57:43.020Z",
+        "traceId": "tr-zry7o9cm",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.121.249.194",
+        "sourceIp": "45.147.21.25",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
         "id": "SEC-LOG-45339",
         "timestamp": "2026-08-14T06:57:33.005Z",
         "traceId": "tr-uhwtqb3q",
@@ -9001,21 +9016,6 @@
         "details": {
           "cipher": "TLS_AES_256_GCM_SHA384",
           "certSubject": "CN=xHunter-Microservice"
-        }
-      },
-      {
-        "id": "SEC-LOG-29424",
-        "timestamp": "2026-08-14T06:24:21.516Z",
-        "traceId": "tr-yedvimsv",
-        "level": "CRITICAL",
-        "service": "WAF Guard",
-        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.174.207.149",
-        "sourceIp": "185.225.72.109",
-        "destination": "ingress-gateway:443",
-        "action": "BLOCKED",
-        "details": {
-          "matchedRule": "OWASP-CRS-942100",
-          "userAgent": "Go-http-client/1.1"
         }
       }
     ],
