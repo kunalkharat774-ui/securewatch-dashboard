@@ -3,6 +3,21 @@
     "users": [],
     "logs": [
       {
+        "id": "SEC-LOG-25172",
+        "timestamp": "2026-08-14T06:52:22.785Z",
+        "traceId": "tr-nk3logef",
+        "level": "INFO",
+        "service": "TLS Gateway",
+        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
+        "sourceIp": "192.168.1.108",
+        "destination": "internal-mesh:8443",
+        "action": "ALLOWED",
+        "details": {
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "certSubject": "CN=xHunter-Microservice"
+        }
+      },
+      {
         "id": "SEC-LOG-79637",
         "timestamp": "2026-08-14T06:52:12.770Z",
         "traceId": "tr-2qgibv55",
@@ -2976,21 +2991,6 @@
         "id": "SEC-LOG-15643",
         "timestamp": "2026-08-14T06:18:59.050Z",
         "traceId": "tr-8g312pmu",
-        "level": "INFO",
-        "service": "TLS Gateway",
-        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
-        "sourceIp": "192.168.1.108",
-        "destination": "internal-mesh:8443",
-        "action": "ALLOWED",
-        "details": {
-          "cipher": "TLS_AES_256_GCM_SHA384",
-          "certSubject": "CN=xHunter-Microservice"
-        }
-      },
-      {
-        "id": "SEC-LOG-91660",
-        "timestamp": "2026-08-14T06:18:49.035Z",
-        "traceId": "tr-lck6qrun",
         "level": "INFO",
         "service": "TLS Gateway",
         "message": "mTLS Client Certificate Mutual Handshake verified successfully",
@@ -3011,6 +3011,21 @@
     "users": [],
     "logs": [
       {
+        "id": "SEC-LOG-25172",
+        "timestamp": "2026-08-14T06:52:22.785Z",
+        "traceId": "tr-nk3logef",
+        "level": "INFO",
+        "service": "TLS Gateway",
+        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
+        "sourceIp": "192.168.1.108",
+        "destination": "internal-mesh:8443",
+        "action": "ALLOWED",
+        "details": {
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "certSubject": "CN=xHunter-Microservice"
+        }
+      },
+      {
         "id": "SEC-LOG-79637",
         "timestamp": "2026-08-14T06:52:12.770Z",
         "traceId": "tr-2qgibv55",
@@ -5984,21 +5999,6 @@
         "id": "SEC-LOG-15643",
         "timestamp": "2026-08-14T06:18:59.050Z",
         "traceId": "tr-8g312pmu",
-        "level": "INFO",
-        "service": "TLS Gateway",
-        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
-        "sourceIp": "192.168.1.108",
-        "destination": "internal-mesh:8443",
-        "action": "ALLOWED",
-        "details": {
-          "cipher": "TLS_AES_256_GCM_SHA384",
-          "certSubject": "CN=xHunter-Microservice"
-        }
-      },
-      {
-        "id": "SEC-LOG-91660",
-        "timestamp": "2026-08-14T06:18:49.035Z",
-        "traceId": "tr-lck6qrun",
         "level": "INFO",
         "service": "TLS Gateway",
         "message": "mTLS Client Certificate Mutual Handshake verified successfully",
@@ -6019,6 +6019,21 @@
     "users": [],
     "logs": [
       {
+        "id": "SEC-LOG-25172",
+        "timestamp": "2026-08-14T06:52:22.785Z",
+        "traceId": "tr-nk3logef",
+        "level": "INFO",
+        "service": "TLS Gateway",
+        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
+        "sourceIp": "192.168.1.108",
+        "destination": "internal-mesh:8443",
+        "action": "ALLOWED",
+        "details": {
+          "cipher": "TLS_AES_256_GCM_SHA384",
+          "certSubject": "CN=xHunter-Microservice"
+        }
+      },
+      {
         "id": "SEC-LOG-79637",
         "timestamp": "2026-08-14T06:52:12.770Z",
         "traceId": "tr-2qgibv55",
@@ -8992,21 +9007,6 @@
         "id": "SEC-LOG-15643",
         "timestamp": "2026-08-14T06:18:59.050Z",
         "traceId": "tr-8g312pmu",
-        "level": "INFO",
-        "service": "TLS Gateway",
-        "message": "mTLS Client Certificate Mutual Handshake verified successfully",
-        "sourceIp": "192.168.1.108",
-        "destination": "internal-mesh:8443",
-        "action": "ALLOWED",
-        "details": {
-          "cipher": "TLS_AES_256_GCM_SHA384",
-          "certSubject": "CN=xHunter-Microservice"
-        }
-      },
-      {
-        "id": "SEC-LOG-91660",
-        "timestamp": "2026-08-14T06:18:49.035Z",
-        "traceId": "tr-lck6qrun",
         "level": "INFO",
         "service": "TLS Gateway",
         "message": "mTLS Client Certificate Mutual Handshake verified successfully",
