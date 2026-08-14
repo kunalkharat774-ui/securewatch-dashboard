@@ -109,6 +109,7 @@ export type NavView =
   | 'url-reputation'
   | 'file-security'
   | 'ip-chat'
+  | 'osiris-gpt'
   | 'logs'
   | 'reports'
   | 'users'
