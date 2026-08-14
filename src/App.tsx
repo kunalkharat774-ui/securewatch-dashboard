@@ -10,7 +10,6 @@ import { RecentTables } from './components/RecentTables';
 import { ExtraViews } from './components/ExtraViews';
 import { BinaryBackground } from './components/BinaryBackground';
 import { SecurityTerminal } from './components/SecurityTerminal';
-import OsirisGPTView from './components/OsirisGPTView';
 import { NavView, UrlScanResult, FileActivity } from './types';
 
 export default function App() {
@@ -116,24 +115,6 @@ export default function App() {
                 </div>
                 <FileSecurity onFileActivity={handleFileActivity} />
                 <RecentTables urlScans={urlScans} fileActivities={fileActivities} />
-              </div>
-            ) : currentView === 'osiris-gpt' ? (
-              <div className="flex-1 flex flex-col space-y-4">
-                <div className="flex justify-between items-center border-b border-[#1f2335] pb-4">
-                  <div>
-                    <h2 className="text-xl font-bold text-white">Osiris GPT</h2>
-                    <p className="text-xs text-gray-400">SecureWatch AI security assistant powered by Gemini</p>
-                  </div>
-                  <button
-                    onClick={() => setCurrentView('dashboard')}
-                    className="px-3.5 py-1.5 bg-[#1a1e30] hover:bg-[#252b42] text-gray-200 text-xs rounded border border-[#1f2335] transition flex items-center gap-2 cursor-pointer"
-                  >
-                    <i className="fa-solid fa-gauge-high text-xs" /> Back to Dashboard
-                  </button>
-                </div>
-                <div className="flex-1 min-h-[680px] rounded-xl overflow-hidden border border-[#1f2335] bg-[#050a12]">
-                  <OsirisGPTView />
-                </div>
               </div>
             ) : currentView !== 'dashboard' ? (
               /* OTHER SIDEBAR MODULE VIEWS */

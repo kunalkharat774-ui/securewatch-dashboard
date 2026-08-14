@@ -36,7 +36,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onSelectView, ale
     { id: 'steganography', label: 'Steganography', icon: 'fa-file-image', badge: { text: 'LSB', type: 'new' } },
     { id: 'ip-location', label: 'IP Location Lookup', icon: 'fa-location-dot', badge: { text: 'MAP', type: 'green' } },
     { id: 'ip-chat', label: 'IP Chat Portal', icon: 'fa-comments', badge: { text: 'LIVE', type: 'live' } },
-    { id: 'osiris-gpt', label: 'Osiris GPT', icon: 'fa-robot', badge: { text: 'AI', type: 'green' } },
     { id: 'domain-info', label: 'Domain Information', icon: 'fa-globe', badge: { text: 'NEW', type: 'green' } },
     { id: 'url-reputation', label: 'URL Reputation', icon: 'fa-link', badge: { text: 'NEW', type: 'green' } },
     { id: 'file-security', label: 'File Security', icon: 'fa-file-shield', badge: { text: 'NEW', type: 'green' } },
