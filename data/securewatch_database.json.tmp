@@ -3,6 +3,21 @@
     "users": [],
     "logs": [
       {
+        "id": "SEC-LOG-68575",
+        "timestamp": "2026-08-14T07:05:43.392Z",
+        "traceId": "tr-g9w6hml6",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.124.137.104",
+        "sourceIp": "103.220.163.244",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
         "id": "SEC-LOG-58729",
         "timestamp": "2026-08-14T07:05:33.380Z",
         "traceId": "tr-h169gv10",
@@ -2985,21 +3000,6 @@
         "details": {
           "protocol": "TCP/SYN",
           "bytesSent": 64
-        }
-      },
-      {
-        "id": "SEC-LOG-35450",
-        "timestamp": "2026-08-14T06:32:21.892Z",
-        "traceId": "tr-s9rxq8kh",
-        "level": "WARN",
-        "service": "API Gateway",
-        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.209.83.230",
-        "sourceIp": "45.212.223.145",
-        "destination": "/api/v1/telemetry",
-        "action": "FLAGGED",
-        "details": {
-          "rate": 140,
-          "threshold": 120
         }
       }
     ],
@@ -3011,6 +3011,21 @@
     "users": [],
     "logs": [
       {
+        "id": "SEC-LOG-68575",
+        "timestamp": "2026-08-14T07:05:43.392Z",
+        "traceId": "tr-g9w6hml6",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.124.137.104",
+        "sourceIp": "103.220.163.244",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
         "id": "SEC-LOG-58729",
         "timestamp": "2026-08-14T07:05:33.380Z",
         "traceId": "tr-h169gv10",
@@ -5993,21 +6008,6 @@
         "details": {
           "protocol": "TCP/SYN",
           "bytesSent": 64
-        }
-      },
-      {
-        "id": "SEC-LOG-35450",
-        "timestamp": "2026-08-14T06:32:21.892Z",
-        "traceId": "tr-s9rxq8kh",
-        "level": "WARN",
-        "service": "API Gateway",
-        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.209.83.230",
-        "sourceIp": "45.212.223.145",
-        "destination": "/api/v1/telemetry",
-        "action": "FLAGGED",
-        "details": {
-          "rate": 140,
-          "threshold": 120
         }
       }
     ],
@@ -6019,6 +6019,21 @@
     "users": [],
     "logs": [
       {
+        "id": "SEC-LOG-68575",
+        "timestamp": "2026-08-14T07:05:43.392Z",
+        "traceId": "tr-g9w6hml6",
+        "level": "ERROR",
+        "service": "Honeypot Guard",
+        "message": "Unauthorized SSH SYN Port probe detected on port 22 from 103.124.137.104",
+        "sourceIp": "103.220.163.244",
+        "destination": "honeypot-sinkhole:22",
+        "action": "QUARANTINED",
+        "details": {
+          "protocol": "TCP/SYN",
+          "bytesSent": 64
+        }
+      },
+      {
         "id": "SEC-LOG-58729",
         "timestamp": "2026-08-14T07:05:33.380Z",
         "traceId": "tr-h169gv10",
@@ -9001,21 +9016,6 @@
         "details": {
           "protocol": "TCP/SYN",
           "bytesSent": 64
-        }
-      },
-      {
-        "id": "SEC-LOG-35450",
-        "timestamp": "2026-08-14T06:32:21.892Z",
-        "traceId": "tr-s9rxq8kh",
-        "level": "WARN",
-        "service": "API Gateway",
-        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.209.83.230",
-        "sourceIp": "45.212.223.145",
-        "destination": "/api/v1/telemetry",
-        "action": "FLAGGED",
-        "details": {
-          "rate": 140,
-          "threshold": 120
         }
       }
     ],
