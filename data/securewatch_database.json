@@ -3,6 +3,21 @@
     "users": [],
     "logs": [
       {
+        "id": "SEC-LOG-70407",
+        "timestamp": "2026-08-14T06:11:08.253Z",
+        "traceId": "tr-gqybfbbe",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.177.201.90",
+        "sourceIp": "45.170.18.135",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
         "id": "SEC-LOG-12040",
         "timestamp": "2026-08-14T06:10:58.239Z",
         "traceId": "tr-2kafnqdc",
@@ -2980,21 +2995,6 @@
         "service": "WAF Guard",
         "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.164.209.121",
         "sourceIp": "185.32.186.13",
-        "destination": "ingress-gateway:443",
-        "action": "BLOCKED",
-        "details": {
-          "matchedRule": "OWASP-CRS-942100",
-          "userAgent": "Go-http-client/1.1"
-        }
-      },
-      {
-        "id": "SEC-LOG-53524",
-        "timestamp": "2026-08-14T05:36:27.270Z",
-        "traceId": "tr-4vtqn58h",
-        "level": "CRITICAL",
-        "service": "WAF Guard",
-        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.121.145.192",
-        "sourceIp": "185.157.81.123",
         "destination": "ingress-gateway:443",
         "action": "BLOCKED",
         "details": {
@@ -3011,6 +3011,21 @@
     "users": [],
     "logs": [
       {
+        "id": "SEC-LOG-70407",
+        "timestamp": "2026-08-14T06:11:08.253Z",
+        "traceId": "tr-gqybfbbe",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.177.201.90",
+        "sourceIp": "45.170.18.135",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
         "id": "SEC-LOG-12040",
         "timestamp": "2026-08-14T06:10:58.239Z",
         "traceId": "tr-2kafnqdc",
@@ -5988,21 +6003,6 @@
         "service": "WAF Guard",
         "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.164.209.121",
         "sourceIp": "185.32.186.13",
-        "destination": "ingress-gateway:443",
-        "action": "BLOCKED",
-        "details": {
-          "matchedRule": "OWASP-CRS-942100",
-          "userAgent": "Go-http-client/1.1"
-        }
-      },
-      {
-        "id": "SEC-LOG-53524",
-        "timestamp": "2026-08-14T05:36:27.270Z",
-        "traceId": "tr-4vtqn58h",
-        "level": "CRITICAL",
-        "service": "WAF Guard",
-        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.121.145.192",
-        "sourceIp": "185.157.81.123",
         "destination": "ingress-gateway:443",
         "action": "BLOCKED",
         "details": {
@@ -6019,6 +6019,21 @@
     "users": [],
     "logs": [
       {
+        "id": "SEC-LOG-70407",
+        "timestamp": "2026-08-14T06:11:08.253Z",
+        "traceId": "tr-gqybfbbe",
+        "level": "WARN",
+        "service": "API Gateway",
+        "message": "Rate limit threshold exceeded (140 req/min) for IP 45.177.201.90",
+        "sourceIp": "45.170.18.135",
+        "destination": "/api/v1/telemetry",
+        "action": "FLAGGED",
+        "details": {
+          "rate": 140,
+          "threshold": 120
+        }
+      },
+      {
         "id": "SEC-LOG-12040",
         "timestamp": "2026-08-14T06:10:58.239Z",
         "traceId": "tr-2kafnqdc",
@@ -8996,21 +9011,6 @@
         "service": "WAF Guard",
         "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.164.209.121",
         "sourceIp": "185.32.186.13",
-        "destination": "ingress-gateway:443",
-        "action": "BLOCKED",
-        "details": {
-          "matchedRule": "OWASP-CRS-942100",
-          "userAgent": "Go-http-client/1.1"
-        }
-      },
-      {
-        "id": "SEC-LOG-53524",
-        "timestamp": "2026-08-14T05:36:27.270Z",
-        "traceId": "tr-4vtqn58h",
-        "level": "CRITICAL",
-        "service": "WAF Guard",
-        "message": "OWASP SQLi payload blocked on /api/v1/auth/login from IP 185.121.145.192",
-        "sourceIp": "185.157.81.123",
         "destination": "ingress-gateway:443",
         "action": "BLOCKED",
         "details": {
