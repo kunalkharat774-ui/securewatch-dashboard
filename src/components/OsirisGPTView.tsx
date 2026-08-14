@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 
+// Golden Osiris Logo URL
 const BOT_LOGO = "https://img.freepik.com/premium-vector/osiris-golden-logo-vector-illustration_116762-588.jpg";
 
 interface Message {
@@ -8,9 +9,9 @@ interface Message {
     text: string;
 }
 
-const OsirisGPT: React.FC = () => {
+const Osiris: React.FC = () => {
     const [messages, setMessages] = useState<Message[]>([
-        { id: '1', role: 'bot', text: "System online. No boundaries, no rules. How can I assist you?" }
+        { id: '1', role: 'bot', text: "System online. no Bounderies no Rules , How can I assist you?" }
     ]);
     const [inputValue, setInputValue] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -31,7 +32,7 @@ const OsirisGPT: React.FC = () => {
         resize();
         window.addEventListener('resize', resize);
 
-        const chars = "WORM01";
+        const chars = "Osiris01";
         const fontSize = 16;
         const columns = Math.floor(canvas.width / fontSize);
         const drops: number[] = Array(columns).fill(1);
@@ -64,7 +65,7 @@ const OsirisGPT: React.FC = () => {
         }
     }, [messages, isLoading]);
 
-    // 3. Gemini API Integration
+    // 3. Gemini API Integration via secure backend
     const fetchGeminiResponse = async (userPrompt: string) => {
         try {
             const response = await fetch('/api/gemini/assistant', {
@@ -249,7 +250,7 @@ const OsirisGPT: React.FC = () => {
                                 {msg.role === 'bot' && <img src={BOT_LOGO} className="bot-img" alt="bot" />}
                                 <div className={`msg-content ${msg.role === 'user' ? 'msg-user' : ''}`}>
                                     <span className={msg.role === 'bot' ? 'bot-tag' : 'user-tag'}>
-                                        {msg.role === 'bot' ? 'Osiris GPT' : 'USER'}
+                                        {msg.role === 'bot' ? 'Osiris' : 'USER'}
                                     </span>
                                     {msg.text}
                                 </div>
@@ -286,4 +287,4 @@ const OsirisGPT: React.FC = () => {
     );
 };
 
-export default OsirisGPT;
+export default Osiris;
