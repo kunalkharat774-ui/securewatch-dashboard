@@ -4,9 +4,6 @@ import { NavView } from '../types';
 import { TextEncryptView } from './TextEncryptView';
 import { SteganographyView } from './SteganographyView';
 import { IpLocationView } from './IpLocationView';
-import { IpChatView } from './IPChatView';
-import { MobileTrackerView } from './MobileTrackerView';
-import { TvGardenView } from './TvGardenView';
 import { DomainInfoView } from './DomainInfoView';
 import { EmailBreachView } from './EmailBreachView';
 import { VulnerabilityScannerView } from './VulnerabilityScannerView';
@@ -17,6 +14,7 @@ import { SecurityLogsView } from './SecurityLogsView';
 import { ReportsView } from './ReportsView';
 import { SecurityUsersView } from './SecurityUsersView';
 import { SettingsView } from './SettingsView';
+import { LiveWebcamsView } from './LiveWebcamsView';
 
 interface ExtraViewsProps {
   view: NavView;
@@ -58,19 +56,6 @@ export const ExtraViews: React.FC<ExtraViewsProps> = ({ view, onBackToDashboard 
   const [generatedPass, setGeneratedPass] = useState('');
   const [showPassword, setShowPassword] = useState(true);
   const [copiedToast, setCopiedToast] = useState(false);
-
-  // Domain Info State
-  const [domainInput, setDomainInput] = useState('google.com');
-  const [domainData, setDomainData] = useState<any>({
-    domain: 'google.com',
-    registrar: 'MarkMonitor Inc.',
-    createdDate: '1997-09-15',
-    expiryDate: '2028-09-14',
-    dnssec: 'Signed (Active)',
-    nameServers: ['ns1.google.com', 'ns2.google.com', 'ns3.google.com'],
-    sslStatus: 'Valid TLS 1.3 Certificate (DigiCert Inc)',
-    spfRecord: 'v=spf1 include:_spf.google.com ~all',
-  });
 
   // Risk Assessment Calculator State
   const [assetValue, setAssetValue] = useState(8);
@@ -396,8 +381,7 @@ export const ExtraViews: React.FC<ExtraViewsProps> = ({ view, onBackToDashboard 
   return (
     <div className="space-y-6">
       {/* Top Navigation Bar */}
-      {view !== 'ai-assistant' && (
-        <div className="flex items-center justify-between border-b border-[#1f2335] pb-4">
+      <div className="flex items-center justify-between border-b border-[#1f2335] pb-4">
           <div>
             <h2 className="text-xl font-bold text-white capitalize">{view.replace('-', ' ')}</h2>
             <p className="text-xs text-gray-400">SecureWatch Telemetry & Security Operations</p>
@@ -408,8 +392,7 @@ export const ExtraViews: React.FC<ExtraViewsProps> = ({ view, onBackToDashboard 
           >
             <i className="fa-solid fa-arrow-left text-xs" /> Back to Dashboard
           </button>
-        </div>
-      )}
+      </div>
 
       {/* 1. API MONITORING */}
       {view === 'api-monitoring' && (
@@ -434,11 +417,6 @@ export const ExtraViews: React.FC<ExtraViewsProps> = ({ view, onBackToDashboard 
       {/* 6. EMAIL BREACH CHECKER */}
       {view === 'email-breach' && (
         <EmailBreachView onBackToDashboard={onBackToDashboard} />
-      )}
-
-      {/* 6.5 IP CHAT PORTAL */}
-      {view === 'ip-chat' && (
-        <IpChatView onBackToDashboard={onBackToDashboard} />
       )}
 
       {/* 7. PASSWORD STRENGTH & GENERATOR */}
@@ -623,17 +601,14 @@ export const ExtraViews: React.FC<ExtraViewsProps> = ({ view, onBackToDashboard 
       {/* 7.5 TEXT ENCRYPTION TOOL */}
       {view === 'text-encrypt' && <TextEncryptView />}
 
+      {/* 7.6 LIVE WEBCAMS */}
+      {view === 'live-webcams' && <LiveWebcamsView />}
+
       {/* 7.55 STEGANOGRAPHY TOOL */}
       {view === 'steganography' && <SteganographyView />}
 
       {/* 8. IP LOCATION LOOKUP */}
       {view === 'ip-location' && <IpLocationView />}
-
-      {/* 8.2 WORLD TV GARDEN */}
-      {view === 'tv-garden' && <TvGardenView />}
-
-      {/* 8.5 LIVE MOBILE TRACKER */}
-      {view === 'mobile-tracker' && <MobileTrackerView onBackToDashboard={onBackToDashboard} />}
 
       {/* 9. DOMAIN INFO */}
       {view === 'domain-info' && <DomainInfoView onBackToDashboard={onBackToDashboard} />}

@@ -70,7 +70,12 @@ export interface UrlScanResult {
   sslValid?: boolean;
   serverLocation?: string;
   enginesDetected?: { name: string; result: 'Clean' | 'Flagged' | 'Unrated' }[];
+  screenshot_url?: string | null;
+  httpStatus?: number | null;
+  responseTimeMs?: number;
+  redirectUrl?: string | null;
   recommendation?: string;
+  provider?: string;
 }
 
 export interface FileActivity {
@@ -80,6 +85,34 @@ export interface FileActivity {
   status: 'Success' | 'Failed';
   size: string;
   time: string;
+}
+
+export interface LiveWebcam {
+  id: string;
+  callsign: string;
+  sector: string;
+  elevation: string;
+  sensorType: string;
+  title: string;
+  channelName: string;
+  city: string;
+  stateOrRegion: string;
+  country: string;
+  countryCode: string;
+  continent: string;
+  latitude: number;
+  longitude: number;
+  category: string;
+  youtubeId: string;
+  embedUrl: string;
+  resolution: string;
+  fps: number;
+  timezone: string;
+  timezoneOffsetHours: number;
+  viewersCount: number;
+  status: string;
+  description: string;
+  tags: string[];
 }
 
 export interface SecurityAlert {
@@ -94,8 +127,8 @@ export interface SecurityAlert {
 
 export type NavView = 
   | 'dashboard'
+  | 'live-webcams'
   | 'live-map'
-  | 'tv-garden'
   | 'api-monitoring'
   | 'alerts'
   | 'vulnerability-scanner'
@@ -108,7 +141,6 @@ export type NavView =
   | 'domain-info'
   | 'url-reputation'
   | 'file-security'
-  | 'ip-chat'
   | 'logs'
   | 'reports'
   | 'users'

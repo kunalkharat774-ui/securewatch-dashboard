@@ -159,20 +159,20 @@ export const DomainInfoView: React.FC<DomainInfoViewProps> = ({ onBackToDashboar
   // Fetch IP Geolocation for resolved server IP
   const fetchIpGeolocation = async (ip: string) => {
     try {
-      const res = await fetch(`https://ip-api.com/json/${ip}?fields=status,country,countryCode,regionName,city,zip,lat,lon,timezone,isp,org,as`);
+      const res = await fetch(`/api/ip-lookup?ip=${encodeURIComponent(ip)}`, { cache: 'no-store' });
       if (!res.ok) return null;
       const data = await res.json();
-      if (data.status === 'success') {
+      if (data.success) {
         return {
           city: data.city,
-          region: data.regionName,
+          region: data.region,
           country: data.country,
-          countryCode: data.countryCode,
+          countryCode: data.country_code,
           isp: data.isp,
           org: data.org,
-          asn: data.as,
-          lat: data.lat,
-          lon: data.lon,
+          asn: data.asn,
+          lat: data.latitude,
+          lon: data.longitude,
           timezone: data.timezone,
         };
       }
@@ -283,8 +283,8 @@ export const DomainInfoView: React.FC<DomainInfoViewProps> = ({ onBackToDashboar
         registrationDate: createdDate,
         expirationDate: expiryDate,
         updatedDate,
-        domainStatus: domainStatus.length > 0 ? domainStatus : ['active'],
-        dnssec: rdap?.secureDNS?.delegationSigned ? 'Signed (DNSSEC Active)' : 'Unsigned / Standard',
+        domainStatus,
+        dnssec: rdap ? (rdap.secureDNS?.delegationSigned ? 'Signed (DNSSEC Active)' : 'Unsigned') : 'N/A',
         nameServers: nameServersList,
         resolvedIp: primaryIp,
         ipGeo: ipGeo || undefined,
@@ -501,7 +501,7 @@ CNAME Records: ${domainData.dnsRecords.CNAME.length}
             <div className="bg-[#0d111c] border border-[#1f2335] rounded-xl p-4 space-y-1 shadow-md">
               <span className="text-gray-400 text-[10px] uppercase font-bold tracking-wider">Domain & Registrar</span>
               <div className="text-white font-bold text-base font-mono truncate">{domainData.domain}</div>
-              <div className="text-xs text-emerald-400 truncate font-semibold">{domainData.registrar || 'Registry Registrar'}</div>
+              <div className="text-xs text-emerald-400 truncate font-semibold">{domainData.registrar || 'N/A'}</div>
             </div>
 
             {/* Resolved IP & Location */}
@@ -511,7 +511,7 @@ CNAME Records: ${domainData.dnsRecords.CNAME.length}
                 {domainData.resolvedIp || 'No A Record'}
               </div>
               <div className="text-xs text-gray-300 truncate">
-                {domainData.ipGeo?.country ? `${domainData.ipGeo.city || ''}, ${domainData.ipGeo.country}` : 'Global Anycast IP'}
+                {domainData.ipGeo?.country ? `${domainData.ipGeo.city || ''}, ${domainData.ipGeo.country}` : 'Location unavailable'}
               </div>
             </div>
 
@@ -639,7 +639,7 @@ CNAME Records: ${domainData.dnsRecords.CNAME.length}
                           </span>
                         ))
                       ) : (
-                        <span className="text-gray-400 font-mono text-[10px]">active</span>
+                        <span className="text-gray-500 font-mono text-[10px]">No status returned</span>
                       )}
                     </div>
                   </div>
@@ -693,7 +693,7 @@ CNAME Records: ${domainData.dnsRecords.CNAME.length}
                     <div className="grid grid-cols-2 gap-2">
                       <div className="bg-[#141a2e] border border-[#232d48] rounded-lg p-3">
                         <span className="text-gray-400 block text-[10px] uppercase font-semibold">ISP / Hosting</span>
-                        <span className="text-white font-semibold truncate block mt-0.5">{domainData.ipGeo?.isp || 'Cloud Provider'}</span>
+                        <span className="text-white font-semibold truncate block mt-0.5">{domainData.ipGeo?.isp || 'N/A'}</span>
                       </div>
                       <div className="bg-[#141a2e] border border-[#232d48] rounded-lg p-3">
                         <span className="text-gray-400 block text-[10px] uppercase font-semibold">ASN / Network</span>
@@ -704,7 +704,7 @@ CNAME Records: ${domainData.dnsRecords.CNAME.length}
                     <div className="grid grid-cols-2 gap-2">
                       <div className="bg-[#141a2e] border border-[#232d48] rounded-lg p-3">
                         <span className="text-gray-400 block text-[10px] uppercase font-semibold">Country</span>
-                        <span className="text-white font-semibold truncate block mt-0.5">{domainData.ipGeo?.country || 'Unknown'}</span>
+                        <span className="text-white font-semibold truncate block mt-0.5">{domainData.ipGeo?.country || 'N/A'}</span>
                       </div>
                       <div className="bg-[#141a2e] border border-[#232d48] rounded-lg p-3">
                         <span className="text-gray-400 block text-[10px] uppercase font-semibold">City / Region</span>

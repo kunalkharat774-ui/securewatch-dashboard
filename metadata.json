@@ -1,6 +1,0 @@
-{
-  "name": "SecureWatch Dashboard",
-  "description": "Real-time Cyber Threat Monitoring Dashboard featuring Live Public IP Camera Directory (Insecam), 3D Live Cyber Attack Globe, URL Reputation Checker, File Security Encryption, and Security Metrics.",
-  "requestFramePermissions": ["geolocation"],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}

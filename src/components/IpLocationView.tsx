@@ -35,7 +35,6 @@ interface IpInfo {
   latitude: number;
   longitude: number;
   timezone?: string;
-  sourceType?: 'ip' | 'gps';
   accuracyDesc?: string;
 }
 
@@ -81,11 +80,6 @@ export const IpLocationView: React.FC = () => {
   const tileLayerRef = useRef<L.TileLayer | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
 
-  // Initial startup: No location auto-loaded (user enters IP manually)
-  useEffect(() => {
-    // Stored/auto-loaded location removed as requested
-  }, []);
-
   // Update Leaflet Map when data or mapMode changes
   useEffect(() => {
     if (!data || mapMode === 'google-embed' || !mapContainerRef.current) return;
@@ -119,9 +113,8 @@ export const IpLocationView: React.FC = () => {
     tileLayer.addTo(map);
     tileLayerRef.current = tileLayer;
 
-    const isGps = data.sourceType === 'gps';
-    const pinColor = isGps ? 'bg-emerald-600' : 'bg-blue-600';
-    const ringColor = isGps ? 'bg-emerald-500/40' : 'bg-blue-500/40';
+    const pinColor = 'bg-blue-600';
+    const ringColor = 'bg-blue-500/40';
 
     const customMarkerIcon = L.divIcon({
       className: 'leaflet-custom-pin',
@@ -163,148 +156,37 @@ export const IpLocationView: React.FC = () => {
     setLoading(true);
     setError(null);
     const target = queryIp.trim();
-
-    // Strategy 1: ipapi.co
     try {
-      const url = target ? `https://ipapi.co/${target}/json/` : 'https://ipapi.co/json/';
-      const res = await fetch(url);
-      if (res.ok) {
-        const json = await res.json();
-        if (!json.error && json.ip && typeof json.latitude === 'number') {
-          const parsed: IpInfo = {
-            ip: json.ip,
-            country: json.country_name || 'Unknown',
-            countryCode: json.country_code || 'US',
-            countryFlag: `https://flagcdn.com/w40/${(json.country_code || 'us').toLowerCase()}.png`,
-            region: json.region || 'N/A',
-            city: json.city || 'N/A',
-            postal: json.postal || 'N/A',
-            isp: json.org || json.asn || 'N/A',
-            org: json.org || 'N/A',
-            asn: json.asn || 'N/A',
-            latitude: json.latitude,
-            longitude: json.longitude,
-            timezone: json.timezone || 'UTC',
-            sourceType: 'ip',
-            accuracyDesc: 'Real Network Exchange Route Node (City Precision)',
-          };
-          setData(parsed);
-          setInputIp(parsed.ip);
-          setLoading(false);
-          return;
-        }
+      const params = target ? `?ip=${encodeURIComponent(target)}` : '';
+      const res = await fetch(`/api/ip-lookup${params}`, { cache: 'no-store' });
+      const json = await res.json();
+      if (!res.ok || !json.ip || typeof json.latitude !== 'number' || typeof json.longitude !== 'number') {
+        throw new Error(json.error || `IP location lookup failed with HTTP ${res.status}.`);
       }
-    } catch {
-      console.warn('ipapi.co fetch failed, trying ipwho.is...');
-    }
 
-    // Strategy 2: ipwho.is
-    try {
-      const url = target ? `https://ipwho.is/${target}` : 'https://ipwho.is/';
-      const res = await fetch(url);
-      if (res.ok) {
-        const json = await res.json();
-        if (json.success !== false && json.ip && typeof json.latitude === 'number') {
-          const parsed: IpInfo = {
-            ip: json.ip,
-            country: json.country || 'Unknown',
-            countryCode: json.country_code || 'US',
-            countryFlag: json.country_flag || `https://flagcdn.com/w40/${(json.country_code || 'us').toLowerCase()}.png`,
-            region: json.region || 'N/A',
-            city: json.city || 'N/A',
-            postal: json.postal || 'N/A',
-            isp: json.connection?.isp || json.connection?.org || 'N/A',
-            org: json.connection?.org || 'N/A',
-            asn: json.connection?.asn ? `AS${json.connection.asn}` : 'N/A',
-            latitude: json.latitude,
-            longitude: json.longitude,
-            timezone: json.timezone?.id || 'UTC',
-            sourceType: 'ip',
-            accuracyDesc: 'Real Network Exchange Route Node (City Precision)',
-          };
-          setData(parsed);
-          setInputIp(parsed.ip);
-          setLoading(false);
-          return;
-        }
-      }
-    } catch {
-      console.warn('ipwho.is failed, trying freeipapi.com...');
+      const parsed: IpInfo = {
+        ip: json.ip,
+        country: json.country || 'N/A',
+        countryCode: json.country_code || 'N/A',
+        countryFlag: json.country_code ? `https://flagcdn.com/w40/${json.country_code.toLowerCase()}.png` : undefined,
+        region: json.region || 'N/A',
+        city: json.city || 'N/A',
+        postal: json.postal || 'N/A',
+        isp: json.isp || 'N/A',
+        org: json.org || 'N/A',
+        asn: json.asn || 'N/A',
+        latitude: json.latitude,
+        longitude: json.longitude,
+        timezone: json.timezone || 'N/A',
+        accuracyDesc: json.accuracy || 'Network-level geolocation; not GPS precision',
+      };
+      setData(parsed);
+      setInputIp(parsed.ip);
+    } catch (lookupError) {
+      setError(lookupError instanceof Error ? lookupError.message : 'Unable to retrieve live IP location.');
+    } finally {
+      setLoading(false);
     }
-
-    // Strategy 3: freeipapi.com
-    try {
-      const url = target ? `https://freeipapi.com/api/json/${target}` : 'https://freeipapi.com/api/json/';
-      const res = await fetch(url);
-      if (res.ok) {
-        const json = await res.json();
-        if (json.ipAddress && typeof json.latitude === 'number') {
-          const parsed: IpInfo = {
-            ip: json.ipAddress,
-            country: json.countryName || 'Unknown',
-            countryCode: json.countryCode || 'US',
-            countryFlag: `https://flagcdn.com/w40/${(json.countryCode || 'us').toLowerCase()}.png`,
-            region: json.regionName || 'N/A',
-            city: json.cityName || 'N/A',
-            postal: json.zipCode || 'N/A',
-            isp: json.isp || 'N/A',
-            org: json.isp || 'N/A',
-            latitude: json.latitude,
-            longitude: json.longitude,
-            timezone: json.timeZone || 'UTC',
-            sourceType: 'ip',
-            accuracyDesc: 'Real Network Exchange Route Node (City Precision)',
-          };
-          setData(parsed);
-          setInputIp(parsed.ip);
-          setLoading(false);
-          return;
-        }
-      }
-    } catch {
-      console.warn('freeipapi.com failed, trying ipinfo.io...');
-    }
-
-    // Strategy 4: ipinfo.io
-    try {
-      const url = target ? `https://ipinfo.io/${target}/json` : 'https://ipinfo.io/json';
-      const res = await fetch(url);
-      if (res.ok) {
-        const json = await res.json();
-        if (json.ip && json.loc) {
-          const [latStr, lonStr] = json.loc.split(',');
-          const lat = parseFloat(latStr);
-          const lon = parseFloat(lonStr);
-          if (!isNaN(lat) && !isNaN(lon)) {
-            const parsed: IpInfo = {
-              ip: json.ip,
-              country: json.country || 'Unknown',
-              countryCode: json.country || 'US',
-              countryFlag: `https://flagcdn.com/w40/${(json.country || 'us').toLowerCase()}.png`,
-              region: json.region || 'N/A',
-              city: json.city || 'N/A',
-              postal: json.postal || 'N/A',
-              isp: json.org || 'N/A',
-              org: json.org || 'N/A',
-              latitude: lat,
-              longitude: lon,
-              timezone: json.timezone || 'UTC',
-              sourceType: 'ip',
-              accuracyDesc: 'Real Network Exchange Route Node (City Precision)',
-            };
-            setData(parsed);
-            setInputIp(parsed.ip);
-            setLoading(false);
-            return;
-          }
-        }
-      }
-    } catch {
-      console.warn('ipinfo.io failed.');
-    }
-
-    setError('Invalid IP address or network timeout. Please verify the IP address syntax.');
-    setLoading(false);
   };
 
   const copyToClipboard = (text: string, fieldKey: string) => {

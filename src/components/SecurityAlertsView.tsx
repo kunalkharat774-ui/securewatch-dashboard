@@ -23,154 +23,48 @@ interface SecurityAlertsViewProps {
   onAlertCountChange?: (count: number) => void;
 }
 
-const INITIAL_ALERTS: SecurityAlert[] = [
-  {
-    id: 'ALT-9801',
-    title: 'SQL Injection Attack via Order Search Endpoint',
-    severity: 'Critical',
-    srcIp: '185.220.101.5',
-    country: 'Netherlands',
-    countryCode: 'NL',
-    targetEndpoint: '/api/v1/orders/search?q=1\' OR \'1\'=\'1',
-    timestamp: new Date(Date.now() - 60000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-    status: 'Active',
-    attackVector: 'SQLi (Blind Time-Based Injection)',
-    owaspCategory: 'OWASP A03:2021 Injection',
-    requestsPerSec: 420,
-    protocol: 'HTTPS / TLS 1.3',
-    riskScore: 98,
-  },
-  {
-    id: 'ALT-9798',
-    title: 'Credential Stuffing Botnet Attempt',
-    severity: 'Critical',
-    srcIp: '45.154.255.82',
-    country: 'Russia',
-    countryCode: 'RU',
-    targetEndpoint: '/api/v1/auth/login',
-    timestamp: new Date(Date.now() - 180000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-    status: 'Active',
-    attackVector: 'Automated Account Takeover (ATO)',
-    owaspCategory: 'OWASP A07:2021 Identification & Auth Failures',
-    requestsPerSec: 1250,
-    protocol: 'HTTP/2',
-    riskScore: 92,
-  },
-  {
-    id: 'ALT-9792',
-    title: 'Unauthorized Admin Endpoint Probe',
-    severity: 'High',
-    srcIp: '103.251.170.4',
-    country: 'China',
-    countryCode: 'CN',
-    targetEndpoint: '/admin/env.php',
-    timestamp: new Date(Date.now() - 450000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-    status: 'Investigating',
-    attackVector: 'Reconnaissance / Sensitive File Disclosure',
-    owaspCategory: 'OWASP A01:2021 Broken Access Control',
-    requestsPerSec: 45,
-    protocol: 'HTTPS',
-    riskScore: 78,
-  },
-  {
-    id: 'ALT-9784',
-    title: 'API Rate Limit Exceeded (DDoS Spike)',
-    severity: 'Medium',
-    srcIp: '198.51.100.44',
-    country: 'United States',
-    countryCode: 'US',
-    targetEndpoint: '/api/v2/products/list',
-    timestamp: new Date(Date.now() - 900000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-    status: 'Blocked',
-    attackVector: 'HTTP Flood DDoS',
-    owaspCategory: 'OWASP A04:2021 Insecure Design',
-    requestsPerSec: 3400,
-    protocol: 'HTTP/2',
-    riskScore: 55,
-  },
-  {
-    id: 'ALT-9770',
-    title: 'Cross-Site Scripting (XSS) Payload in Comment Field',
-    severity: 'Low',
-    srcIp: '82.165.19.120',
-    country: 'Germany',
-    countryCode: 'DE',
-    targetEndpoint: '/api/comments/submit',
-    timestamp: new Date(Date.now() - 1400000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-    status: 'Resolved',
-    attackVector: 'Stored XSS (<script>alert(1)</script>)',
-    owaspCategory: 'OWASP A03:2021 Injection',
-    requestsPerSec: 1,
-    protocol: 'HTTPS',
-    riskScore: 32,
-  },
-];
+interface SecurityLogRecord {
+  id: string;
+  timestamp: string;
+  level: 'CRITICAL' | 'ERROR' | 'WARN' | 'INFO';
+  service: string;
+  message: string;
+  sourceIp: string;
+  destination: string;
+  action: string;
+  traceId: string;
+  details?: Record<string, unknown>;
+}
 
-const SIMULATION_ATTACKS = [
-  {
-    title: 'JWT Secret Key Forgery Attempt',
-    severity: 'Critical' as const,
-    attackVector: 'Broken Token Validation (None Alg)',
-    owaspCategory: 'OWASP A02:2021 Cryptographic Failures',
-    targetEndpoint: '/api/v1/user/profile',
-    protocol: 'HTTPS / TLS 1.3',
-    riskScore: 96,
-  },
-  {
-    title: 'Distributed Slowloris Denial of Service',
-    severity: 'High' as const,
-    attackVector: 'Resource Exhaustion (Unclosed HTTP Headers)',
-    owaspCategory: 'OWASP A05:2021 Security Misconfiguration',
-    targetEndpoint: '/api/v1/stream',
-    protocol: 'HTTP/1.1',
-    riskScore: 84,
-  },
-  {
-    title: 'Remote Code Execution (RCE) via Log4j Payload',
-    severity: 'Critical' as const,
-    attackVector: 'JNDI LDAP Injection (${jndi:ldap://...})',
-    owaspCategory: 'OWASP A06:2021 Vulnerable Components',
-    targetEndpoint: '/api/v1/search',
-    protocol: 'HTTPS',
-    riskScore: 99,
-  },
-  {
-    title: 'SSRF Attack Targeting Internal Cloud Metadata (169.254.169.254)',
-    severity: 'High' as const,
-    attackVector: 'Server-Side Request Forgery',
-    owaspCategory: 'OWASP A10:2021 Server-Side Request Forgery',
-    targetEndpoint: '/api/v1/fetch-url?url=http://169.254.169.254/latest/meta-data/',
-    protocol: 'HTTPS',
-    riskScore: 88,
-  },
-];
-
-const RANDOM_IPS = [
-  { ip: '185.220.101.7', country: 'Netherlands', code: 'NL' },
-  { ip: '91.240.118.172', country: 'Ukraine', code: 'UA' },
-  { ip: '194.26.29.112', country: 'Russia', code: 'RU' },
-  { ip: '113.108.192.12', country: 'China', code: 'CN' },
-  { ip: '185.191.171.1', country: 'Iran', code: 'IR' },
-  { ip: '198.143.158.20', country: 'United States', code: 'US' },
-  { ip: '51.15.22.190', country: 'France', code: 'FR' },
-];
+const mapLogToAlert = (log: SecurityLogRecord): SecurityAlert => {
+  const severity = log.level === 'CRITICAL' ? 'Critical' : log.level === 'ERROR' ? 'High' : log.level === 'WARN' ? 'Medium' : 'Low';
+  const status = log.action === 'BLOCKED' ? 'Blocked' : 'Active';
+  const numericDetails = log.details || {};
+  const requestsPerSec = typeof numericDetails.requestsPerSec === 'number' ? numericDetails.requestsPerSec : 0;
+  return {
+    id: log.id,
+    title: log.message,
+    severity,
+    srcIp: log.sourceIp,
+    country: typeof numericDetails.country === 'string' ? numericDetails.country : 'Unknown',
+    countryCode: typeof numericDetails.countryCode === 'string' ? numericDetails.countryCode : 'XX',
+    targetEndpoint: log.destination,
+    timestamp: log.timestamp,
+    status,
+    attackVector: log.service,
+    owaspCategory: typeof numericDetails.owaspCategory === 'string' ? numericDetails.owaspCategory : 'Not classified',
+    requestsPerSec,
+    protocol: 'Not reported',
+    riskScore: severity === 'Critical' ? 90 : severity === 'High' ? 70 : severity === 'Medium' ? 40 : 15,
+  };
+};
 
 export const SecurityAlertsView: React.FC<SecurityAlertsViewProps> = ({
   onBackToDashboard,
   onAlertCountChange,
 }) => {
-  const [alerts, setAlerts] = useState<SecurityAlert[]>(() => {
-    const saved = localStorage.getItem('custom_security_alerts');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch (e) {
-        console.warn('Error reading saved security alerts:', e);
-      }
-    }
-    return INITIAL_ALERTS;
-  });
+  const [alerts, setAlerts] = useState<SecurityAlert[]>([]);
+  const [isLoadingAlerts, setIsLoadingAlerts] = useState<boolean>(true);
 
   const [isLiveStreaming, setIsLiveStreaming] = useState<boolean>(true);
   const [severityFilter, setSeverityFilter] = useState<string>('All');
@@ -181,11 +75,11 @@ export const SecurityAlertsView: React.FC<SecurityAlertsViewProps> = ({
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
   const [newTitle, setNewTitle] = useState<string>('');
   const [newSeverity, setNewSeverity] = useState<'Critical' | 'High' | 'Medium' | 'Low'>('High');
-  const [newSrcIp, setNewSrcIp] = useState<string>('185.220.101.99');
-  const [newCountry, setNewCountry] = useState<string>('Germany');
-  const [newEndpoint, setNewEndpoint] = useState<string>('/api/v1/user/payments');
-  const [newVector, setNewVector] = useState<string>('BOLA / Broken Object Level Auth');
-  const [newOwasp, setNewOwasp] = useState<string>('OWASP A01:2021 Broken Access Control');
+  const [newSrcIp, setNewSrcIp] = useState<string>('');
+  const [newCountry, setNewCountry] = useState<string>('');
+  const [newEndpoint, setNewEndpoint] = useState<string>('');
+  const [newVector, setNewVector] = useState<string>('');
+  const [newOwasp, setNewOwasp] = useState<string>('');
 
   // AI Investigation State
   const [selectedAlertForAi, setSelectedAlertForAi] = useState<SecurityAlert | null>(null);
@@ -205,10 +99,27 @@ export const SecurityAlertsView: React.FC<SecurityAlertsViewProps> = ({
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  // Sync alerts with localStorage
+  const loadLiveAlerts = async () => {
+    try {
+      const response = await fetch('/api/security-logs', { cache: 'no-store' });
+      if (!response.ok) throw new Error(`SIEM request failed with HTTP ${response.status}`);
+      const payload = await response.json() as { logs?: SecurityLogRecord[] };
+      const securityEvents = (payload.logs || []).filter((log) => log.level !== 'INFO' || log.action !== 'ALLOWED');
+      setAlerts(securityEvents.map(mapLogToAlert));
+    } catch (error) {
+      showToast(`Live SIEM feed unavailable: ${error instanceof Error ? error.message : 'request failed'}`, 'danger');
+      setAlerts([]);
+    } finally {
+      setIsLoadingAlerts(false);
+    }
+  };
+
   useEffect(() => {
-    localStorage.setItem('custom_security_alerts', JSON.stringify(alerts));
-  }, [alerts]);
+    loadLiveAlerts();
+    if (!isLiveStreaming) return;
+    const interval = setInterval(loadLiveAlerts, 5000);
+    return () => clearInterval(interval);
+  }, [isLiveStreaming]);
 
   // Sync active count with parent
   useEffect(() => {
@@ -216,91 +127,34 @@ export const SecurityAlertsView: React.FC<SecurityAlertsViewProps> = ({
     if (onAlertCountChange) onAlertCountChange(activeCount);
   }, [alerts, onAlertCountChange]);
 
-  // Live Stream Attack Generator
-  useEffect(() => {
-    if (!isLiveStreaming) return;
-
-    const interval = setInterval(() => {
-      const template = SIMULATION_ATTACKS[Math.floor(Math.random() * SIMULATION_ATTACKS.length)];
-      const location = RANDOM_IPS[Math.floor(Math.random() * RANDOM_IPS.length)];
-      const newAlertId = `ALT-${Math.floor(Math.random() * 9000 + 1000)}`;
-
-      const newAlert: SecurityAlert = {
-        id: newAlertId,
-        title: template.title,
-        severity: template.severity,
-        srcIp: `${location.ip}`,
-        country: location.country,
-        countryCode: location.code,
-        targetEndpoint: template.targetEndpoint,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-        status: 'Active',
-        attackVector: template.attackVector,
-        owaspCategory: template.owaspCategory,
-        requestsPerSec: Math.floor(Math.random() * 800 + 50),
-        protocol: template.protocol,
-        riskScore: template.riskScore,
-      };
-
-      setAlerts((prev) => [newAlert, ...prev.slice(0, 25)]); // keep max 25 items
-    }, 6000);
-
-    return () => clearInterval(interval);
-  }, [isLiveStreaming]);
-
-  // Manual Trigger Alert
-  const handleSimulateCustomAlert = (attackType?: string) => {
-    const template = SIMULATION_ATTACKS[Math.floor(Math.random() * SIMULATION_ATTACKS.length)];
-    const location = RANDOM_IPS[Math.floor(Math.random() * RANDOM_IPS.length)];
-    const newAlertId = `ALT-${Math.floor(Math.random() * 9000 + 1000)}`;
-
-    const newAlert: SecurityAlert = {
-      id: newAlertId,
-      title: attackType || template.title,
-      severity: 'Critical',
-      srcIp: location.ip,
-      country: location.country,
-      countryCode: location.code,
-      targetEndpoint: template.targetEndpoint,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-      status: 'Active',
-      attackVector: template.attackVector,
-      owaspCategory: template.owaspCategory,
-      requestsPerSec: Math.floor(Math.random() * 1500 + 200),
-      protocol: 'HTTPS / TLS 1.3',
-      riskScore: 97,
-    };
-
-    setAlerts((prev) => [newAlert, ...prev]);
-    showToast(`New Incident Alert Triggered: ${newAlert.id} from ${newAlert.srcIp}`, 'danger');
-  };
 
   // Create Custom Security Alert Handler
-  const handleCreateCustomAlert = (e: React.FormEvent) => {
+  const handleCreateCustomAlert = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim()) return;
 
-    const customAlert: SecurityAlert = {
-      id: `ALT-${Math.floor(Math.random() * 9000 + 1000)}`,
-      title: newTitle.trim(),
-      severity: newSeverity,
-      srcIp: newSrcIp.trim() || '127.0.0.1',
-      country: newCountry.trim() || 'Unknown',
-      countryCode: 'XX',
-      targetEndpoint: newEndpoint.trim() || '/api/v1/auth',
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-      status: 'Active',
-      attackVector: newVector.trim() || 'Custom Security Vector',
-      owaspCategory: newOwasp.trim() || 'OWASP Custom',
-      requestsPerSec: Math.floor(Math.random() * 500 + 100),
-      protocol: 'HTTPS / TLS 1.3',
-      riskScore: newSeverity === 'Critical' ? 95 : newSeverity === 'High' ? 82 : newSeverity === 'Medium' ? 58 : 35,
-    };
-
-    setAlerts((prev) => [customAlert, ...prev]);
-    setIsAddModalOpen(false);
-    setNewTitle('');
-    showToast(`Custom Security Alert "${customAlert.id}" logged successfully!`, 'success');
+    try {
+      const response = await fetch('/api/security-logs/ingest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          level: newSeverity === 'Critical' ? 'CRITICAL' : newSeverity === 'High' ? 'ERROR' : newSeverity === 'Medium' ? 'WARN' : 'INFO',
+          service: newVector.trim() || 'Manual Security Alert',
+          message: newTitle.trim(),
+          sourceIp: newSrcIp.trim() || 'unknown',
+          destination: newEndpoint.trim() || 'unknown',
+          action: 'FLAGGED',
+          details: { country: newCountry.trim() || 'Unknown', owaspCategory: newOwasp.trim() || 'Not classified' },
+        }),
+      });
+      if (!response.ok) throw new Error(`SIEM rejected event with HTTP ${response.status}`);
+      setIsAddModalOpen(false);
+      setNewTitle('');
+      await loadLiveAlerts();
+      showToast('Security event ingested into the live SIEM feed.', 'success');
+    } catch (error) {
+      showToast(`Security event was not saved: ${error instanceof Error ? error.message : 'request failed'}`, 'danger');
+    }
   };
 
   // Actions
@@ -333,9 +187,8 @@ export const SecurityAlertsView: React.FC<SecurityAlertsViewProps> = ({
   };
 
   const handleResetFeed = () => {
-    setAlerts(INITIAL_ALERTS);
-    localStorage.removeItem('custom_security_alerts');
-    showToast('Security Alert Feed restored to baseline!', 'info');
+    loadLiveAlerts();
+    showToast('Live SIEM feed refreshed.', 'info');
   };
 
   // Export CSV Report
@@ -384,14 +237,8 @@ export const SecurityAlertsView: React.FC<SecurityAlertsViewProps> = ({
         throw new Error('API request failed');
       }
     } catch (e) {
-      console.warn('AI Investigation Fallback:', e);
-      // Fallback
-      setAiReport({
-        rootCause: `Attacker originating from IP ${alert.srcIp} (${alert.country}) executed high-frequency ${alert.attackVector} targeting ${alert.targetEndpoint}.`,
-        mitreTechnique: 'T1110.001 (Password Guessing) / T1190 (Exploit Public-Facing App)',
-        recommendedFirewallRule: `iptables -A INPUT -s ${alert.srcIp} -p tcp --dport 443 -j DROP`,
-        recommendedPlaybookStep: '1. Revoke active JWT session tokens. 2. Enforce MFA re-authentication. 3. Block IP address across Edge Cloudflare WAF.',
-      });
+      setAiReport(null);
+      showToast(`AI investigation unavailable: ${e instanceof Error ? e.message : 'request failed'}`, 'danger');
     } finally {
       setIsAnalyzingAi(false);
     }
@@ -502,9 +349,9 @@ export const SecurityAlertsView: React.FC<SecurityAlertsViewProps> = ({
             <button
               onClick={handleResetFeed}
               className="px-3.5 py-1.5 bg-[#111524] hover:bg-[#1a1e30] border border-[#1f2335] text-gray-400 hover:text-white text-xs font-semibold rounded-lg transition cursor-pointer flex items-center gap-1.5"
-              title="Reset alerts to baseline"
+              title="Refresh live SIEM alerts"
             >
-              <i className="fa-solid fa-rotate-left" /> Reset
+              <i className="fa-solid fa-rotate" /> Refresh
             </button>
 
             {/* Emergency Lockdown */}
@@ -527,32 +374,10 @@ export const SecurityAlertsView: React.FC<SecurityAlertsViewProps> = ({
           </div>
         </div>
 
-        {/* Action Controls & Simulation Toolbar */}
+        {/* Live SIEM Feed Status */}
         <div className="pt-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs text-gray-400 font-semibold">Simulate Attack Vector:</span>
-            <button
-              onClick={() => handleSimulateCustomAlert('SQLi Attack Vector')}
-              className="px-2.5 py-1 bg-[#111524] hover:bg-[#1a1e30] border border-[#1f2335] text-gray-300 text-[11px] rounded transition cursor-pointer"
-            >
-              + SQL Injection
-            </button>
-            <button
-              onClick={() => handleSimulateCustomAlert('Credential Stuffing ATO')}
-              className="px-2.5 py-1 bg-[#111524] hover:bg-[#1a1e30] border border-[#1f2335] text-gray-300 text-[11px] rounded transition cursor-pointer"
-            >
-              + ATO Botnet
-            </button>
-            <button
-              onClick={() => handleSimulateCustomAlert('DDoS HTTP Flood')}
-              className="px-2.5 py-1 bg-[#111524] hover:bg-[#1a1e30] border border-[#1f2335] text-gray-300 text-[11px] rounded transition cursor-pointer"
-            >
-              + DDoS Burst
-            </button>
-          </div>
-
           <span className="text-[11px] font-mono text-gray-400">
-            SIEM Log Feed: <span className="text-emerald-400 font-bold">ACTIVE (100% Operational)</span>
+            SIEM Log Feed: <span className="text-emerald-400 font-bold">LIVE BACKEND TELEMETRY</span>
           </span>
         </div>
       </div>
@@ -719,15 +544,20 @@ export const SecurityAlertsView: React.FC<SecurityAlertsViewProps> = ({
       {/* ALERT LIST CARDS WITH MOTION ANIMATIONS */}
       <div className="space-y-3">
         <AnimatePresence>
-          {filteredAlerts.length === 0 ? (
+          {isLoadingAlerts ? (
+            <div className="text-center py-12 bg-[#0d111c] border border-[#1f2335] rounded-xl space-y-2">
+              <i className="fa-solid fa-spinner animate-spin text-amber-400 text-2xl" />
+              <h4 className="text-sm font-bold text-white">Loading Live SIEM Alerts</h4>
+            </div>
+          ) : filteredAlerts.length === 0 ? (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               className="text-center py-12 bg-[#0d111c] border border-[#1f2335] rounded-xl space-y-2"
             >
               <i className="fa-solid fa-shield-halved text-emerald-400 text-3xl block" />
-              <h4 className="text-sm font-bold text-white">No Threat Alerts Match Filter Criteria</h4>
-              <p className="text-xs text-gray-400">All enterprise security perimeters operating cleanly.</p>
+              <h4 className="text-sm font-bold text-white">No Live Security Alerts</h4>
+              <p className="text-xs text-gray-400">No matching events are currently present in the backend SIEM buffer.</p>
             </motion.div>
           ) : (
             filteredAlerts.map((alert) => {

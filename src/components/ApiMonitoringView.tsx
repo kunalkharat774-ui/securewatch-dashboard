@@ -21,82 +21,17 @@ interface ApiMonitoringViewProps {
 
 const INITIAL_ENDPOINTS: ApiEndpointItem[] = [
   {
-    id: 'EP-101',
-    name: 'Authentication & Session Issue Service',
-    path: '/api/v1/auth/login',
-    method: 'POST',
-    status: 'Healthy',
-    latencyMs: 18,
-    uptimePct: 99.99,
-    errorRatePct: 0.02,
-    authType: 'Public',
-    rateLimit: '20 req/min',
-    lastTested: '10s ago',
-  },
-  {
-    id: 'EP-102',
-    name: 'User Profile & Identity Query',
-    path: '/api/v1/users/me',
-    method: 'GET',
-    status: 'Healthy',
-    latencyMs: 24,
-    uptimePct: 99.98,
-    errorRatePct: 0.01,
-    authType: 'JWT Bearer',
-    rateLimit: '120 req/min',
-    lastTested: '5s ago',
-  },
-  {
-    id: 'EP-103',
-    name: 'Payment Processing Gateway Egress',
-    path: '/api/v2/checkout/process',
-    method: 'POST',
-    status: 'Healthy',
-    latencyMs: 85,
-    uptimePct: 99.95,
-    errorRatePct: 0.05,
-    authType: 'OAuth 2.0',
-    rateLimit: '50 req/min',
-    lastTested: '12s ago',
-  },
-  {
-    id: 'EP-104',
-    name: 'Telemetry & Logs Ingestion Endpoint',
-    path: '/api/v1/telemetry/stream',
-    method: 'POST',
-    status: 'Degraded',
-    latencyMs: 142,
-    uptimePct: 98.40,
-    errorRatePct: 1.80,
-    authType: 'API Key',
-    rateLimit: '1000 req/min',
-    lastTested: '2s ago',
-  },
-  {
-    id: 'EP-105',
-    name: 'Product Inventory Search Index',
-    path: '/api/v1/products/search',
-    method: 'GET',
-    status: 'Healthy',
-    latencyMs: 14,
-    uptimePct: 99.99,
-    errorRatePct: 0.00,
-    authType: 'Public',
-    rateLimit: '500 req/min',
-    lastTested: '15s ago',
-  },
-  {
-    id: 'EP-106',
-    name: 'Internal System Health Check',
+    id: 'health',
+    name: 'SecureWatch Backend Health',
     path: '/api/health',
     method: 'GET',
-    status: 'Healthy',
-    latencyMs: 6,
-    uptimePct: 100.0,
-    errorRatePct: 0.00,
+    status: 'Down',
+    latencyMs: 0,
+    uptimePct: 0,
+    errorRatePct: 0,
     authType: 'Public',
-    rateLimit: 'Unlimited',
-    lastTested: '1s ago',
+    rateLimit: 'Not reported',
+    lastTested: 'Not tested',
   },
 ];
 
@@ -109,9 +44,9 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
   const [pingResult, setPingResult] = useState<any | null>(null);
 
   // Live Chart Stream Latency Data
-  const [latencyHistory, setLatencyHistory] = useState<number[]>([18, 22, 19, 25, 21, 24, 20, 28, 23, 19, 22, 26, 21, 25, 22]);
+  const [latencyHistory, setLatencyHistory] = useState<number[]>([]);
 
-  // Load Test Simulation State
+  // Measured load test state
   const [isLoadTesting, setIsLoadTesting] = useState<boolean>(false);
   const [loadTestProgress, setLoadTestProgress] = useState<number>(0);
   const [loadTestStats, setLoadTestStats] = useState<{
@@ -165,24 +100,13 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
 
         setLatencyHistory((prev) => [...prev.slice(1), measuredLat]);
 
-        // Also update endpoints latency dynamically
-        setEndpoints((prev) =>
-          prev.map((ep) => {
-            if (ep.path === '/api/health') {
-              return { ...ep, latencyMs: measuredLat, lastTested: 'Just now', status: res.ok ? 'Healthy' : 'Degraded' };
-            }
-            const delta = Math.floor(Math.random() * 5) - 2;
-            return {
-              ...ep,
-              latencyMs: Math.max(4, ep.latencyMs + delta),
-              lastTested: 'Just now',
-            };
-          })
-        );
+        setEndpoints((prev) => prev.map((ep) => ep.path === '/api/health'
+          ? { ...ep, latencyMs: measuredLat, lastTested: 'Just now', status: res.ok ? 'Healthy' : 'Degraded' }
+          : ep));
       } catch (err) {
-        const t1 = performance.now();
-        const measuredLat = Math.round(t1 - t0) || 20;
-        setLatencyHistory((prev) => [...prev.slice(1), measuredLat]);
+        setEndpoints((prev) => prev.map((ep) => ep.path === '/api/health'
+          ? { ...ep, lastTested: 'Just now', status: 'Down' }
+          : ep));
       }
     };
 
@@ -212,29 +136,22 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
       if (res.ok) {
         const data = await res.json();
         setPingResult(data);
+        setEndpoints((prev) => prev.map((endpoint) => endpoint.path === targetUrl && endpoint.method === targetMethod
+          ? {
+              ...endpoint,
+              latencyMs: data.latencyMs,
+              status: data.status < 300 ? 'Healthy' : data.status < 500 ? 'Degraded' : 'Down',
+              lastTested: 'Just now',
+              rateLimit: data.rateLimitRemaining === '100' ? endpoint.rateLimit : `${data.rateLimitRemaining} remaining`,
+            }
+          : endpoint));
         showToast(`API Probe Succeeded: ${data.status} ${data.statusText} (${data.latencyMs}ms)`, 'success');
       } else {
         throw new Error('Server returned error response');
       }
     } catch (err: any) {
-      console.warn('Ping API fallback notice:', err);
-      // Fallback
-      setPingResult({
-        url: targetUrl,
-        method: targetMethod,
-        status: 200,
-        statusText: 'OK',
-        latencyMs: Math.floor(Math.random() * 25 + 12),
-        protocol: 'TLS 1.3 / HTTPS',
-        serverHeader: 'nginx/1.22.1 (Cloudflare)',
-        contentType: 'application/json; charset=utf-8',
-        contentLength: '248',
-        corsHeader: 'Access-Control-Allow-Origin: *',
-        rateLimitRemaining: '98',
-        bodySnippet: '{\n  "status": "healthy",\n  "version": "v2.4.0",\n  "timestamp": "' + new Date().toISOString() + '"\n}',
-        timestamp: new Date().toLocaleTimeString(),
-      });
-      showToast('API Ping Completed', 'success');
+      setPingResult({ url: targetUrl, method: targetMethod, status: 0, statusText: 'Probe failed', latencyMs: 0, bodySnippet: err.message });
+      showToast(`API Probe Failed: ${err.message}`, 'danger');
     } finally {
       setIsPinging(false);
     }
@@ -266,9 +183,9 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
               };
             }
           } catch (e) {
-            // keep existing
+            return { ...ep, status: 'Down' as const, lastTested: 'Just now' };
           }
-          return { ...ep, lastTested: 'Just now' };
+          return { ...ep, status: 'Down' as const, lastTested: 'Just now' };
         })
       );
 
@@ -288,14 +205,14 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
     if (!newEpName || !newEpPath) return;
 
     const newEndpoint: ApiEndpointItem = {
-      id: `EP-${Math.floor(Math.random() * 900 + 100)}`,
+      id: `EP-${Date.now()}`,
       name: newEpName,
       path: newEpPath,
       method: newEpMethod,
-      status: 'Healthy',
-      latencyMs: 18,
-      uptimePct: 100.0,
-      errorRatePct: 0.0,
+      status: 'Down',
+      latencyMs: 0,
+      uptimePct: 0,
+      errorRatePct: 0,
       authType: newEpAuth,
       rateLimit: '100 req/min',
       lastTested: 'Just now',
@@ -317,32 +234,36 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
     showToast(`Endpoint ${id} removed from monitoring inventory`, 'info');
   };
 
-  // Run Load Burst Simulation
-  const handleRunLoadTest = () => {
+  // Run a measured burst against the real backend health endpoint.
+  const handleRunLoadTest = async () => {
     setIsLoadTesting(true);
     setLoadTestProgress(0);
     setLoadTestStats(null);
 
-    let current = 0;
     const totalRequests = 500;
-
-    const interval = setInterval(() => {
-      current += 50;
-      setLoadTestProgress(Math.min(100, Math.floor((current / totalRequests) * 100)));
-
-      if (current >= totalRequests) {
-        clearInterval(interval);
-        setIsLoadTesting(false);
-        setLoadTestStats({
-          totalReq: 500,
-          passedReq: 496,
-          failedReq: 4, // simulated rate limit 429
-          avgLatency: 32,
-          peakRps: 1250,
-        });
-        showToast('Load Test Complete: 500 requests processed with 99.2% success!', 'success');
+    const results: { ok: boolean; latencyMs: number }[] = [];
+    const startedAt = performance.now();
+    try {
+      for (let offset = 0; offset < totalRequests; offset += 25) {
+        const batch = await Promise.all(Array.from({ length: Math.min(25, totalRequests - offset) }, async () => {
+          const requestStartedAt = performance.now();
+          try {
+            const response = await fetch('/api/health', { method: 'GET', cache: 'no-store' });
+            return { ok: response.ok, latencyMs: Math.round(performance.now() - requestStartedAt) };
+          } catch {
+            return { ok: false, latencyMs: Math.round(performance.now() - requestStartedAt) };
+          }
+        }));
+        results.push(...batch);
+        setLoadTestProgress(Math.round(((offset + batch.length) / totalRequests) * 100));
       }
-    }, 200);
+      const passedReq = results.filter((result) => result.ok).length;
+      const elapsedSeconds = Math.max((performance.now() - startedAt) / 1000, 0.001);
+      setLoadTestStats({ totalReq: results.length, passedReq, failedReq: results.length - passedReq, avgLatency: Math.round(results.reduce((sum, result) => sum + result.latencyMs, 0) / results.length), peakRps: Math.round(results.length / elapsedSeconds) });
+      showToast(`Real load test complete: ${passedReq}/${results.length} requests succeeded.`, passedReq === results.length ? 'success' : 'danger');
+    } finally {
+      setIsLoadTesting(false);
+    }
   };
 
   // Run AI Security Audit
@@ -366,27 +287,18 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
       }
     } catch (err) {
       console.warn('AI API Audit Fallback:', err);
-      setAiAuditReport({
-        securityScore: 88,
-        authAssessment: `Endpoint ${endpoint.path} enforces ${endpoint.authType} authentication. Token expiration and scope validation verified.`,
-        rateLimitAssessment: `Rate limiting policy (${endpoint.rateLimit}) is active on edge router. Low susceptibility to brute-force attacks.`,
-        owaspApiRisks: [
-          'API1:2023 Broken Object Level Authorization - Verify tenant isolation parameters.',
-          'API8:2023 Security Misconfiguration - Strip Server and X-Powered-By response headers.',
-        ],
-        concreteFixes: [
-          'Add rate-limit headers (X-RateLimit-Limit) explicitly in Express middleware.',
-          'Restrict CORS Origin header to specific trusted domain origins.',
-          'Implement schema validation using Zod or Joi for request payload enforcement.',
-        ],
-      });
+      setAiAuditReport(null);
+      showToast(`Security audit unavailable: ${err instanceof Error ? err.message : 'request failed'}`, 'danger');
     } finally {
       setIsAuditingAi(false);
     }
   };
 
-  const totalReqsMin = 1420;
-  const avgSystemLatency = Math.round(endpoints.reduce((acc, curr) => acc + curr.latencyMs, 0) / endpoints.length);
+  const observedEndpoints = endpoints.filter((endpoint) => endpoint.lastTested !== 'Not tested');
+  const avgSystemLatency = observedEndpoints.length
+    ? Math.round(observedEndpoints.reduce((acc, curr) => acc + curr.latencyMs, 0) / observedEndpoints.length)
+    : null;
+  const gatewayStatus = endpoints.some((endpoint) => endpoint.status === 'Down') ? 'DOWN' : 'ONLINE';
 
   return (
     <div className="space-y-6 relative">
@@ -478,21 +390,19 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
         <div className="pt-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-3 text-xs font-mono">
           <div className="flex items-center gap-4 flex-wrap">
             <span className="text-gray-400">
-              Gateway Status: <strong className="text-emerald-400">ONLINE (99.998% Uptime)</strong>
+              Gateway Status: <strong className={gatewayStatus === 'ONLINE' ? 'text-emerald-400' : 'text-red-400'}>{gatewayStatus}</strong>
             </span>
             <span className="text-gray-600">|</span>
             <span className="text-gray-400">
-              Microservices: <strong className="text-purple-300">8 Active Services</strong>
+              Monitored Endpoints: <strong className="text-purple-300">{endpoints.length}</strong>
             </span>
             <span className="text-gray-600">|</span>
             <span className="text-gray-400">
-              Average Global Latency: <strong className="text-amber-300">{avgSystemLatency} ms</strong>
+              Average Observed Latency: <strong className="text-amber-300">{avgSystemLatency === null ? 'No data' : `${avgSystemLatency} ms`}</strong>
             </span>
           </div>
 
-          <span className="text-gray-400">
-            Current Rate: <strong className="text-blue-400">{totalReqsMin} req/min</strong>
-          </span>
+          <span className="text-gray-400">Current rate: <strong className="text-blue-400">Available after load test</strong></span>
         </div>
       </div>
 
@@ -501,9 +411,9 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
         <div className="p-4 bg-[#0d111c] border border-[#1f2335] rounded-xl flex items-center justify-between">
           <div>
             <span className="text-xs text-gray-400 font-medium block">API Gateway Availability</span>
-            <div className="text-2xl font-bold font-mono text-emerald-400 mt-0.5">99.998%</div>
-            <span className="text-[11px] text-emerald-400 mt-1 block font-mono">
-              <i className="fa-solid fa-check-double mr-1" /> 0 Downtime (30 Days)
+            <div className="text-2xl font-bold font-mono text-emerald-400 mt-0.5">{observedEndpoints.length ? `${Math.round(observedEndpoints.filter((endpoint) => endpoint.status !== 'Down').length / observedEndpoints.length * 100)}%` : 'No data'}</div>
+            <span className="text-[11px] text-gray-400 mt-1 block font-mono">
+              <i className="fa-solid fa-chart-line mr-1" /> Based on current probes
             </span>
           </div>
           <div className="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
@@ -516,7 +426,7 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
             <span className="text-xs text-gray-400 font-medium block">Avg Response Latency</span>
             <div className="text-2xl font-bold font-mono text-purple-400 mt-0.5">{avgSystemLatency} ms</div>
             <span className="text-[11px] text-purple-300 mt-1 block font-mono">
-              <i className="fa-solid fa-bolt mr-1" /> Ultra-low Latency Route
+              <i className="fa-solid fa-bolt mr-1" /> Current probe observations
             </span>
           </div>
           <div className="w-10 h-10 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
@@ -527,8 +437,8 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
         <div className="p-4 bg-[#0d111c] border border-[#1f2335] rounded-xl flex items-center justify-between">
           <div>
             <span className="text-xs text-gray-400 font-medium block">HTTP Error Rate (5xx)</span>
-            <div className="text-2xl font-bold font-mono text-blue-400 mt-0.5">0.001%</div>
-            <span className="text-[11px] text-gray-400 mt-1 block font-mono">Normal Operational Target</span>
+            <div className="text-2xl font-bold font-mono text-blue-400 mt-0.5">Observed on probe</div>
+            <span className="text-[11px] text-gray-400 mt-1 block font-mono">Historical error data unavailable</span>
           </div>
           <div className="w-10 h-10 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
             <i className="fa-solid fa-chart-line" />
@@ -538,8 +448,8 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
         <div className="p-4 bg-[#0d111c] border border-[#1f2335] rounded-xl flex items-center justify-between">
           <div>
             <span className="text-xs text-gray-400 font-medium block">Security Defended Requests</span>
-            <div className="text-2xl font-bold font-mono text-amber-400 mt-0.5">14.2k</div>
-            <span className="text-[11px] text-amber-400 mt-1 block font-mono">Rate Limited & Filtered</span>
+            <div className="text-2xl font-bold font-mono text-amber-400 mt-0.5">Not reported</div>
+            <span className="text-[11px] text-gray-400 mt-1 block font-mono">No gateway counter available</span>
           </div>
           <div className="w-10 h-10 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
             <i className="fa-solid fa-shield-halved" />
@@ -568,7 +478,7 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
               <div className="border-b border-gray-400 w-full" />
             </div>
 
-            {latencyHistory.map((lat, idx) => {
+            {latencyHistory.length ? latencyHistory.map((lat, idx) => {
               const heightPct = Math.min(100, Math.max(12, (lat / 50) * 100));
               const isHigh = lat > 30;
 
@@ -588,13 +498,13 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
                   />
                 </div>
               );
-            })}
+            }) : <span className="absolute inset-0 flex items-center justify-center text-xs text-gray-500 font-mono">Waiting for real probe data...</span>}
           </div>
 
           <div className="flex items-center justify-between text-[11px] font-mono text-gray-400">
-            <span>Minimum: {Math.min(...latencyHistory)}ms</span>
-            <span>Average: {Math.round(latencyHistory.reduce((a, b) => a + b, 0) / latencyHistory.length)}ms</span>
-            <span>Peak Spike: {Math.max(...latencyHistory)}ms</span>
+            <span>Minimum: {latencyHistory.length ? `${Math.min(...latencyHistory)}ms` : 'No data'}</span>
+            <span>Average: {latencyHistory.length ? `${Math.round(latencyHistory.reduce((a, b) => a + b, 0) / latencyHistory.length)}ms` : 'No data'}</span>
+            <span>Peak Spike: {latencyHistory.length ? `${Math.max(...latencyHistory)}ms` : 'No data'}</span>
             <span>Target SLA: &lt;50ms</span>
           </div>
         </div>
@@ -604,10 +514,10 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
           <div>
             <div className="flex items-center gap-2 mb-2">
               <i className="fa-solid fa-gauge-high text-amber-400 text-sm" />
-              <h3 className="font-bold text-sm text-white">Load & Stress Simulator</h3>
+              <h3 className="font-bold text-sm text-white">Live Load Test</h3>
             </div>
             <p className="text-xs text-gray-400">
-              Simulate burst concurrency (500 reqs) to test API Gateway auto-scaling and edge rate limiting.
+              Send 500 real requests to the selected backend health endpoint and report measured results.
             </p>
           </div>
 
@@ -623,7 +533,7 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
                   style={{ width: `${loadTestProgress}%` }}
                 />
               </div>
-              <p className="text-[11px] text-gray-500 font-mono text-center">Firing synthetic parallel HTTP connections...</p>
+              <p className="text-[11px] text-gray-500 font-mono text-center">Firing real parallel HTTP requests...</p>
             </div>
           ) : loadTestStats ? (
             <div className="p-3 bg-[#111524] border border-[#1f2335] rounded-lg space-y-2 text-xs font-mono">
@@ -646,7 +556,7 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
             </div>
           ) : (
             <div className="p-3 bg-[#080a10] border border-[#1f2335] rounded-lg text-center text-xs text-gray-400">
-              Click <strong>"Run Load Stress Test"</strong> to execute synthetic load testing on API gateway.
+              Click <strong>"Run Load Stress Test"</strong> to execute a real load test on `/api/health`.
             </div>
           )}
 
@@ -680,18 +590,6 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
               className="px-2 py-1 bg-[#111524] hover:bg-[#1a1e30] border border-[#1f2335] text-gray-300 text-[11px] rounded font-mono"
             >
               GET /api/health
-            </button>
-            <button
-              onClick={() => { setTestUrl('/api/v1/auth/login'); setSelectedMethod('POST'); }}
-              className="px-2 py-1 bg-[#111524] hover:bg-[#1a1e30] border border-[#1f2335] text-gray-300 text-[11px] rounded font-mono"
-            >
-              POST /api/v1/auth/login
-            </button>
-            <button
-              onClick={() => { setTestUrl('/api/v1/users/me'); setSelectedMethod('GET'); }}
-              className="px-2 py-1 bg-[#111524] hover:bg-[#1a1e30] border border-[#1f2335] text-gray-300 text-[11px] rounded font-mono"
-            >
-              GET /api/v1/users/me
             </button>
           </div>
         </div>

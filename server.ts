@@ -8,14 +8,233 @@ import http from 'http';
 import https from 'https';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
+import { sql } from '@vercel/postgres';
 import dotenv from 'dotenv';
 
-dotenv.config();
+dotenv.config({ path: ['.env.local', '.env'] });
 
 const app = express();
-const PORT = 3000;
+const PORT = Number(process.env.PORT || 3002);
 
 app.use(express.json());
+
+interface ThreatIndicator {
+  id: string;
+  pulseName: string;
+  indicator: string;
+  indicatorType: string;
+  created: string;
+  tags: string[];
+  sourceCountry?: { name: string; code: string; lat: number; lng: number };
+  targetCountry?: { name: string; code: string; lat: number; lng: number };
+  targetIp?: string;
+}
+
+interface CheckpointAttack {
+  a_n?: string;
+  a_t?: string;
+  d_co?: string;
+  d_la?: number;
+  d_lo?: number;
+  s_co?: string;
+  s_la?: number;
+  s_lo?: number;
+}
+
+function readCheckpointAttacks(limit: number): Promise<CheckpointAttack[]> {
+  return new Promise((resolve, reject) => {
+    const events: CheckpointAttack[] = [];
+    let buffer = '';
+    let settled = false;
+    let settleTimer: NodeJS.Timeout | undefined;
+    const request = https.get('https://threatmap-api.checkpoint.com/ThreatMap/api/feed', {
+      headers: {
+        Accept: 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'User-Agent': 'SecureWatch/2.0 live-threat-monitor',
+      },
+    }, (response) => {
+      if (response.statusCode !== 200) {
+        response.resume();
+        reject(new Error(`Check Point returned HTTP ${response.statusCode}`));
+        return;
+      }
+
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        if (settleTimer) clearTimeout(settleTimer);
+        response.destroy();
+        resolve(events);
+      };
+
+      response.setEncoding('utf8');
+      response.on('data', (chunk: string) => {
+        buffer += chunk;
+        const frames = buffer.split(/\r?\n\r?\n/);
+        buffer = frames.pop() || '';
+        for (const frame of frames) {
+          if (!frame.split(/\r?\n/).some((line) => /^event:\s*attack\s*$/i.test(line.trim()))) continue;
+          const dataLine = frame.split(/\r?\n/).find((line) => line.trimStart().startsWith('data:'));
+          if (!dataLine) continue;
+          try {
+            const event = JSON.parse(dataLine.slice(dataLine.indexOf(':') + 1).trim()) as CheckpointAttack;
+            events.push(event);
+            if (!settleTimer) settleTimer = setTimeout(finish, 1500);
+          } catch {
+            // Ignore malformed SSE frames and continue collecting valid attacks.
+          }
+          if (events.length >= limit) {
+            finish();
+            return;
+          }
+        }
+      });
+      response.on('end', finish);
+      response.on('error', (error) => {
+        if (!settled) {
+          if (events.length > 0) {
+            finish();
+          } else {
+            settled = true;
+            reject(error);
+          }
+        }
+      });
+    });
+
+    request.setTimeout(30000, () => request.destroy(new Error('Check Point live feed timed out')));
+    request.on('error', (error) => {
+      if (!settled) {
+        settled = true;
+        reject(error);
+      }
+    });
+  });
+}
+
+const liveTelemetry: ThreatIndicator[] = [];
+const checkpointLiveEvents: CheckpointAttack[] = [];
+
+function connectCheckpointFeed() {
+  const request = https.get('https://threatmap-api.checkpoint.com/ThreatMap/api/feed', {
+    headers: {
+      Accept: 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'User-Agent': 'Mozilla/5.0 SecureWatch/2.0',
+    },
+  }, (response) => {
+    let buffer = '';
+    response.setEncoding('utf8');
+    response.on('data', (chunk: string) => {
+      buffer += chunk;
+      const frames = buffer.split(/\r?\n\r?\n/);
+      buffer = frames.pop() || '';
+      for (const frame of frames) {
+        if (!frame.split(/\r?\n/).some((line) => /^event:\s*attack\s*$/i.test(line.trim()))) continue;
+        const dataLine = frame.split(/\r?\n/).find((line) => line.trimStart().startsWith('data:'));
+        if (!dataLine) continue;
+        try {
+          const attack = JSON.parse(dataLine.slice(dataLine.indexOf(':') + 1).trim()) as CheckpointAttack;
+          if (attack.s_co && attack.d_co && Number.isFinite(attack.s_la) && Number.isFinite(attack.s_lo) && Number.isFinite(attack.d_la) && Number.isFinite(attack.d_lo)) {
+            checkpointLiveEvents.unshift(attack);
+            checkpointLiveEvents.splice(100);
+          }
+        } catch { /* Ignore malformed upstream frames. */ }
+      }
+    });
+    response.on('close', () => setTimeout(connectCheckpointFeed, 5000));
+    response.on('error', () => response.destroy());
+  });
+  request.setTimeout(60000, () => request.destroy());
+  request.on('error', () => setTimeout(connectCheckpointFeed, 5000));
+}
+
+connectCheckpointFeed();
+const protectedCountry = process.env.SECUREWATCH_TARGET_COUNTRY;
+const protectedLat = Number(process.env.SECUREWATCH_TARGET_LAT);
+const protectedLng = Number(process.env.SECUREWATCH_TARGET_LNG);
+const configuredTargetCountry = protectedCountry && Number.isFinite(protectedLat) && Number.isFinite(protectedLng)
+  ? { name: protectedCountry, code: protectedCountry, lat: protectedLat, lng: protectedLng }
+  : undefined;
+
+// Accept Suricata EVE-style alerts from an IDS running on the protected network.
+app.post('/api/telemetry', (req, res) => {
+  const event = req.body || {};
+  const sourceIp = event.src_ip || event.sourceIp || event.source_ip;
+  if (!sourceIp || !net.isIP(sourceIp)) return res.status(400).json({ error: 'A valid src_ip/sourceIp is required.' });
+
+  const alert = event.alert || {};
+  const targetIp = event.dest_ip || event.targetIp || event.destination_ip || 'local asset';
+  const telemetry: ThreatIndicator = {
+    id: `telemetry-${Date.now()}-${sourceIp}`,
+    pulseName: alert.signature || event.signature || event.event_type || 'IDS alert',
+    indicator: sourceIp,
+    indicatorType: 'LIVE IDS',
+    created: event.timestamp || new Date().toISOString(),
+    tags: ['live-telemetry', String(alert.severity || event.severity || 'high')],
+    sourceCountry: event.sourceCountry,
+    targetCountry: event.targetCountry || configuredTargetCountry,
+    targetIp,
+  };
+  liveTelemetry.unshift(telemetry);
+  liveTelemetry.splice(500);
+  return res.status(202).json({ accepted: true, sourceIp, targetIp, eventId: telemetry.id });
+});
+
+// Keep the CyberBriefing credential server-side and return only IP indicators
+// that can be placed on the map.
+app.get('/api/threats', async (req, res) => {
+  const limit = Math.min(Math.max(Number(req.query.limit) || 40, 1), 100);
+  try {
+    let source = 'Check Point ThreatCloud live feed';
+    let indicators: ThreatIndicator[] = [];
+    try {
+      let events = checkpointLiveEvents.slice(0, limit);
+      if (events.length === 0) {
+        events = await readCheckpointAttacks(limit);
+        checkpointLiveEvents.unshift(...events);
+        checkpointLiveEvents.splice(100);
+      }
+      if (events.length === 0) throw new Error('Check Point live feed has not delivered an attack event yet');
+      indicators = events
+        .filter((item) => item.s_co && item.d_co && item.s_co !== item.d_co && Number.isFinite(item.s_la) && Number.isFinite(item.s_lo) && Number.isFinite(item.d_la) && Number.isFinite(item.d_lo))
+        .map((item, index) => ({
+          id: `checkpoint-${Date.now()}-${index}`,
+          pulseName: item.a_n || 'ThreatCloud verified event',
+          indicator: `${item.s_co} -> ${item.d_co}`,
+          indicatorType: 'LIVE ATTACK',
+          created: new Date().toISOString(),
+          tags: [item.a_t || 'threat'],
+          sourceCountry: { name: String(item.s_co), code: String(item.s_co), lat: Number(item.s_la), lng: Number(item.s_lo) },
+          targetCountry: { name: String(item.d_co), code: String(item.d_co), lat: Number(item.d_la), lng: Number(item.d_lo) },
+        }));
+    } catch (error: any) {
+      console.warn('No verified live threat feed available:', error?.message || error);
+      source = 'No verified live attacks currently available';
+      indicators = [];
+    }
+
+    const recentTelemetry = liveTelemetry
+      .filter((item) => Date.now() - Date.parse(item.created) < 15 * 60 * 1000)
+      .filter((item) => item.sourceCountry && item.targetCountry && item.sourceCountry.code !== item.targetCountry.code);
+    const merged = [...recentTelemetry, ...indicators];
+
+    const threats = merged
+      .filter((item) => item.sourceCountry && item.targetCountry && item.sourceCountry.code !== item.targetCountry.code)
+      .filter((item, index, arr) => arr.findIndex((candidate) => candidate.indicator === item.indicator) === index)
+      .slice(0, limit);
+
+    if (threats.length === 0) {
+      return res.json({ source: 'No verified live attacks currently available', fetchedAt: new Date().toISOString(), threats: [] });
+    }
+
+    return res.json({ source, fetchedAt: new Date().toISOString(), threats });
+  } catch (error: any) {
+    console.error('CyberBriefing threat feed failed:', error?.message || error);
+    return res.status(502).json({ error: 'Unable to fetch the CyberBriefing threat feed.' });
+  }
+});
 
 // Initialize Gemini Client lazily
 let aiClient: GoogleGenAI | null = null;
@@ -25,6 +244,548 @@ function getGeminiClient() {
   }
   return aiClient;
 }
+
+interface ProjectDiscoveryLeak {
+  id?: string;
+  url?: string;
+  username?: string;
+  email?: string;
+  email_address?: string;
+  device_ip?: string;
+  hostname?: string;
+  os?: string;
+  malware_path?: string;
+  country?: string;
+  log_date?: string;
+  hardware_id?: string;
+  domain?: string;
+  email_domain?: string;
+  url_domain?: string;
+  fetched_at?: string;
+  status?: string;
+  user_type?: string;
+  password?: string;
+}
+
+// Keep ProjectDiscovery credentials and raw credential fields server-side.
+app.get('/api/email-breach', async (req, res) => {
+  const email = String(req.query.email || '').trim().toLowerCase();
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ error: 'A valid email address is required.' });
+  }
+
+  const apiKey = process.env.PROJECTDISCOVERY_API_KEY;
+  if (!apiKey) {
+    return res.status(503).json({ error: 'ProjectDiscovery leak intelligence is not configured on the server.' });
+  }
+
+  try {
+    const response = await fetch('https://api.projectdiscovery.io/v1/leaks?type=all&time_range=all_time', {
+      headers: {
+        Accept: 'application/json',
+        'X-API-Key': apiKey,
+      },
+      signal: AbortSignal.timeout(15000),
+    });
+
+    if (!response.ok) {
+      return res.status(response.status === 401 || response.status === 403 ? 502 : response.status).json({
+        error: `ProjectDiscovery leak API returned HTTP ${response.status}.`,
+      });
+    }
+
+    const payload = await response.json() as {
+      data?: ProjectDiscoveryLeak[] | { leaks?: ProjectDiscoveryLeak[]; results?: ProjectDiscoveryLeak[] };
+      leaks?: ProjectDiscoveryLeak[];
+      results?: ProjectDiscoveryLeak[];
+    };
+    const data = Array.isArray(payload.data)
+      ? payload.data
+      : payload.data?.leaks || payload.data?.results || payload.leaks || payload.results || [];
+    const matchingLeaks = data.filter((leak) =>
+      [leak.username, leak.email, leak.email_address].some((value) => String(value || '').trim().toLowerCase() === email)
+    );
+
+    const sources = matchingLeaks.map((leak, index) => {
+      const exposedFields = [
+        (leak.username || leak.email || leak.email_address) && 'Email / Username',
+        leak.password && 'Password (value withheld)',
+        leak.device_ip && 'Device IP',
+        leak.hostname && 'Hostname',
+        leak.os && 'Operating System',
+        leak.malware_path && 'Malware Path',
+        leak.hardware_id && 'Hardware ID',
+      ].filter(Boolean) as string[];
+
+      return {
+        name: leak.domain || leak.url_domain || leak.hostname || 'ProjectDiscovery Leak Record',
+        domain: leak.email_domain || leak.domain || leak.url_domain || 'N/A',
+        date: leak.log_date || leak.fetched_at || 'Date unavailable',
+        pwnCount: '1 matching record',
+        severity: exposedFields.some((field) => field.includes('Password') || field.includes('Malware')) ? 'CRITICAL' : 'HIGH',
+        leakedData: exposedFields.length > 0 ? exposedFields : ['Matching email identifier'],
+        description: `Live ProjectDiscovery record ${leak.id || `#${index + 1}`} matched this email. Credential values are withheld.`,
+        industry: leak.user_type || 'Unknown',
+      };
+    });
+
+    const riskScore = Math.min(100, sources.reduce((score, source) => score + (source.severity === 'CRITICAL' ? 35 : 25), 0));
+    return res.json({
+      email,
+      isBreached: sources.length > 0,
+      foundInBreaches: sources.length,
+      riskScore,
+      riskLevel: riskScore >= 70 ? 'CRITICAL' : riskScore >= 40 ? 'HIGH' : sources.length > 0 ? 'MEDIUM' : 'LOW',
+      checkedAt: new Date().toISOString(),
+      sources,
+      recommendations: sources.length > 0
+        ? ['Immediately change the password for the affected account.', 'Enable phishing-resistant MFA and revoke active sessions.', 'Investigate the listed device and malware indicators with your security team.']
+        : ['No matching record was returned by ProjectDiscovery for this email.', 'Continue using unique passwords and phishing-resistant MFA.'],
+      provider: 'ProjectDiscovery',
+    });
+  } catch (error: any) {
+    console.error('ProjectDiscovery email breach lookup failed:', error?.message || error);
+    return res.status(502).json({ error: 'Unable to query ProjectDiscovery leak intelligence.' });
+  }
+});
+
+// POST /api/email-breach-check - Check email breach using xposedornot.com API
+app.post('/api/email-breach-check', async (req, res) => {
+  const email = String(req.body?.email || '').trim().toLowerCase();
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ error: 'A valid email address is required.' });
+  }
+
+  try {
+    const response = await fetch(`https://api.xposedornot.com/v1/check-email/${encodeURIComponent(email)}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'SecureWatch/2.0 email-breach-checker',
+      },
+      signal: AbortSignal.timeout(10000),
+    });
+
+    if (!response.ok) {
+      return res.status(response.status).json({
+        error: `xposedornot API returned HTTP ${response.status}.`,
+        email,
+        breaches: [],
+        status: 'error',
+      });
+    }
+
+    const data = await response.json() as {
+      breaches?: string[];
+      email?: string;
+      status?: string;
+    };
+
+    // Parse the response
+    const breaches = Array.isArray(data.breaches) ? data.breaches : [];
+    const isBreached = breaches.length > 0;
+
+    // Calculate risk score based on number and severity of breaches
+    const riskScore = Math.min(100, breaches.length * 15);
+    const riskLevel = isBreached
+      ? riskScore >= 70 ? 'CRITICAL' : riskScore >= 40 ? 'HIGH' : 'MEDIUM'
+      : 'LOW';
+
+    return res.json({
+      email,
+      isBreached,
+      breachCount: breaches.length,
+      breaches,
+      riskScore,
+      riskLevel,
+      checkedAt: new Date().toISOString(),
+      provider: 'xposedornot',
+      status: isBreached ? 'compromised' : 'safe',
+      recommendations: isBreached
+        ? [
+            'Immediately change your password for all affected accounts.',
+            'Enable two-factor authentication (2FA) on all important accounts.',
+            'Monitor credit reports for fraudulent activity.',
+            'Consider using a password manager with unique strong passwords.',
+            'Check if your identity has been used fraudulently.',
+          ]
+        : [
+            'Your email has not been found in known data breaches.',
+            'Continue to use unique, strong passwords for each account.',
+            'Keep your security software and OS updated.',
+            'Enable 2FA on all accounts that support it.',
+          ],
+    });
+  } catch (error: any) {
+    console.error('xposedornot email breach check failed:', error?.message || error);
+    return res.status(502).json({
+      error: 'Unable to check email breach status. Please try again later.',
+      email,
+      status: 'error',
+    });
+  }
+});
+
+// Proxy only the five-character hash prefix so the password never leaves the browser.
+app.post('/api/password-pwned', async (req, res) => {
+  const prefix = String(req.body?.prefix || '').trim().toUpperCase();
+  if (!/^[0-9A-F]{5}$/.test(prefix)) {
+    return res.status(400).json({ error: 'A valid five-character SHA-1 hash prefix is required.' });
+  }
+
+  try {
+    const response = await fetch(`https://api.pwnedpasswords.com/range/${prefix}`, {
+      headers: { Accept: 'text/plain', 'User-Agent': 'SecureWatch-Password-Pwned-Check' },
+      signal: AbortSignal.timeout(15000),
+    });
+
+    if (!response.ok) {
+      return res.status(502).json({ error: `Have I Been Pwned returned HTTP ${response.status}.` });
+    }
+
+    return res.type('text').send(await response.text());
+  } catch (error: any) {
+    console.error('Have I Been Pwned password lookup failed:', error?.message || error);
+    return res.status(502).json({ error: 'Unable to query Have I Been Pwned password intelligence.' });
+  }
+});
+
+interface IsMaliciousResult {
+  value?: string;
+  categories?: string[];
+  confidenceScore?: number;
+  threatLevel?: string;
+  malicious?: boolean;
+  isMalicious?: boolean;
+  blacklisted?: boolean;
+  lastUpdated?: string;
+  metadata?: { sourcesCount?: number; threatLevel?: string; confidence?: string; categories?: string[] };
+  geo?: { country?: string; countryCode?: string; regionName?: string; city?: string; lat?: number; lon?: number; timezone?: string; isp?: string; org?: string; as?: string; query?: string };
+  whois?: { registrar?: string };
+  certificates?: { issuer_name?: string; not_after?: string }[];
+}
+
+interface PhishGuardResult {
+  url?: string;
+  domain?: string;
+  risk_level?: string;
+  risk_score?: number;
+  score?: number;
+  category?: string;
+  signals?: string[];
+  reasons?: string[];
+  blacklist_status?: string;
+  ip_address?: string;
+  ssl_valid?: boolean;
+  ssl_issuer?: string;
+  recommendation?: string;
+  report_id?: string;
+  id?: string;
+}
+
+function mapPhishGuardResult(result: PhishGuardResult, requestedUrl: URL) {
+  const risk = String(result.risk_level || '').toLowerCase();
+  const score = Number(result.risk_score ?? result.score);
+  const riskScore = Number.isFinite(score) ? Math.max(0, Math.min(100, score)) : 0;
+  const overallResult = /critical|high|malicious|dangerous/.test(risk) || riskScore >= 70
+    ? 'Malicious'
+    : /medium|suspicious|review/.test(risk) || riskScore >= 30
+      ? 'Suspicious'
+      : 'Safe';
+  const signals = [...(result.signals || []), ...(result.reasons || [])];
+  return {
+    id: result.report_id || result.id || `phishguard-${Date.now()}`,
+    url: result.url || requestedUrl.toString(),
+    domain: result.domain || requestedUrl.hostname,
+    blacklistStatus: result.blacklist_status || (overallResult === 'Safe' ? 'Not Listed by PhishGuard' : 'Flagged by PhishGuard'),
+    ipAddress: result.ip_address || 'N/A',
+    phishing: overallResult === 'Malicious' ? 'Malicious' as const : overallResult === 'Suspicious' ? 'Suspicious' as const : 'Clean' as const,
+    category: result.category || (signals.length > 0 ? signals.join(', ') : 'No threat category reported'),
+    malware: overallResult === 'Malicious' ? 'Malicious' as const : 'Clean' as const,
+    reputationScore: 100 - riskScore,
+    spam: overallResult === 'Safe' ? 'Clean' as const : 'Flagged' as const,
+    lastScanned: new Date().toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }),
+    threatLevel: overallResult === 'Malicious' ? 'Critical' as const : overallResult === 'Suspicious' ? 'Medium' as const : 'Low' as const,
+    overallResult,
+    sslIssuer: result.ssl_issuer || 'N/A',
+    sslValid: result.ssl_valid,
+    serverLocation: 'PhishGuard intelligence',
+    screenshot_url: `https://api.urlmeta.org/?url=${encodeURIComponent(requestedUrl.toString())}`,
+    enginesDetected: [{ name: 'PhishGuard', result: overallResult === 'Safe' ? 'Clean' as const : 'Flagged' as const }],
+    recommendation: result.recommendation || (overallResult === 'Malicious'
+      ? 'Do not visit this URL or submit credentials.'
+      : overallResult === 'Suspicious'
+        ? 'Verify the destination independently before continuing.'
+        : 'PhishGuard found no high-risk indicators for this URL.'),
+    provider: 'PhishGuard API',
+  };
+}
+
+async function scanWithPhishGuard(targetUrl: URL, apiKey: string) {
+  const response = await fetch('https://phishguard.in/api/analyze-url', {
+    method: 'POST',
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-API-Key': apiKey },
+    body: JSON.stringify({ url: targetUrl.toString() }),
+    signal: AbortSignal.timeout(15000),
+  });
+  const payload = await response.json().catch(() => ({})) as PhishGuardResult & { error?: string; message?: string };
+  if (!response.ok) throw new Error(payload.error || payload.message || `PhishGuard returned HTTP ${response.status}`);
+  return mapPhishGuardResult(payload, targetUrl);
+}
+
+function mapIsMaliciousResult(result: IsMaliciousResult, requestedUrl: URL) {
+  const categories = result.metadata?.categories || result.categories || [];
+  const categoryText = categories.length > 0 ? categories.join(', ') : 'No threat category reported';
+  const threat = String(result.threatLevel || result.metadata?.threatLevel || '').toLowerCase();
+  const explicitMalicious = result.malicious === true || result.isMalicious === true || result.blacklisted === true;
+  const maliciousCategory = categories.some((item) => /phish|malware|trojan|ransomware|exploit|botnet|c2|credential/i.test(item));
+  const highRisk = explicitMalicious || /critical|malicious/.test(threat);
+  const suspicious = !highRisk && (/high|medium|suspicious|review|unknown/.test(threat) || maliciousCategory);
+  const overallResult = highRisk ? 'Malicious' : suspicious ? 'Suspicious' : 'Safe';
+  const threatLevel = highRisk ? 'Critical' : /high/.test(threat) ? 'High' : suspicious ? 'Medium' : 'Low';
+  const score = Number(result.confidenceScore);
+  const reputationScore = Number.isFinite(score) ? Math.max(0, Math.min(100, Math.round(100 - score))) : overallResult === 'Safe' ? 100 : highRisk ? 15 : 50;
+  const phishing = categories.some((item) => /phish|fraud|credential/i.test(item)) ? (overallResult === 'Malicious' ? 'Malicious' : 'Suspicious') : 'Clean';
+  const malware = categories.some((item) => /malware|trojan|exploit|payload|c2/i.test(item)) ? (overallResult === 'Malicious' ? 'Malicious' : 'Suspicious') : 'Clean';
+  const certificate = result.certificates?.[0];
+  const certificateValid = certificate?.not_after ? Date.parse(certificate.not_after) > Date.now() : undefined;
+  const sourceCount = Number(result.metadata?.sourcesCount);
+  const sourceName = Number.isFinite(sourceCount) ? `IsMalicious intelligence (${sourceCount} sources)` : 'IsMalicious intelligence';
+
+  return {
+    id: `ismalicious-${Date.now()}`,
+    url: requestedUrl.toString(),
+    domain: result.value || requestedUrl.hostname,
+    blacklistStatus: categoryText === 'No threat category reported' ? categoryText : `Flagged categories: ${categoryText}`,
+    ipAddress: result.geo?.query || 'N/A',
+    phishing,
+    category: categoryText,
+    malware,
+    reputationScore,
+    spam: overallResult === 'Safe' ? 'Clean' : 'Flagged',
+    lastScanned: new Date(result.lastUpdated || Date.now()).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }),
+    threatLevel,
+    overallResult,
+    sslIssuer: certificate?.issuer_name || 'N/A',
+    sslValid: certificateValid,
+    serverLocation: [result.geo?.city, result.geo?.regionName, result.geo?.country].filter(Boolean).join(', ') || 'N/A',
+    enginesDetected: [{ name: sourceName, result: overallResult === 'Safe' ? 'Clean' as const : 'Flagged' as const }],
+    screenshot_url: `https://api.urlmeta.org/?url=${encodeURIComponent(requestedUrl.toString())}`,
+    recommendation: overallResult === 'Malicious'
+      ? 'IsMalicious reported malicious indicators. Do not visit this URL or submit credentials.'
+      : overallResult === 'Suspicious'
+        ? 'IsMalicious reported suspicious indicators. Verify the destination independently before continuing.'
+        : 'IsMalicious did not report a high-risk verdict for this lookup. Continue to use normal security precautions.',
+    provider: 'IsMalicious',
+  };
+}
+
+async function inspectUrlLive(targetUrl: URL) {
+  const hostname = targetUrl.hostname.toLowerCase();
+  const indicators: string[] = [];
+  const suspiciousPattern = /(login|signin|verify|verification|wallet|crypto|password|credential|bonus|free[-_ ]?gift|reset)/i;
+  const suspiciousTlds = ['.tk', '.ml', '.ga', '.cf', '.gq', '.xyz', '.top', '.work', '.date'];
+  const brands = ['sbi', 'hdfc', 'icici', 'axisbank', 'paytm', 'phonepe', 'irctc', 'aadhaar', 'gpay', 'upi'];
+  const isIpAddress = net.isIP(hostname) !== 0;
+  const isPunycode = hostname.includes('xn--');
+  const isBrandDomain = brands.some((brand) => hostname.split('.').some((label) => label === brand || label.startsWith(`${brand}-`)));
+  const isOfficialBrandDomain = brands.some((brand) => hostname === `${brand}.com` || hostname === `${brand}.in` || hostname.endsWith(`.${brand}.com`) || hostname.endsWith(`.${brand}.in`));
+
+  if (targetUrl.protocol !== 'https:') indicators.push('unencrypted HTTP');
+  if (isIpAddress) indicators.push('direct IP address');
+  if (isPunycode) indicators.push('internationalized/punycode hostname');
+  if (suspiciousPattern.test(`${hostname}${targetUrl.pathname}`)) indicators.push('credential or reward themed URL');
+  if (hostname.split('.').length > 4) indicators.push('unusually deep hostname');
+  if (suspiciousTlds.some((tld) => hostname.endsWith(tld))) indicators.push('suspicious top-level domain');
+  if (targetUrl.href.includes('@')) indicators.push('@ symbol in URL');
+  if (isBrandDomain && !isOfficialBrandDomain) indicators.push('possible brand impersonation');
+
+  const addresses = await dns.promises.resolve4(hostname).catch(() => [] as string[]);
+  const ipv6Addresses = addresses.length === 0 ? await dns.promises.resolve6(hostname).catch(() => [] as string[]) : [];
+  const ipAddress = addresses[0] || ipv6Addresses[0] || 'N/A';
+  if (addresses.length === 0 && ipv6Addresses.length === 0) indicators.push('hostname does not resolve in DNS');
+
+  const certificate = await new Promise<{ issuer?: string; valid: boolean }>((resolve) => {
+    if (targetUrl.protocol !== 'https:') return resolve({ valid: false });
+    const request = https.request({ hostname, port: 443, method: 'HEAD', servername: hostname, timeout: 5000 }, (response) => {
+      const socket = response.socket as import('tls').TLSSocket;
+      const cert = socket.getPeerCertificate();
+      const issuer = cert.issuer?.O || cert.issuer?.CN;
+      resolve({ issuer: Array.isArray(issuer) ? issuer[0] : issuer, valid: socket.authorized });
+      response.resume();
+      request.destroy();
+    });
+    request.on('error', () => resolve({ valid: false }));
+    request.on('timeout', () => { request.destroy(); resolve({ valid: false }); });
+    request.end();
+  });
+  const httpProbe = await probeHttpTarget(targetUrl.toString(), 7000);
+  if (!httpProbe.statusCode) indicators.push('HTTP endpoint could not be reached');
+  if (httpProbe.statusCode && httpProbe.statusCode >= 500) indicators.push(`HTTP server error (${httpProbe.statusCode})`);
+  if (targetUrl.protocol === 'https:' && !certificate.valid) indicators.push('TLS certificate could not be validated');
+
+  const malicious = indicators.some((item) => /credential|punycode|direct IP|does not resolve|brand impersonation|@ symbol/i.test(item));
+  const suspicious = !malicious && indicators.length > 0;
+  const overallResult = malicious ? 'Malicious' : suspicious ? 'Suspicious' : 'Safe';
+  const reputationScore = malicious ? 20 : suspicious ? 55 : 92;
+  const severity = malicious ? 'High' : suspicious ? 'Medium' : 'Low';
+  const category = indicators.length > 0 ? indicators.join(', ') : 'No obvious risk indicators detected';
+
+  return {
+    id: `live-inspection-${Date.now()}`,
+    url: targetUrl.toString(),
+    domain: hostname,
+    blacklistStatus: indicators.length > 0 ? `Review required: ${category}` : 'Not checked: external threat-intelligence provider is not configured',
+    ipAddress,
+    phishing: malicious ? 'Malicious' as const : suspicious ? 'Suspicious' as const : 'Clean' as const,
+    category,
+    malware: 'Clean' as const,
+    reputationScore,
+    spam: suspicious ? 'Flagged' as const : 'Clean' as const,
+    lastScanned: new Date().toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }),
+    threatLevel: severity as 'Low' | 'Medium' | 'High',
+    overallResult,
+    sslIssuer: certificate.issuer || 'N/A',
+    sslValid: targetUrl.protocol === 'https:' && certificate.valid,
+    serverLocation: 'Live DNS/TLS inspection',
+    httpStatus: httpProbe.statusCode || null,
+    responseTimeMs: httpProbe.responseTimeMs,
+    redirectUrl: httpProbe.redirectUrl || null,
+    screenshot_url: `https://api.urlmeta.org/?url=${encodeURIComponent(targetUrl.toString())}`,
+    enginesDetected: [
+      ...indicators.map((indicator) => ({ name: indicator, result: 'Flagged' as const })),
+      { name: 'SSL Certificate', result: certificate.valid ? 'Clean' as const : 'Flagged' as const },
+    ],
+    recommendation: malicious
+      ? 'Do not visit this URL or submit credentials. Live inspection found high-risk indicators.'
+      : suspicious
+        ? 'Treat this URL with caution and verify the destination independently before continuing.'
+        : 'No obvious risk indicators were found by the live inspection. This is not a guarantee of safety.',
+    provider: 'SecureWatch live DNS/TLS inspection',
+  };
+}
+
+const reputationCache = new Map<string, { expiresAt: number; result: ReturnType<typeof mapIsMaliciousResult> }>();
+const reputationRequests = new Map<string, Promise<ReturnType<typeof mapIsMaliciousResult>>>();
+const REPUTATION_CACHE_TTL_MS = 10 * 60 * 1000;
+let isMaliciousRateLimitUntil = 0;
+
+app.post('/api/scan-url-reputation', async (req, res) => {
+  const rawUrl = String(req.body?.url || '').trim();
+  const phishGuardApiKey = process.env.PHISHGUARD_API_KEY;
+  const apiKey = process.env.ISMALICIOUS_API_KEY;
+
+  let targetUrl: URL;
+  try {
+    targetUrl = new URL(/^https?:\/\//i.test(rawUrl) ? rawUrl : `https://${rawUrl}`);
+    if (!['http:', 'https:'].includes(targetUrl.protocol) || targetUrl.username || targetUrl.password) throw new Error('unsupported URL');
+  } catch {
+    return res.status(400).json({ error: 'Enter a valid HTTP or HTTPS URL.' });
+  }
+
+  if (phishGuardApiKey) {
+    try {
+      const result = await scanWithPhishGuard(targetUrl, phishGuardApiKey);
+      res.setHeader('X-Reputation-Source', 'PhishGuard API');
+      return res.json(result);
+    } catch (error: any) {
+      console.warn('PhishGuard API unavailable; trying configured fallback:', error?.message || error);
+    }
+  }
+
+  if (!apiKey) {
+    try {
+      const result = await inspectUrlLive(targetUrl);
+      res.setHeader('X-Reputation-Source', 'SecureWatch live DNS/TLS/HTTP inspection');
+      return res.json(result);
+    } catch (error: any) {
+      console.error('Live URL inspection failed:', error?.message || error);
+      return res.status(502).json({ error: 'Unable to inspect this URL live. Check the hostname and try again.' });
+    }
+  }
+
+  const cacheKey = targetUrl.href.toLowerCase();
+  const cached = reputationCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    res.setHeader('X-Reputation-Source', 'IsMalicious cache');
+    return res.json(cached.result);
+  }
+  reputationCache.delete(cacheKey);
+  if (isMaliciousRateLimitUntil > Date.now()) {
+    const retryAfter = Math.ceil((isMaliciousRateLimitUntil - Date.now()) / 1000);
+    res.setHeader('Retry-After', String(retryAfter));
+    const localResult = await inspectUrlLive(targetUrl);
+    res.setHeader('X-Reputation-Source', 'SecureWatch live inspection (provider rate limited)');
+    return res.json({
+      ...localResult,
+      provider: 'SecureWatch live inspection (IsMalicious rate limited)',
+      recommendation: `${localResult.recommendation} External reputation feed is temporarily rate-limited; verify again when it is available.`,
+    });
+  }
+
+  try {
+    let request = reputationRequests.get(cacheKey);
+    if (!request) {
+      request = (async () => {
+        const response = await fetch(`https://api.ismalicious.com/check/reputation?query=${encodeURIComponent(targetUrl.href)}`, {
+          headers: { Accept: 'application/json', 'X-API-KEY': apiKey },
+          signal: AbortSignal.timeout(15000),
+        });
+        const data = await response.json().catch(() => ({})) as IsMaliciousResult & { error?: string; message?: string };
+        if (!response.ok) {
+          const error = new Error(data.error || data.message || `IsMalicious reputation API returned HTTP ${response.status}.`) as Error & { status?: number; retryAfter?: string };
+          error.status = response.status;
+          error.retryAfter = response.headers.get('retry-after') || undefined;
+          if (response.status === 429) {
+            const retrySeconds = Number(error.retryAfter);
+            isMaliciousRateLimitUntil = Date.now() + (Number.isFinite(retrySeconds) ? retrySeconds : 60) * 1000;
+          }
+          throw error;
+        }
+        const providerResult = mapIsMaliciousResult(data, targetUrl);
+        const localResult = await inspectUrlLive(targetUrl);
+        const result = providerResult.overallResult === 'Safe' && localResult.overallResult !== 'Safe'
+          ? { ...localResult, provider: `${providerResult.provider} + SecureWatch live inspection` }
+          : providerResult;
+        reputationCache.set(cacheKey, { expiresAt: Date.now() + REPUTATION_CACHE_TTL_MS, result });
+        return result;
+      })();
+      reputationRequests.set(cacheKey, request);
+      request.finally(() => reputationRequests.delete(cacheKey)).catch(() => undefined);
+    }
+
+    return res.json(await request);
+  } catch (error: any) {
+    if (error?.status === 429) {
+      if (error.retryAfter) res.setHeader('Retry-After', error.retryAfter);
+      try {
+        const localResult = await inspectUrlLive(targetUrl);
+        res.setHeader('X-Reputation-Source', 'SecureWatch live inspection (provider rate limited)');
+        return res.json({
+          ...localResult,
+          provider: 'SecureWatch live inspection (IsMalicious rate limited)',
+          recommendation: `${localResult.recommendation} External reputation feed is temporarily rate-limited; verify again when it is available.`,
+        });
+      } catch (fallbackError: any) {
+        console.error('Local URL reputation fallback failed:', fallbackError?.message || fallbackError);
+        return res.status(429).json({ error: `IsMalicious rate limit exceeded. Please retry after ${error.retryAfter || 'the provider limit resets'}.` });
+      }
+    }
+    console.error('IsMalicious URL reputation scan failed:', error?.message || error);
+    try {
+      const localResult = await inspectUrlLive(targetUrl);
+      res.setHeader('X-Reputation-Source', 'SecureWatch live inspection (provider unavailable)');
+      return res.json({
+        ...localResult,
+        provider: 'SecureWatch live inspection (IsMalicious unavailable)',
+        recommendation: `${localResult.recommendation} External reputation feed is temporarily unavailable; this result is based on live DNS, TLS, and HTTP checks only.`,
+      });
+    } catch (fallbackError: any) {
+      console.error('Local URL reputation fallback failed:', fallbackError?.message || fallbackError);
+      return res.status(502).json({ error: 'Unable to inspect this URL live. Check the hostname and try again.' });
+    }
+  }
+});
 
 // ---------------------------------------------------------
 // REAL VULNERABILITY SCANNER ENGINE
@@ -59,6 +820,21 @@ interface HeaderAudit {
   currentValue: string;
   recommended: string;
   vulnerabilityMsg?: string;
+}
+
+interface ProjectDiscoveryVulnerability {
+  id?: string;
+  template?: string;
+  template_id?: string;
+  name?: string;
+  severity?: string;
+  host?: string;
+  matched_at?: string;
+  description?: string;
+  impact?: string;
+  remediation?: string;
+  reference?: string[] | string;
+  cve?: string;
 }
 
 // Helper: Real TCP Port Probe
@@ -182,9 +958,8 @@ app.get('/api/ip-lookup', async (req, res) => {
               targetIp = ipifyData.ip;
             }
           }
-        } catch (e) {
-          // If public IP fetch fails, default to Cloudflare DNS IP for fallback
-          targetIp = '1.1.1.1';
+        } catch {
+          return res.status(502).json({ error: 'Unable to determine the public IP address for this connection.' });
         }
       }
     }
@@ -206,137 +981,68 @@ app.get('/api/ip-lookup', async (req, res) => {
       return res.status(400).json({ error: 'Please enter a valid IP address or domain name.' });
     }
 
-    // Multi-Provider Geolocation Fetching Chain
-    // Provider 1: ipwho.is
     try {
-      const resp = await fetch(`https://ipwho.is/${targetIp}`, {
-        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
-        signal: AbortSignal.timeout(4000)
+      const resp = await fetch(`https://ipwho.is/${encodeURIComponent(targetIp)}`, {
+        headers: { Accept: 'application/json' },
+        signal: AbortSignal.timeout(15000),
       });
-      if (resp.ok) {
-        const data = (await resp.json()) as any;
-        if (data && data.success !== false) {
-          return res.json({
-            success: true,
-            ip: data.ip || targetIp,
-            version: data.type || (targetIp.includes(':') ? 'IPv6' : 'IPv4'),
-            city: data.city || 'Unknown City',
-            region: data.region || 'Unknown Region',
-            country: data.country || 'Unknown Country',
-            country_code: data.country_code || '',
-            postal: data.postal || 'N/A',
-            latitude: Number(data.latitude) || 0,
-            longitude: Number(data.longitude) || 0,
-            timezone: data.timezone?.id || 'UTC',
-            asn: data.connection?.asn ? `ASN${data.connection.asn}` : 'N/A',
-            org: data.connection?.org || data.connection?.isp || 'N/A',
-            isp: data.connection?.isp || data.connection?.org || 'N/A',
-            provider: 'ipwho.is'
-          });
+      let data = await resp.json().catch(() => ({})) as any;
+      if (!resp.ok) {
+        if (resp.status === 429) {
+          const retryAfter = resp.headers.get('retry-after');
+          if (retryAfter) res.setHeader('Retry-After', retryAfter);
+          return res.status(429).json({ error: `Free IP location provider rate limit exceeded. Please retry after ${retryAfter || 'the provider limit resets'}.` });
         }
+        return res.status(502).json({ error: data.error || data.message || `Free IP location API returned HTTP ${resp.status}.` });
       }
-    } catch (e) {
-      console.warn('ipwho.is lookup failed, trying ip-api.com...', e);
-    }
+      if (!data.success) {
+        return res.status(502).json({ error: data.message || 'The free IP location provider returned no result.' });
+      }
 
-    // Provider 2: ip-api.com
-    try {
-      const resp = await fetch(`http://ip-api.com/json/${targetIp}?fields=status,message,country,countryCode,regionName,city,zip,lat,lon,timezone,isp,org,as,query`, {
-        signal: AbortSignal.timeout(4000)
+      data = {
+        ip: data.ip,
+        city: data.city,
+        region: data.region,
+        country: data.country,
+        country_code: data.country_code,
+        postal: data.postal,
+        loc: `${data.latitude},${data.longitude}`,
+        timezone: data.timezone?.id || data.timezone,
+        asn: data.connection?.asn,
+        org: data.connection?.org,
+        isp: data.connection?.isp,
+      };
+
+      const [latitudeText, longitudeText] = String(data.loc || '').split(',');
+      const latitude = Number(latitudeText);
+      const longitude = Number(longitudeText);
+      if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+        return res.status(502).json({ error: 'IPinfo returned no valid coordinates for this address.' });
+      }
+
+      return res.json({
+        success: true,
+        ip: data.ip || targetIp,
+        version: targetIp.includes(':') ? 'IPv6' : 'IPv4',
+        city: data.city || 'N/A',
+        region: data.region || 'N/A',
+        country: data.country || 'N/A',
+        country_code: data.country_code || data.country || '',
+        latitude,
+        longitude,
+        postal: data.postal || 'N/A',
+        timezone: typeof data.timezone === 'string' ? data.timezone : data.timezone?.id || 'N/A',
+        asn: data.asn || data.org?.match(/^AS\d+/)?.[0] || 'N/A',
+        org: data.org || 'N/A',
+        isp: data.isp || data.org || 'N/A',
+        provider: 'ipwho.is (free)',
+        accuracy: 'Network-level geolocation; not GPS precision',
       });
-      if (resp.ok) {
-        const data = (await resp.json()) as any;
-        if (data && data.status === 'success') {
-          return res.json({
-            success: true,
-            ip: data.query || targetIp,
-            version: (data.query || targetIp).includes(':') ? 'IPv6' : 'IPv4',
-            city: data.city || 'Unknown City',
-            region: data.regionName || 'Unknown Region',
-            country: data.country || 'Unknown Country',
-            country_code: data.countryCode || '',
-            postal: data.zip || 'N/A',
-            latitude: Number(data.lat) || 0,
-            longitude: Number(data.lon) || 0,
-            timezone: data.timezone || 'UTC',
-            asn: data.as || 'N/A',
-            org: data.org || data.isp || 'N/A',
-            isp: data.isp || data.org || 'N/A',
-            provider: 'ip-api.com'
-          });
-        }
-      }
-    } catch (e) {
-      console.warn('ip-api.com lookup failed, trying ipapi.co...', e);
     }
-
-    // Provider 3: ipapi.co
-    try {
-      const resp = await fetch(`https://ipapi.co/${targetIp}/json/`, {
-        headers: { 'User-Agent': 'Mozilla/5.0' },
-        signal: AbortSignal.timeout(4000)
-      });
-      if (resp.ok) {
-        const data = (await resp.json()) as any;
-        if (data && !data.error) {
-          return res.json({
-            success: true,
-            ip: data.ip || targetIp,
-            version: data.version || ((data.ip || targetIp).includes(':') ? 'IPv6' : 'IPv4'),
-            city: data.city || 'Unknown City',
-            region: data.region || 'Unknown Region',
-            country: data.country_name || data.country || 'Unknown Country',
-            country_code: data.country_code || data.country || '',
-            postal: data.postal || 'N/A',
-            latitude: Number(data.latitude) || 0,
-            longitude: Number(data.longitude) || 0,
-            timezone: data.timezone || 'UTC',
-            asn: data.asn || 'N/A',
-            org: data.org || data.asn || 'N/A',
-            isp: data.org || data.isp || 'N/A',
-            provider: 'ipapi.co'
-          });
-        }
-      }
-    } catch (e) {
-      console.warn('ipapi.co lookup failed, trying ipinfo.io...', e);
+    catch (error: any) {
+      console.error('Free IP location lookup failed:', error?.message || error);
+      return res.status(502).json({ error: 'Unable to retrieve live IP location from the free provider.' });
     }
-
-    // Provider 4: ipinfo.io
-    try {
-      const resp = await fetch(`https://ipinfo.io/${targetIp}/json`, {
-        signal: AbortSignal.timeout(4000)
-      });
-      if (resp.ok) {
-        const data = (await resp.json()) as any;
-        if (data && data.ip) {
-          const [latStr, lngStr] = (data.loc || '0,0').split(',');
-          return res.json({
-            success: true,
-            ip: data.ip || targetIp,
-            version: (data.ip || targetIp).includes(':') ? 'IPv6' : 'IPv4',
-            city: data.city || 'Unknown City',
-            region: data.region || 'Unknown Region',
-            country: data.country || 'Unknown Country',
-            country_code: data.country_code || '',
-            postal: data.postal || 'N/A',
-            latitude: Number(latStr) || 0,
-            longitude: Number(lngStr) || 0,
-            timezone: data.timezone || 'UTC',
-            asn: data.org ? data.org.split(' ')[0] : 'N/A',
-            org: data.org || 'N/A',
-            isp: data.org || 'N/A',
-            provider: 'ipinfo.io'
-          });
-        }
-      }
-    } catch (e) {
-      console.warn('ipinfo.io lookup failed...', e);
-    }
-
-    return res.status(500).json({
-      error: `Could not retrieve location for IP "${targetIp}". Please verify the IP address or try again.`
-    });
 
   } catch (err: any) {
     console.error('Error in /api/ip-lookup:', err);
@@ -854,6 +1560,53 @@ app.post('/api/scan-vulnerability', async (req, res) => {
         fixCode: `# Linux UFW Firewall Rule\nsudo ufw deny ${dbPort.port}/tcp\nsudo ufw allow from 10.0.0.0/8 to any port ${dbPort.port}`,
       });
     });
+
+    // Enrich the observed findings with verified results from the user's ProjectDiscovery scans.
+    const projectDiscoveryApiKey = process.env.PROJECTDISCOVERY_API_KEY;
+    if (projectDiscoveryApiKey && !isIpAddress) {
+      try {
+        const pdResponse = await fetch(`https://api.projectdiscovery.io/v1/scans/results?domain=${encodeURIComponent(hostname)}&limit=100`, {
+          headers: { Accept: 'application/json', 'X-API-Key': projectDiscoveryApiKey },
+          signal: AbortSignal.timeout(12000),
+        });
+
+        if (pdResponse.ok) {
+          const pdPayload = await pdResponse.json() as { data?: ProjectDiscoveryVulnerability[] };
+          const externalFindings = Array.isArray(pdPayload.data) ? pdPayload.data : [];
+          externalFindings.forEach((finding, index) => {
+            const severityValue = String(finding.severity || 'info').toLowerCase();
+            const severity: VulnerabilityItem['severity'] = severityValue === 'critical'
+              ? 'Critical'
+              : severityValue === 'high'
+                ? 'High'
+                : severityValue === 'medium'
+                  ? 'Medium'
+                  : 'Low';
+            const title = finding.name || finding.template || finding.template_id || 'ProjectDiscovery vulnerability finding';
+            const fingerprint = `${finding.template_id || finding.template || title}:${finding.host || hostname}`;
+            if (vulnerabilities.some((item) => item.id === `pd-${fingerprint}` || item.title === title)) return;
+
+            vulnerabilities.push({
+              id: `pd-${fingerprint || index}`,
+              cve: finding.cve || finding.template_id,
+              title,
+              severity,
+              cvssScore: severity === 'Critical' ? 9.8 : severity === 'High' ? 8.0 : severity === 'Medium' ? 5.5 : 2.5,
+              owaspCategory: 'ProjectDiscovery verified scan result',
+              affectedAsset: finding.matched_at || finding.host || hostname,
+              description: finding.description || finding.impact || 'Verified finding returned by ProjectDiscovery cloud scanning.',
+              exploitVector: `Detected by ProjectDiscovery template ${finding.template_id || finding.template || 'unknown'}.`,
+              remediation: finding.remediation || 'Review the ProjectDiscovery finding and apply the vendor-recommended fix.',
+              fixCode: Array.isArray(finding.reference) ? finding.reference.join('\n') : finding.reference,
+            });
+          });
+        } else {
+          console.warn(`ProjectDiscovery vulnerability results returned HTTP ${pdResponse.status}; continuing with local live checks.`);
+        }
+      } catch (pdError: any) {
+        console.warn('ProjectDiscovery vulnerability enrichment unavailable:', pdError?.message || pdError);
+      }
+    }
 
     // 7. CALCULATE REAL OVERALL SECURITY SCORE
     let penaltySum = 0;
@@ -1444,6 +2197,7 @@ app.post('/api/users', (req, res) => {
         sourceIp: req.ip || '127.0.0.1',
         destination: 'user-management-db',
         action: 'ALLOWED',
+        traceId: `TRACE-${Date.now()}-${Math.random().toString(36).substring(7)}`,
         details: { userId: newUser.id, name: newUser.name, email: newUser.email, role: newUser.role, status: newUser.status, mfa: newUser.mfa },
       }, sessionId);
     } catch (e) {}
@@ -1504,6 +2258,7 @@ app.put('/api/users/:id', (req, res) => {
         sourceIp: req.ip || '127.0.0.1',
         destination: 'user-management-db',
         action: 'ALLOWED',
+        traceId: `TRACE-${Date.now()}-${Math.random().toString(36).substring(7)}`,
         details: { userId: updatedUser.id, updatedFields: req.body },
       }, sessionId);
     } catch (e) {}
@@ -1645,6 +2400,7 @@ app.delete('/api/users/:id', (req, res) => {
           sourceIp: req.ip || '127.0.0.1',
           destination: 'user-management-db',
           action: 'QUARANTINED',
+          traceId: `TRACE-${Date.now()}-${Math.random().toString(36).substring(7)}`,
           details: { deletedUserId: id, deletedEmail: userToDelete.email },
         }, sessionId);
       } catch (e) {}
@@ -1744,6 +2500,7 @@ Provide a JSON verdict with keys:
       sourceIp: req.ip || '127.0.0.1',
       destination: 'malware-sandbox-v4',
       action: status === 'CLEAN' ? 'ALLOWED' : status === 'SUSPICIOUS' ? 'FLAGGED' : 'QUARANTINED',
+      traceId: `TRACE-${Date.now()}-${Math.random().toString(36).substring(7)}`,
       details: { fileName, fileSize, mimeMismatch, threats: detectedThreats, sha256: calculatedHash },
     });
 
@@ -1856,6 +2613,7 @@ Return JSON with exact keys:
       sourceIp: req.ip || '127.0.0.1',
       destination: 'reporting-service',
       action: 'ALLOWED',
+      traceId: `TRACE-${Date.now()}-${Math.random().toString(36).substring(7)}`,
       details: { reportId, reportType, timeframe, complianceScore, targetScope },
     });
 
@@ -2079,44 +2837,6 @@ function recordSecurityLog(log: Omit<SecurityLogEntry, 'id' | 'timestamp'>, sess
   saveDatabaseToDisk();
 }
 
-const initialSecurityLogs: SecurityLogEntry[] = [
-  {
-    id: 'SEC-LOG-9081',
-    timestamp: new Date().toISOString(),
-    level: 'CRITICAL',
-    service: 'WAF Guard',
-    message: 'SQL Injection payload blocked on /api/v1/auth/login',
-    sourceIp: '185.220.101.4',
-    destination: 'ingress-gateway:443',
-    action: 'BLOCKED',
-    traceId: 'tr-9a8b7c6d-001',
-    details: { payload: "' OR '1'='1' --", matchedRule: 'OWASP-CRS-942100' },
-  },
-  {
-    id: 'SEC-LOG-9080',
-    timestamp: new Date(Date.now() - 120000).toISOString(),
-    level: 'ERROR',
-    service: 'Auth Gateway',
-    message: 'Repeated failed JWT authentication attempts (Brute Force detected)',
-    sourceIp: '45.142.214.92',
-    destination: 'auth-service:8080',
-    action: 'FLAGGED',
-    traceId: 'tr-9a8b7c6d-002',
-    details: { attempts: 42, username: 'admin@system.local' },
-  },
-  {
-    id: 'SEC-LOG-9079',
-    timestamp: new Date(Date.now() - 300000).toISOString(),    level: 'WARN',
-    service: 'Database Monitor',
-    message: 'Slow query detected on analytics pipeline (Query Time: 3.2s)',
-    sourceIp: 'internal-scheduler',
-    destination: 'primary-db-replica',
-    action: 'ALERTED',
-    traceId: 'tr-9a8b7c6d-003',
-    details: { queryMs: 3200, slowThreshold: 1000 },
-  },
-];
-
 // GET /api/security-logs - Retrieve SIEM Security Logs for Current Session
 app.get('/api/security-logs', (req, res) => {
   try {
@@ -2125,15 +2845,136 @@ app.get('/api/security-logs', (req, res) => {
     return res.json({
       sessionId,
       totalLogs: logs.length,
-      logs: logs.slice(0, 50), // Return latest 50 logs
-      initialSecurityLogs,
+      logs: logs.slice(0, 50),
     });
   } catch (err: any) {
-    return res.json({ error: err.message, initialSecurityLogs });
+    return res.status(500).json({ error: err.message || 'Unable to read security logs' });
+  }
+});
+
+// POST /api/security-logs/ingest - Persist a verified security event for the current tenant
+app.post('/api/security-logs/ingest', (req, res) => {
+  const { level, service, message, sourceIp, destination, action, details } = req.body || {};
+  const validLevels = ['CRITICAL', 'ERROR', 'WARN', 'INFO'];
+  if (!validLevels.includes(level) || !service || !message || !sourceIp || !destination || !action) {
+    return res.status(400).json({ error: 'level, service, message, sourceIp, destination, and action are required' });
+  }
+
+  try {
+    const { sessionId } = getTenantDb(req);
+    recordSecurityLog({ level, service, message, sourceIp, destination, action, traceId: `trace-${Date.now()}`, details: details && typeof details === 'object' ? details : {} }, sessionId);
+    return res.status(201).json({ saved: true, sessionId });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || 'Unable to ingest security event' });
   }
 });
 
 // GET /api/health - Simple Health Check Endpoint
+app.get('/api/client-ip', (req, res) => {
+  const forwardedFor = req.headers['x-forwarded-for'];
+  const forwardedIp = Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor?.split(',')[0]?.trim();
+  const socketIp = req.socket.remoteAddress?.replace(/^::ffff:/, '');
+  res.json({ ip: forwardedIp || socketIp || 'Unavailable' });
+});
+
+interface IpChatMessage {
+  id: number;
+  room: string;
+  senderIp: string;
+  senderId: string;
+  text: string;
+  createdAt: string;
+}
+
+const ipChatRooms = new Map<string, IpChatMessage[]>();
+const hasIpChatDatabase = Boolean(
+  process.env.POSTGRES_URL || process.env.POSTGRES_PRISMA_URL || process.env.POSTGRES_URL_NON_POOLING,
+);
+let ipChatTableReady: Promise<void> | null = null;
+
+const ensureIpChatTable = async () => {
+  if (!hasIpChatDatabase) return;
+  ipChatTableReady ??= sql`
+    CREATE TABLE IF NOT EXISTS ip_chat_messages (
+      id BIGSERIAL PRIMARY KEY,
+      room TEXT NOT NULL,
+      sender_ip TEXT NOT NULL,
+      sender_id TEXT NOT NULL,
+      text TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `.then(() => undefined);
+  await ipChatTableReady;
+};
+
+const getIpChatRoomKey = (targetIp: string) => targetIp.replace(/^::ffff:/, '');
+
+app.get('/api/ip-chat/messages', async (req, res) => {
+  const room = String(req.query.room || '').trim().slice(0, 80);
+  const senderIp = String(req.query.senderIp || '').trim().slice(0, 80);
+  const after = Number(req.query.after || 0);
+  if (!room || !net.isIP(room)) return res.status(400).json({ error: 'A valid device IP is required for the chat room.' });
+  const roomKey = getIpChatRoomKey(room);
+  try {
+    await ensureIpChatTable();
+    if (!hasIpChatDatabase) {
+      const messages = (ipChatRooms.get(roomKey) || []).filter((message) => message.id > after);
+      return res.json({ room, messages });
+    }
+    const result = await sql`
+      SELECT id, room, sender_ip AS "senderIp", sender_id AS "senderId", text,
+             created_at AS "createdAt"
+      FROM ip_chat_messages
+      WHERE room = ${roomKey} AND id > ${after}
+      ORDER BY id ASC
+      LIMIT 200
+    `;
+    return res.json({ room, messages: result.rows.map((message) => ({
+      ...message,
+      id: Number(message.id),
+      createdAt: new Date(message.createdAt).toISOString(),
+    })) });
+  } catch (error) {
+    console.error('Unable to load IP chat messages:', error);
+    return res.status(503).json({ error: 'IP Chat storage is temporarily unavailable.' });
+  }
+});
+
+app.post('/api/ip-chat/messages', async (req, res) => {
+  const room = String(req.body?.room || '').trim().slice(0, 80);
+  const text = String(req.body?.text || '').trim().slice(0, 1000);
+  const senderIp = String(req.body?.senderIp || '').trim().slice(0, 80) || 'Unknown';
+  const senderId = String(req.body?.senderId || '').trim().slice(0, 100) || 'unknown-device';
+  if (!room || !net.isIP(room) || !text) return res.status(400).json({ error: 'A valid device IP and message text are required.' });
+
+  const roomKey = getIpChatRoomKey(room);
+  try {
+    await ensureIpChatTable();
+    if (!hasIpChatDatabase) {
+      const message: IpChatMessage = { id: Date.now(), room: roomKey, senderIp, senderId, text, createdAt: new Date().toISOString() };
+      const messages = ipChatRooms.get(roomKey) || [];
+      messages.push(message);
+      ipChatRooms.set(roomKey, messages.slice(-200));
+      return res.status(201).json({ message });
+    }
+    const result = await sql`
+      INSERT INTO ip_chat_messages (room, sender_ip, sender_id, text)
+      VALUES (${roomKey}, ${senderIp}, ${senderId}, ${text})
+      RETURNING id, room, sender_ip AS "senderIp", sender_id AS "senderId", text,
+                created_at AS "createdAt"
+    `;
+    const row = result.rows[0];
+    return res.status(201).json({ message: {
+      ...row,
+      id: Number(row.id),
+      createdAt: new Date(row.createdAt).toISOString(),
+    } });
+  } catch (error) {
+    console.error('Unable to save IP chat message:', error);
+    return res.status(503).json({ error: 'IP Chat storage is temporarily unavailable.' });
+  }
+});
+
 app.get('/api/health', (req, res) => {
   return res.json({
     status: 'OK',
@@ -2148,17 +2989,36 @@ app.get('/api/health', (req, res) => {
 // ---------------------------------------------------------
 // Server Startup & Error Handling
 // ---------------------------------------------------------
-app.use((req, res) => {
-  res.status(404).json({ error: 'Endpoint not found', path: req.path, method: req.method });
-});
+let server: http.Server;
 
-const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`\n✅ SecureWatch Backend Server Running Securely`);
-  console.log(`📡 Listening on http://0.0.0.0:${PORT}`);
-  console.log(`🔐 API Documentation: http://localhost:${PORT}/api/health`);
-  console.log(`💾 Database Path: ${activeDbPath}`);
-  console.log(`🚀 Ready for security scanning requests\n`);
-});
+async function startServer() {
+  if (process.env.NODE_ENV === 'production') {
+    app.use(express.static(path.resolve(process.cwd(), 'dist')));
+    app.get('*', (_req, res) => res.sendFile(path.resolve(process.cwd(), 'dist', 'index.html')));
+  } else {
+    const vite = await createViteServer({ server: { middlewareMode: true, hmr: false }, appType: 'spa' });
+    app.use(vite.middlewares);
+  }
+
+  app.use((req, res) => {
+    res.status(404).json({ error: 'Endpoint not found', path: req.path, method: req.method });
+  });
+
+  server = app.listen(PORT, '0.0.0.0', () => {
+    console.log(`\n✅ SecureWatch Backend Server Running Securely`);
+    console.log(`📡 Listening on http://0.0.0.0:${PORT}`);
+    console.log(`🔐 API Documentation: http://localhost:${PORT}/api/health`);
+    console.log(`💾 Database Path: ${activeDbPath}`);
+    console.log(`🚀 Ready for security scanning requests\n`);
+  });
+}
+
+if (process.env.VERCEL !== '1') {
+  startServer().catch((error) => {
+    console.error('Unable to start SecureWatch server:', error);
+    process.exit(1);
+  });
+}
 
 // Graceful shutdown handler
 process.on('SIGTERM', () => {

@@ -24,7 +24,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onSelectView, ale
 
   const navItems: { id: NavView; label: string; icon: string; badge?: { text: string; type: 'live' | 'new' | 'count' | 'green' } }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: 'fa-gauge-high' },
-    { id: 'tv-garden', label: 'World TV & Webcams', icon: 'fa-video', badge: { text: 'CAM & TV', type: 'green' } },
+    { id: 'live-webcams', label: 'Live Webcams', icon: 'fa-video', badge: { text: 'LIVE', type: 'green' } },
     { id: 'live-map', label: 'Live Attack Map', icon: 'fa-map-location-dot', badge: { text: 'LIVE', type: 'live' } },
     { id: 'api-monitoring', label: 'API Monitoring', icon: 'fa-network-wired' },
     { id: 'alerts', label: 'Security Alerts', icon: 'fa-bell', badge: { text: `${alertCount}`, type: 'count' } },
@@ -35,7 +35,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onSelectView, ale
     { id: 'text-encrypt', label: 'Text Encryption', icon: 'fa-lock', badge: { text: 'CRYPTO', type: 'new' } },
     { id: 'steganography', label: 'Steganography', icon: 'fa-file-image', badge: { text: 'LSB', type: 'new' } },
     { id: 'ip-location', label: 'IP Location Lookup', icon: 'fa-location-dot', badge: { text: 'MAP', type: 'green' } },
-    { id: 'ip-chat', label: 'IP Chat Portal', icon: 'fa-comments', badge: { text: 'LIVE', type: 'live' } },
     { id: 'domain-info', label: 'Domain Information', icon: 'fa-globe', badge: { text: 'NEW', type: 'green' } },
     { id: 'url-reputation', label: 'URL Reputation', icon: 'fa-link', badge: { text: 'NEW', type: 'green' } },
     { id: 'file-security', label: 'File Security', icon: 'fa-file-shield', badge: { text: 'NEW', type: 'green' } },

@@ -107,21 +107,13 @@ export const CountryRealMap: React.FC<CountryRealMapProps> = ({
   const cities = useRef<{ name: string; lat: number; lng: number; threatLevel: string }[]>([]);
 
   useEffect(() => {
-    if (COUNTRY_CITIES[country.code]) {
-      cities.current = COUNTRY_CITIES[country.code].map((c, i) => ({
-        ...c,
-        threatLevel: i === 0 ? 'CRITICAL' : i === 1 ? 'HIGH' : 'ELEVATED',
-      }));
-    } else {
-      // Generate synthetic regional cities around country center
-      cities.current = [
-        { name: `${country.name} Capital Cyber HQ`, lat: country.lat, lng: country.lng, threatLevel: 'CRITICAL' },
-        { name: `${country.name} Northern IX Hub`, lat: country.lat + 1.2, lng: country.lng - 0.9, threatLevel: 'HIGH' },
-        { name: `${country.name} Subsea Cable Landing`, lat: country.lat - 0.8, lng: country.lng + 1.1, threatLevel: 'ELEVATED' },
-        { name: `${country.name} Commercial IX Gateway`, lat: country.lat + 0.5, lng: country.lng + 0.8, threatLevel: 'HIGH' },
-      ];
-    }
-  }, [country]);
+    cities.current = attacks.map((attack) => ({
+      name: `${attack.targetCountry.name} target coordinate`,
+      lat: attack.targetCountry.lat,
+      lng: attack.targetCountry.lng,
+      threatLevel: attack.severity,
+    }));
+  }, [attacks]);
 
   // Determine initial map zoom
   const initialZoom = ['US', 'CN', 'RU', 'CA', 'BR', 'AU', 'IN'].includes(country.code) ? 4 : 6;
@@ -131,6 +123,7 @@ export const CountryRealMap: React.FC<CountryRealMapProps> = ({
 
     // Destroy previous map instance if exists
     if (mapInstanceRef.current) {
+      mapInstanceRef.current.stop();
       mapInstanceRef.current.remove();
       mapInstanceRef.current = null;
     }
@@ -167,7 +160,7 @@ export const CountryRealMap: React.FC<CountryRealMapProps> = ({
     // Add pulsing target markers for cities
     cities.current.forEach((city, idx) => {
       const isCritical = city.threatLevel === 'CRITICAL';
-      const attack = attacks[idx % Math.max(1, attacks.length)];
+      const attack = attacks[idx];
 
       const customIcon = L.divIcon({
         className: 'custom-leaflet-marker',
@@ -188,16 +181,17 @@ export const CountryRealMap: React.FC<CountryRealMapProps> = ({
       const marker = L.marker([city.lat, city.lng], { icon: customIcon }).addTo(map);
 
       marker.on('click', () => {
+        if (!attack) return;
         setActiveCity({
           name: city.name,
           lat: city.lat,
           lng: city.lng,
-          attackType: attack?.type || 'DDoS Flood',
-          status: attack?.status === 'BLOCKED' ? 'BLOCKED & MITIGATED' : 'UNDER ACTIVE HEAVY ATTACK',
-          source: `${attack?.sourceCountry.name} (${attack?.sourceCountry.code})`,
-          ip: attack?.targetIp || '185.220.101.4',
-          port: attack?.targetPort || '443',
-          bandwidth: attack?.volume || '45 Gbps',
+          attackType: attack.type,
+          status: attack.status === 'BLOCKED' ? 'BLOCKED & MITIGATED' : 'OBSERVED BY CHECK POINT',
+          source: `${attack.sourceCountry.name} (${attack.sourceCountry.code})`,
+          ip: attack.targetIp,
+          port: attack.targetPort,
+          bandwidth: attack.volume,
         });
 
         map.flyTo([city.lat, city.lng], Math.max(initialZoom + 1, 7), {
@@ -208,7 +202,11 @@ export const CountryRealMap: React.FC<CountryRealMapProps> = ({
 
     // Draw active attack trajectories on map
     attacks.forEach((atk, idx) => {
-      const targetCity = cities.current[idx % cities.current.length];
+      const targetCity = {
+        name: atk.targetCountry.name,
+        lat: atk.targetCountry.lat,
+        lng: atk.targetCountry.lng,
+      };
       if (!targetCity) return;
 
       const srcLat = atk.sourceCountry.lat;
@@ -268,6 +266,7 @@ export const CountryRealMap: React.FC<CountryRealMapProps> = ({
       clearTimeout(timer);
       resizeObserver.disconnect();
       if (mapInstanceRef.current) {
+        mapInstanceRef.current.stop();
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
       }
@@ -275,7 +274,7 @@ export const CountryRealMap: React.FC<CountryRealMapProps> = ({
   }, [country, mapStyle, attacks]);
 
   const handleLocateCity = (atk: AttackItem, idx: number) => {
-    const targetCity = cities.current[idx % cities.current.length];
+    const targetCity = cities.current[idx];
     if (!targetCity || !mapInstanceRef.current) return;
 
     mapInstanceRef.current.flyTo([targetCity.lat, targetCity.lng], 7, {
@@ -287,7 +286,7 @@ export const CountryRealMap: React.FC<CountryRealMapProps> = ({
       lat: targetCity.lat,
       lng: targetCity.lng,
       attackType: atk.type,
-      status: atk.status === 'BLOCKED' ? 'BLOCKED & MITIGATED' : 'UNDER ACTIVE HEAVY ATTACK',
+      status: atk.status === 'BLOCKED' ? 'BLOCKED & MITIGATED' : 'OBSERVED BY CHECK POINT',
       source: `${atk.sourceCountry.name} (${atk.sourceCountry.code})`,
       ip: atk.targetIp,
       port: atk.targetPort,
@@ -308,7 +307,7 @@ export const CountryRealMap: React.FC<CountryRealMapProps> = ({
           <span className="text-xs font-bold text-white tracking-wide">{country.name} Live Cyber Map</span>
           <span className="flex items-center gap-1 text-[10px] text-emerald-400 font-mono font-bold bg-emerald-500/20 px-2 py-0.5 rounded border border-emerald-500/30">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            LIVE ATTACKS
+            CHECK POINT LIVE
           </span>
         </div>
 
@@ -383,7 +382,7 @@ export const CountryRealMap: React.FC<CountryRealMapProps> = ({
 
           <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
             {attacks.length === 0 ? (
-              <p className="text-xs text-gray-400 text-center py-4">No active attacks detected.</p>
+              <p className="text-xs text-gray-400 text-center py-4">No verified Check Point events for this country.</p>
             ) : (
               attacks.map((atk, idx) => (
                 <div
@@ -508,7 +507,9 @@ export const CountryRealMap: React.FC<CountryRealMapProps> = ({
             LIVE TARGET
           </span>
           <span className="text-gray-300 font-mono truncate">
-            {attacks[0]?.type || 'DDoS Flood'} targeting {country.name} [{attacks[0]?.targetIp || '185.220.101.4'}] via Port {attacks[0]?.targetPort || '443'} ({attacks[0]?.volume || '42 Gbps'})
+            {attacks[0]
+              ? `${attacks[0].type} | ${attacks[0].sourceCountry.code} -> ${attacks[0].targetCountry.code} | ${attacks[0].volume}`
+              : 'No verified Check Point attack event currently reported'}
           </span>
         </div>
 

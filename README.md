@@ -1,3 +1,14 @@
+# SecureWatch Dashboard
+
+## URL Reputation
+
+For real PhishGuard verdicts, add the API key to `.env.local`:
+
+```env
+PHISHGUARD_API_KEY=your_phishguard_api_key
+```
+
+The backend sends every entered URL to `https://phishguard.in/api/analyze-url` and displays the returned Safe, Suspicious, or Malicious result. Never commit `.env.local` or the API key.
 # SecureWatch - Web Application & API Security Dashboard
 
 SecureWatch is a modern, real-time cyber threat monitoring and security analysis platform designed to help security analysts track vulnerabilities, monitor live network traffic, check URL reputations, and secure sensitive files.

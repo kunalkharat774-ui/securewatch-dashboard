@@ -128,63 +128,22 @@ export default function App() {
                 {/* Top KPI Metrics */}
                 <KpiCards onSelectView={setCurrentView} />
 
-                {/* Middle Row: Live 3D Globe Attack Map + URL Reputation Checker */}
+                {/* Middle Row: CyberBriefing IOC Map + URL Reputation Checker */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                  {/* 3D Attack Map Card */}
+                  {/* 3D IOC Map Card */}
                   <div className="bg-[#030e1e]/50 backdrop-blur-md border border-cyan-500/20 hover:border-cyan-400/40 transition rounded-xl p-5 shadow-xl flex flex-col justify-between">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2 font-bold text-sm text-white">
-                        <span>Live 3D Cyber Attack Map</span>
+                        <span>Live 3D Threat Intelligence Map</span>
                         <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse">
                           LIVE
                         </span>
                       </div>
-                      <button
-                        onClick={() => setCurrentView('live-map')}
-                        className="text-xs text-amber-400 hover:text-amber-300 transition flex items-center gap-1 cursor-pointer font-medium font-mono"
-                      >
-                        Expand <i className="fa-solid fa-up-right-and-down-left-from-center text-[10px]" />
-                      </button>
                     </div>
 
-                    {/* Embedded Live 3D Cyber Threat Globe */}
+                    {/* Embedded CyberBriefing IOC globe */}
                     <div className="mb-4 rounded-lg overflow-hidden border border-[#1a2035]">
-                      <GlobeMap onExpandToggle={() => setCurrentView('live-map')} />
-                    </div>
-
-                    {/* Map Stats */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center pt-3 border-t border-[#1a2035]">
-                      <div>
-                        <p className="text-[11px] text-gray-400 mb-0.5">Total Attacks</p>
-                        <h4 className="text-base font-bold text-amber-400 font-mono">12,456</h4>
-                        <span className="text-[10px] text-amber-300 font-medium font-mono">
-                          <i className="fa-solid fa-arrow-up text-[8px]" /> 15.3%
-                        </span>
-                      </div>
-
-                      <div>
-                        <p className="text-[11px] text-gray-400 mb-0.5">Successful</p>
-                        <h4 className="text-base font-bold text-white font-mono">7,856</h4>
-                        <span className="text-[10px] text-emerald-400 font-medium font-mono">
-                          <i className="fa-solid fa-arrow-up text-[8px]" /> 10.2%
-                        </span>
-                      </div>
-
-                      <div>
-                        <p className="text-[11px] text-gray-400 mb-0.5">Blocked</p>
-                        <h4 className="text-base font-bold text-amber-400 font-mono">4,600</h4>
-                        <span className="text-[10px] text-amber-300 font-medium font-mono">
-                          <i className="fa-solid fa-arrow-up text-[8px]" /> 22.1%
-                        </span>
-                      </div>
-
-                      <div>
-                        <p className="text-[11px] text-gray-400 mb-0.5">Ongoing</p>
-                        <h4 className="text-base font-bold text-red-400 font-mono">156</h4>
-                        <span className="text-[10px] text-red-400 font-medium font-mono">
-                          <i className="fa-solid fa-arrow-down text-[8px]" /> 8.3%
-                        </span>
-                      </div>
+                      <GlobeMap />
                     </div>
                   </div>
 

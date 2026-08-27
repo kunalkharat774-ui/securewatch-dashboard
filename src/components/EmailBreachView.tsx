@@ -20,6 +20,7 @@ export interface BreachQueryResult {
   checkedAt: string;
   sources: BreachDetail[];
   recommendations: string[];
+  provider?: string;
 }
 
 interface EmailBreachViewProps {
@@ -54,6 +55,8 @@ export const EmailBreachView: React.FC<EmailBreachViewProps> = ({ onBackToDashbo
     setTimeout(() => setToastMessage(null), 2500);
   };
 
+  const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
   // Helper SHA-1 calculation using browser Crypto API
   const sha1 = async (message: string): Promise<string> => {
     const msgUint8 = new TextEncoder().encode(message);
@@ -62,12 +65,12 @@ export const EmailBreachView: React.FC<EmailBreachViewProps> = ({ onBackToDashbo
     return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('').toUpperCase();
   };
 
-  // Check Email Breach against real XposedOrNot API & HIBP public endpoints
+  // Query the server-side ProjectDiscovery integration; the API key never reaches the browser.
   const handleCheckEmail = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
 
     const cleanEmail = emailInput.trim().toLowerCase();
-    if (!cleanEmail || !cleanEmail.includes('@') || !cleanEmail.includes('.')) {
+    if (!isValidEmail(cleanEmail)) {
       setEmailError('Please enter a valid email address (e.g. name@domain.com)');
       return;
     }
@@ -75,136 +78,55 @@ export const EmailBreachView: React.FC<EmailBreachViewProps> = ({ onBackToDashbo
     setEmailError(null);
     setCheckingEmail(true);
     setBreachResult(null);
-    setEmailProgressStep('Connecting to XposedOrNot Live Dark Web Intelligence Feeds...');
+    setEmailProgressStep('Connecting to ProjectDiscovery live leak intelligence...');
+
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 20000);
 
     try {
-      // Step 1: Query XposedOrNot Check Email Endpoint
       setEmailProgressStep('Searching global compromised credential databases...');
-      
-      const checkRes = await fetch(`https://api.xposedornot.com/v1/check-email/${encodeURIComponent(cleanEmail)}`);
-      
-      // If HTTP 404, the email is clean (not breached)
-      if (checkRes.status === 404) {
-        setBreachResult({
-          email: cleanEmail,
-          isBreached: false,
-          foundInBreaches: 0,
-          riskScore: 0,
-          riskLevel: 'LOW',
-          checkedAt: new Date().toLocaleTimeString(),
-          sources: [],
-          recommendations: [
-            'Maintain unique, 16+ character passwords across all platforms.',
-            'Keep Hardware MFA (FIDO2/WebAuthn or TOTP Authenticator) enabled.',
-            'Activate continuous dark web monitoring to stay notified of future data leaks.'
-          ]
-        });
-        triggerToast(`Live scan complete: No breaches found for ${cleanEmail}`);
-        setCheckingEmail(false);
-        return;
+      const response = await fetch(`/api/email-breach?email=${encodeURIComponent(cleanEmail)}`, {
+        signal: controller.signal,
+        headers: { Accept: 'application/json' },
+      });
+      const responseText = await response.text();
+      let data: Partial<BreachQueryResult> & { error?: string } = {};
+
+      try {
+        data = JSON.parse(responseText);
+      } catch {
+        throw new Error(`The breach service returned an invalid response (HTTP ${response.status}).`);
       }
 
-      // Step 2: Fetch detailed breach analytics if response is ok
-      setEmailProgressStep('Analyzing breach incident timeline & exposed fields...');
-      const analyticsRes = await fetch(`https://api.xposedornot.com/v1/breach-analytics?email=${encodeURIComponent(cleanEmail)}`);
-      
-      let breachesList: BreachDetail[] = [];
-      let totalCount = 0;
-      let calculatedRiskScore = 0;
-
-      if (analyticsRes.ok) {
-        const analyticsData = await analyticsRes.json();
-        
-        if (analyticsData?.ExposedBreaches?.breaches_details && Array.isArray(analyticsData.ExposedBreaches.breaches_details)) {
-          const rawBreaches = analyticsData.ExposedBreaches.breaches_details;
-          totalCount = rawBreaches.length;
-
-          breachesList = rawBreaches.map((b: any) => {
-            const leakedDataArray = b.xposed_data ? b.xposed_data.split(';').flatMap((s: string) => s.split(',')).map((s: string) => s.trim()) : ['Emails', 'Passwords'];
-            const pwnedNum = parseInt(b.pwncount || '0', 10);
-            
-            let severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' = 'MEDIUM';
-            if (pwnedNum > 50000000 || leakedDataArray.some((d: string) => d.toLowerCase().includes('passwords') || d.toLowerCase().includes('credit'))) {
-              severity = 'CRITICAL';
-            } else if (pwnedNum > 10000000) {
-              severity = 'HIGH';
-            }
-
-            return {
-              name: b.breach || 'Data Breach Incident',
-              domain: b.domain || 'N/A',
-              date: b.date || 'Unspecified Date',
-              pwnCount: pwnedNum ? pwnedNum.toLocaleString() + ' accounts' : 'Multiple accounts',
-              severity,
-              leakedData: leakedDataArray,
-              description: b.description ? b.description.replace(/<[^>]*>?/gm, '') : 'Exposed in dark web breach repository.',
-              industry: b.industry || 'Tech / Web Application',
-            };
-          });
-        }
-
-        if (analyticsData?.RiskScore?.risk_score) {
-          calculatedRiskScore = analyticsData.RiskScore.risk_score;
-        } else {
-          calculatedRiskScore = Math.min(100, totalCount * 25);
-        }
-      } else if (checkRes.ok) {
-        const checkData = await checkRes.json();
-        if (checkData?.breaches && Array.isArray(checkData.breaches) && checkData.breaches[0]) {
-          const simpleNames: string[] = checkData.breaches[0];
-          totalCount = simpleNames.length;
-          calculatedRiskScore = Math.min(100, totalCount * 25);
-
-          breachesList = simpleNames.map((name: string) => ({
-            name: name,
-            domain: name.toLowerCase() + '.com',
-            date: 'Identified Leak',
-            pwnCount: 'Known Breach Record',
-            severity: 'HIGH',
-            leakedData: ['User Credentials', 'Email Address', 'Account Hashes'],
-            description: `Email ${cleanEmail} was confirmed present in the ${name} public breach dump.`,
-          }));
-        }
+      if (!response.ok) throw new Error(data.error || `Live leak lookup failed (HTTP ${response.status}).`);
+      if (typeof data.isBreached !== 'boolean' || !Array.isArray(data.sources)) {
+        throw new Error('The breach service returned incomplete result data.');
       }
 
-      const riskLevel: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' = 
-        calculatedRiskScore >= 70 ? 'CRITICAL' : calculatedRiskScore >= 40 ? 'HIGH' : totalCount > 0 ? 'MEDIUM' : 'LOW';
+      const checkedAt = data.checkedAt ? new Date(data.checkedAt) : new Date();
+      const recommendations = Array.isArray(data.recommendations) ? data.recommendations : [];
 
-      if (totalCount === 0) {
-        setBreachResult({
-          email: cleanEmail,
-          isBreached: false,
-          foundInBreaches: 0,
-          riskScore: 0,
-          riskLevel: 'LOW',
-          checkedAt: new Date().toLocaleTimeString(),
-          sources: [],
-          recommendations: [
-            'Maintain unique, 16+ character passwords across all platforms.',
-            'Keep Hardware MFA enabled for all critical accounts.'
-          ]
-        });
-      } else {
-        setBreachResult({
-          email: cleanEmail,
-          isBreached: true,
-          foundInBreaches: totalCount,
-          riskScore: calculatedRiskScore,
-          riskLevel,
-          checkedAt: new Date().toLocaleTimeString(),
-          sources: breachesList,
-          recommendations: [
-            'Immediately change passwords for all affected platforms listed above.',
-            'Do NOT reuse passwords across multiple sites.',
-            'Enable 2-Factor Authentication (2FA) / Authenticator app immediately.'
-          ]
-        });
-      }
+      setEmailProgressStep('Analyzing live leak metadata and exposed field types...');
+      setBreachResult({
+        email: typeof data.email === 'string' ? data.email : cleanEmail,
+        isBreached: data.isBreached,
+        foundInBreaches: Number.isFinite(data.foundInBreaches) ? Number(data.foundInBreaches) : data.sources.length,
+        riskScore: Number.isFinite(data.riskScore) ? Number(data.riskScore) : 0,
+        riskLevel: data.riskLevel || 'LOW',
+        checkedAt: Number.isNaN(checkedAt.getTime()) ? 'Time unavailable' : checkedAt.toLocaleTimeString(),
+        sources: data.sources,
+        recommendations,
+      });
 
       triggerToast(`Live breach search complete for ${cleanEmail}`);
-    } catch (err: any) {
-      setEmailError('Failed to complete breach query. Please check your internet connection.');
+    } catch (err: unknown) {
+      setEmailError(err instanceof DOMException && err.name === 'AbortError'
+        ? 'The breach query timed out. Please try again.'
+        : err instanceof Error
+          ? err.message
+          : 'Failed to complete breach query. Please try again.');
     } finally {
+      window.clearTimeout(timeoutId);
       setCheckingEmail(false);
     }
   };
@@ -228,23 +150,29 @@ export const EmailBreachView: React.FC<EmailBreachViewProps> = ({ onBackToDashbo
       const prefix = fullHash.substring(0, 5);
       const suffix = fullHash.substring(5);
 
-      // 2. Query HaveIBeenPwned k-Anonymity endpoint (Only 5 chars sent to server!)
-      const res = await fetch(`https://api.pwnedpasswords.com/range/${prefix}`);
+      // 2. Send only the five-character hash prefix to our server proxy.
+      const res = await fetch('/api/password-pwned', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'text/plain, application/json' },
+        body: JSON.stringify({ prefix }),
+      });
       if (!res.ok) {
-        throw new Error('Pwned Passwords API unavailable');
+        const errorBody = await res.json().catch(() => ({}));
+        throw new Error(errorBody.error || `Password intelligence lookup failed (HTTP ${res.status}).`);
       }
 
       const text = await res.text();
-      const lines = text.split('\n');
+      const lines = text.split(/\r?\n/);
 
       let timesExposed = 0;
       let isPwned = false;
 
       for (const line of lines) {
         const [hashSuffix, count] = line.trim().split(':');
-        if (hashSuffix === suffix) {
+        const parsedCount = Number.parseInt(count, 10);
+        if (hashSuffix === suffix && Number.isSafeInteger(parsedCount) && parsedCount > 0) {
           isPwned = true;
-          timesExposed = parseInt(count, 10);
+          timesExposed = parsedCount;
           break;
         }
       }
@@ -293,7 +221,7 @@ export const EmailBreachView: React.FC<EmailBreachViewProps> = ({ onBackToDashbo
             </h2>
           </div>
           <p className="text-xs text-gray-400 mt-1">
-            Real-time live cross-reference against 14.8+ billion compromised records (XposedOrNot & HaveIBeenPwned k-Anonymity API).
+            Live breach records returned by ProjectDiscovery leak intelligence. No demo or sample records are used.
           </p>
         </div>
 
@@ -425,7 +353,7 @@ export const EmailBreachView: React.FC<EmailBreachViewProps> = ({ onBackToDashbo
                     <div className="p-3 bg-[#080a10] border border-red-500/20 rounded-lg">
                       <span className="text-[10px] text-gray-400 uppercase font-bold block">Source Database</span>
                       <div className="text-xs font-semibold text-emerald-400 mt-1 font-mono">
-                        XposedOrNot Live
+                        {breachResult.provider || 'ProjectDiscovery Live'}
                       </div>
                     </div>
                   </div>
