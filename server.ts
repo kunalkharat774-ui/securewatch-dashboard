@@ -5,6 +5,7 @@ import os from 'os';
 import dns from 'dns';
 import net from 'net';
 import http from 'http';
+import crypto from 'crypto';
 import https from 'https';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
@@ -2045,6 +2046,14 @@ interface TenantDatabase {
   urlScans: any[];
   fileScans: any[];
   settings: Record<string, any>;
+  reports: any[];
+  riskItems: any[];
+}
+
+interface AuthChallenge {
+  username: string;
+  password: string;
+  expiresAt: number;
 }
 
 const PRIMARY_DB_PATH = path.join(process.cwd(), 'data', 'securewatch_database.json');
@@ -2062,6 +2071,61 @@ try {
 }
 
 let dbStores: Record<string, TenantDatabase> = {};
+
+const hasTenantDatabase = Boolean(
+  process.env.POSTGRES_URL || process.env.POSTGRES_PRISMA_URL || process.env.POSTGRES_URL_NON_POOLING,
+);
+let tenantTableReady: Promise<void> | null = null;
+const tenantLoadPromises = new Map<string, Promise<void>>();
+const authChallenges = new Map<string, AuthChallenge>();
+
+async function ensureTenantTable() {
+  if (!hasTenantDatabase) return;
+  tenantTableReady ??= sql`
+    CREATE TABLE IF NOT EXISTS securewatch_tenants (
+      session_id TEXT PRIMARY KEY,
+      data JSONB NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `.then(() => undefined);
+  await tenantTableReady;
+}
+
+async function persistTenantStore(sessionId: string) {
+  if (!hasTenantDatabase || !dbStores[sessionId]) return;
+  try {
+    await ensureTenantTable();
+    await sql`
+      INSERT INTO securewatch_tenants (session_id, data, updated_at)
+      VALUES (${sessionId}, ${JSON.stringify(dbStores[sessionId])}::jsonb, NOW())
+      ON CONFLICT (session_id) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()
+    `;
+  } catch (error) {
+    console.error('Unable to persist tenant data to Supabase Postgres:', error);
+  }
+}
+
+async function hydrateTenantStore(sessionId: string) {
+  if (!hasTenantDatabase) return;
+  try {
+    await ensureTenantTable();
+    const result = await sql`SELECT data FROM securewatch_tenants WHERE session_id = ${sessionId}`;
+    const remoteData = result.rows[0]?.data as TenantDatabase | undefined;
+    if (remoteData && typeof remoteData === 'object') {
+      dbStores[sessionId] = {
+        users: Array.isArray(remoteData.users) ? remoteData.users : [],
+        logs: Array.isArray(remoteData.logs) ? remoteData.logs : [],
+        urlScans: Array.isArray(remoteData.urlScans) ? remoteData.urlScans : [],
+        fileScans: Array.isArray(remoteData.fileScans) ? remoteData.fileScans : [],
+        settings: remoteData.settings && typeof remoteData.settings === 'object' ? remoteData.settings : {},
+        reports: Array.isArray(remoteData.reports) ? remoteData.reports : [],
+        riskItems: Array.isArray(remoteData.riskItems) ? remoteData.riskItems : [],
+      };
+    }
+  } catch (error) {
+    console.error('Unable to load tenant data from Supabase Postgres:', error);
+  }
+}
 
 // Load existing database safely from primary or fallback path
 try {
@@ -2099,15 +2163,24 @@ function saveDatabaseToDisk() {
       }
     }
   }
+
+  if (hasTenantDatabase) {
+    Object.keys(dbStores).forEach((sessionId) => void persistTenantStore(sessionId));
+  }
 }
 
-function getTenantDb(req: express.Request): { sessionId: string; db: TenantDatabase } {
+async function getTenantDb(req: express.Request): Promise<{ sessionId: string; db: TenantDatabase }> {
   const sessionId =
     (req.headers['x-user-session-id'] as string) ||
     (req.query.sessionId as string) ||
     (req.body?.sessionId as string) ||
     req.ip ||
     'default_tenant';
+
+  if (!tenantLoadPromises.has(sessionId)) {
+    tenantLoadPromises.set(sessionId, hydrateTenantStore(sessionId));
+  }
+  await tenantLoadPromises.get(sessionId);
 
   if (!dbStores[sessionId]) {
     dbStores[sessionId] = {
@@ -2116,6 +2189,8 @@ function getTenantDb(req: express.Request): { sessionId: string; db: TenantDatab
       urlScans: [],
       fileScans: [],
       settings: {},
+      reports: [],
+      riskItems: [],
     };
     saveDatabaseToDisk();
   }
@@ -2123,20 +2198,100 @@ function getTenantDb(req: express.Request): { sessionId: string; db: TenantDatab
   return { sessionId, db: dbStores[sessionId] };
 }
 
+// Login metadata is durable, while the short-lived challenge remains server-only.
+app.get('/api/auth/challenge', async (req, res) => {
+  const { sessionId } = await getTenantDb(req);
+  const challenge: AuthChallenge = {
+    username: `NODE_${crypto.randomBytes(2).toString('hex').toUpperCase()}`,
+    password: crypto.randomBytes(4).toString('hex').toUpperCase(),
+    expiresAt: Date.now() + 30_000,
+  };
+  authChallenges.set(sessionId, challenge);
+  return res.json({ username: challenge.username, password: challenge.password, expiresAt: challenge.expiresAt });
+});
+
+app.post('/api/auth/login', async (req, res) => {
+  const { sessionId, db } = await getTenantDb(req);
+  const challenge = authChallenges.get(sessionId);
+  const username = String(req.body?.username || '').trim().toUpperCase();
+  const password = String(req.body?.password || '').trim();
+  const valid = Boolean(challenge && challenge.expiresAt > Date.now() && challenge.username === username && challenge.password === password);
+
+  if (!valid) {
+    recordSecurityLog({
+      level: 'WARN',
+      service: 'Auth Gateway',
+      message: 'Failed terminal login verification',
+      sourceIp: req.ip || '127.0.0.1',
+      destination: 'securewatch-auth',
+      action: 'BLOCKED',
+      traceId: `TRACE-${Date.now()}`,
+      details: { username },
+    }, sessionId);
+    return res.status(401).json({ authenticated: false, error: 'Invalid or expired access credentials.' });
+  }
+
+  authChallenges.delete(sessionId);
+  db.settings.__auth = {
+    authenticated: true,
+    principal: username,
+    loggedInAt: new Date().toISOString(),
+    lastLoginAt: new Date().toISOString(),
+  };
+  recordSecurityLog({
+    level: 'INFO',
+    service: 'Auth Gateway',
+    message: `Successful terminal login for ${username}`,
+    sourceIp: req.ip || '127.0.0.1',
+    destination: 'securewatch-auth',
+    action: 'ALLOWED',
+    traceId: `TRACE-${Date.now()}`,
+    details: { principal: username },
+  }, sessionId);
+  return res.json({ authenticated: true, principal: username, loggedInAt: db.settings.__auth.loggedInAt });
+});
+
+app.get('/api/auth/session', async (req, res) => {
+  const { db } = await getTenantDb(req);
+  const auth = db.settings.__auth;
+  return res.json(auth && auth.authenticated === true ? auth : { authenticated: false });
+});
+
+app.post('/api/auth/logout', async (req, res) => {
+  const { sessionId, db } = await getTenantDb(req);
+  const previousAuth = db.settings.__auth;
+  db.settings.__auth = {
+    authenticated: false,
+    principal: previousAuth?.principal || null,
+    loggedOutAt: new Date().toISOString(),
+  };
+  authChallenges.delete(sessionId);
+  recordSecurityLog({
+    level: 'INFO',
+    service: 'Auth Gateway',
+    message: 'Terminal logout completed',
+    sourceIp: req.ip || '127.0.0.1',
+    destination: 'securewatch-auth',
+    action: 'ALLOWED',
+    traceId: `TRACE-${Date.now()}`,
+  }, sessionId);
+  return res.json({ authenticated: false });
+});
+
 // ---------------------------------------------------------
 // REAL SECURITY USER MANAGEMENT (RBAC) API ENDPOINTS
 // ---------------------------------------------------------
 
 // 1. GET ALL USERS FOR CURRENT SESSION
-app.get('/api/users', (req, res) => {
-  const { db } = getTenantDb(req);
+app.get('/api/users', async (req, res) => {
+  const { db } = await getTenantDb(req);
   return res.json(db.users);
 });
 
 // SYNC LOCAL USERS FOR CURRENT SESSION
-app.post('/api/users/sync', (req, res) => {
+app.post('/api/users/sync', async (req, res) => {
   try {
-    const { db } = getTenantDb(req);
+    const { db } = await getTenantDb(req);
     const { users } = req.body || {};
     if (Array.isArray(users)) {
       db.users = users;
@@ -2144,15 +2299,15 @@ app.post('/api/users/sync', (req, res) => {
     }
     return res.json(db.users);
   } catch (err: any) {
-    const { db } = getTenantDb(req);
+    const { db } = await getTenantDb(req);
     return res.json(db.users);
   }
 });
 
 // 2. CREATE NEW USER FOR CURRENT SESSION
-app.post('/api/users', (req, res) => {
+app.post('/api/users', async (req, res) => {
   try {
-    const { sessionId, db } = getTenantDb(req);
+    const { sessionId, db } = await getTenantDb(req);
     const { name, email, role = 'SOC Analyst', status = 'Active', mfa = 'Enabled' } = req.body || {};
 
     if (!name || !email) {
@@ -2220,9 +2375,9 @@ app.post('/api/users', (req, res) => {
 });
 
 // 3. UPDATE USER FOR CURRENT SESSION
-app.put('/api/users/:id', (req, res) => {
+app.put('/api/users/:id', async (req, res) => {
   try {
-    const { sessionId, db } = getTenantDb(req);
+    const { sessionId, db } = await getTenantDb(req);
     const { id } = req.params;
     const { name, email, role, status, mfa } = req.body || {};
 
@@ -2384,9 +2539,9 @@ app.delete('/api/admin/tenant/:sessionId', (req, res) => {
 });
 
 // 4. DELETE USER FOR CURRENT SESSION
-app.delete('/api/users/:id', (req, res) => {
+app.delete('/api/users/:id', async (req, res) => {
   try {
-    const { sessionId, db } = getTenantDb(req);
+    const { sessionId, db } = await getTenantDb(req);
     const { id } = req.params;
     const userToDelete = db.users.find((u) => u.id === id);
 
@@ -2413,6 +2568,121 @@ app.delete('/api/users/:id', (req, res) => {
     return res.json({ success: true, deletedId: req.params.id, message: 'User removed from session memory' });
   }
 });
+
+app.get('/api/url-scans', async (req, res) => {
+  try {
+    const { db } = await getTenantDb(req);
+    return res.json(db.urlScans || []);
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message || 'Unable to read URL scan history' });
+  }
+});
+
+app.get('/api/settings', async (req, res) => {
+  const { db } = await getTenantDb(req);
+  return res.json(db.settings || {});
+});
+
+app.put('/api/settings', async (req, res) => {
+  const { db } = await getTenantDb(req);
+  if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
+    return res.status(400).json({ error: 'A settings object is required.' });
+  }
+  db.settings = { ...db.settings, ...req.body };
+  saveDatabaseToDisk();
+  return res.json(db.settings);
+});
+
+app.get('/api/component-state/:component', async (req, res) => {
+  const { db } = await getTenantDb(req);
+  const component = req.params.component.replace(/[^a-z0-9_-]/gi, '').slice(0, 60);
+  if (!component) return res.status(400).json({ error: 'A valid component name is required.' });
+  const componentState = db.settings.__componentState;
+  return res.json(componentState && typeof componentState === 'object' ? componentState[component] || null : null);
+});
+
+app.put('/api/component-state/:component', async (req, res) => {
+  const { db } = await getTenantDb(req);
+  const component = req.params.component.replace(/[^a-z0-9_-]/gi, '').slice(0, 60);
+  if (!component || !req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
+    return res.status(400).json({ error: 'A valid component state is required.' });
+  }
+  const currentState = db.settings.__componentState;
+  db.settings.__componentState = {
+    ...(currentState && typeof currentState === 'object' ? currentState : {}),
+    [component]: req.body,
+  };
+  saveDatabaseToDisk();
+  return res.json(req.body);
+});
+
+app.get('/api/reports', async (req, res) => {
+  const { db } = await getTenantDb(req);
+  return res.json(db.reports || []);
+});
+
+app.put('/api/reports', async (req, res) => {
+  const { db } = await getTenantDb(req);
+  const reports = req.body?.reports;
+  if (!Array.isArray(reports)) return res.status(400).json({ error: 'A reports array is required.' });
+  db.reports = reports.slice(0, 100);
+  saveDatabaseToDisk();
+  return res.json(db.reports);
+});
+
+app.get('/api/risk-items', async (req, res) => {
+  const { db } = await getTenantDb(req);
+  return res.json(db.riskItems || []);
+});
+
+app.put('/api/risk-items', async (req, res) => {
+  const { db } = await getTenantDb(req);
+  const riskItems = req.body?.riskItems;
+  if (!Array.isArray(riskItems)) return res.status(400).json({ error: 'A riskItems array is required.' });
+  db.riskItems = riskItems.slice(0, 100);
+  saveDatabaseToDisk();
+  return res.json(db.riskItems);
+});
+
+app.post('/api/url-scans', async (req, res) => {
+  try {
+    const { db } = await getTenantDb(req);
+    const scan = req.body?.scan;
+    if (!scan || typeof scan !== 'object' || !scan.id || !scan.url) {
+      return res.status(400).json({ error: 'A valid URL scan record is required.' });
+    }
+    db.urlScans = [scan, ...db.urlScans.filter((item) => item.id !== scan.id)].slice(0, 100);
+    saveDatabaseToDisk();
+    return res.status(201).json(scan);
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message || 'Unable to save URL scan' });
+  }
+});
+
+app.get('/api/file-activities', async (req, res) => {
+  try {
+    const { db } = await getTenantDb(req);
+    return res.json(db.fileScans || []);
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message || 'Unable to read file activity history' });
+  }
+});
+
+app.post('/api/file-activities', async (req, res) => {
+  try {
+    const { db } = await getTenantDb(req);
+    const activity = req.body?.activity;
+    if (!activity || typeof activity !== 'object' || !activity.id || !activity.fileName) {
+      return res.status(400).json({ error: 'A valid file activity record is required.' });
+    }
+    db.fileScans = [activity, ...db.fileScans.filter((item) => item.id !== activity.id)].slice(0, 100);
+    saveDatabaseToDisk();
+    return res.status(201).json(activity);
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message || 'Unable to save file activity' });
+  }
+});
+
 app.post('/api/scan-file-security', async (req, res) => {
   try {
     const { fileName = 'unknown.dat', fileSize = 1024, fileType = 'application/octet-stream', fileHash = '', entropy = 4.2 } = req.body || {};
@@ -2823,7 +3093,7 @@ interface SecurityLogEntry {
 function recordSecurityLog(log: Omit<SecurityLogEntry, 'id' | 'timestamp'>, sessionId?: string) {
   const sid = sessionId || 'default_tenant';
   if (!dbStores[sid]) {
-    dbStores[sid] = { users: [], logs: [], urlScans: [], fileScans: [], settings: {} };
+    dbStores[sid] = { users: [], logs: [], urlScans: [], fileScans: [], settings: {}, reports: [], riskItems: [] };
   }
   
   const entry: SecurityLogEntry = {
@@ -2840,9 +3110,9 @@ function recordSecurityLog(log: Omit<SecurityLogEntry, 'id' | 'timestamp'>, sess
 }
 
 // GET /api/security-logs - Retrieve SIEM Security Logs for Current Session
-app.get('/api/security-logs', (req, res) => {
+app.get('/api/security-logs', async (req, res) => {
   try {
-    const { sessionId, db } = getTenantDb(req);
+    const { sessionId, db } = await getTenantDb(req);
     const logs = db.logs || [];
     return res.json({
       sessionId,
@@ -2855,7 +3125,7 @@ app.get('/api/security-logs', (req, res) => {
 });
 
 // POST /api/security-logs/ingest - Persist a verified security event for the current tenant
-app.post('/api/security-logs/ingest', (req, res) => {
+app.post('/api/security-logs/ingest', async (req, res) => {
   const { level, service, message, sourceIp, destination, action, details } = req.body || {};
   const validLevels = ['CRITICAL', 'ERROR', 'WARN', 'INFO'];
   if (!validLevels.includes(level) || !service || !message || !sourceIp || !destination || !action) {
@@ -2863,7 +3133,7 @@ app.post('/api/security-logs/ingest', (req, res) => {
   }
 
   try {
-    const { sessionId } = getTenantDb(req);
+    const { sessionId } = await getTenantDb(req);
     recordSecurityLog({ level, service, message, sourceIp, destination, action, traceId: `trace-${Date.now()}`, details: details && typeof details === 'object' ? details : {} }, sessionId);
     return res.status(201).json({ saved: true, sessionId });
   } catch (err: any) {

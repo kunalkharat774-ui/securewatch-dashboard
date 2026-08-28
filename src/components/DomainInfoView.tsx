@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { usePersistentComponentState } from '../utils/usePersistentComponentState';
 
 export interface DnsRecord {
   name: string;
@@ -75,11 +76,17 @@ export const DomainInfoView: React.FC<DomainInfoViewProps> = ({ onBackToDashboar
   const [selectedDnsFilter, setSelectedDnsFilter] = useState<string>('ALL');
   const [showRawRdap, setShowRawRdap] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [persistedDomain, setPersistedDomain] = usePersistentComponentState<{ domainInput: string; domainData: DomainIntelligence | null }>('domain-info', { domainInput: '', domainData: null });
 
   const triggerToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 2500);
   };
+
+  useEffect(() => {
+    if (persistedDomain.domainInput) setDomainInput(persistedDomain.domainInput);
+    if (persistedDomain.domainData) setDomainData(persistedDomain.domainData);
+  }, [persistedDomain]);
 
   // Helper to sanitize domain user input
   const sanitizeDomain = (input: string): string => {
@@ -307,6 +314,7 @@ export const DomainInfoView: React.FC<DomainInfoViewProps> = ({ onBackToDashboar
 
       setDomainData(intelligence);
       setDomainInput(clean);
+      setPersistedDomain({ domainInput: clean, domainData: intelligence });
       triggerToast(`Successfully retrieved live domain intelligence for ${clean}`);
     } catch (err: any) {
       setError(err?.message || 'Failed to fetch domain information. Please check your network connection.');

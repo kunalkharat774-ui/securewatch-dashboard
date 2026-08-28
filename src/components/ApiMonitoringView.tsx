@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { usePersistentComponentState } from '../utils/usePersistentComponentState';
 
 export interface ApiEndpointItem {
   id: string;
@@ -36,7 +37,14 @@ const INITIAL_ENDPOINTS: ApiEndpointItem[] = [
 ];
 
 export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDashboard }) => {
-  const [endpoints, setEndpoints] = useState<ApiEndpointItem[]>(INITIAL_ENDPOINTS);
+  const [monitorState, setMonitorState] = usePersistentComponentState<{ endpoints: ApiEndpointItem[] }>('api-monitoring', { endpoints: INITIAL_ENDPOINTS });
+  const endpoints = monitorState.endpoints;
+  const setEndpoints = (next: ApiEndpointItem[] | ((current: ApiEndpointItem[]) => ApiEndpointItem[])) => {
+    setMonitorState((current) => ({
+      ...current,
+      endpoints: typeof next === 'function' ? next(current.endpoints) : next,
+    }));
+  };
   const [isLiveStreaming, setIsLiveStreaming] = useState<boolean>(true);
   const [selectedMethod, setSelectedMethod] = useState<'GET' | 'POST' | 'PUT' | 'DELETE'>('GET');
   const [testUrl, setTestUrl] = useState<string>('/api/health');

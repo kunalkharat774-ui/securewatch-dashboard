@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 
 export interface RiskItem {
@@ -144,6 +144,23 @@ export const RiskAssessmentView: React.FC<RiskAssessmentViewProps> = ({ onBackTo
 
   const [copiedReport, setCopiedReport] = useState<boolean>(false);
 
+  const persistRiskItems = (items: RiskItem[]) => {
+    void fetch('/api/risk-items', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ riskItems: items }),
+    });
+  };
+
+  useEffect(() => {
+    fetch('/api/risk-items', { cache: 'no-store' })
+      .then((response) => response.ok ? response.json() : [])
+      .then((items) => {
+        if (Array.isArray(items) && items.length > 0) setRiskItems(items);
+      })
+      .catch(() => undefined);
+  }, []);
+
   // Helper score calculator
   const calculateInherentScore = (item: RiskItem) => {
     return Number((item.likelihood * item.impact * (item.assetCriticality / 3)).toFixed(1));
@@ -178,7 +195,9 @@ export const RiskAssessmentView: React.FC<RiskAssessmentViewProps> = ({ onBackTo
       nistControl: 'AC-2, SC-7 (Access & Perimeter Control)',
     };
 
-    setRiskItems([item, ...riskItems]);
+    const nextItems = [item, ...riskItems];
+    setRiskItems(nextItems);
+    persistRiskItems(nextItems);
     setIsAddingItem(false);
     setNewAsset('');
     setNewThreat('');
@@ -186,15 +205,17 @@ export const RiskAssessmentView: React.FC<RiskAssessmentViewProps> = ({ onBackTo
   };
 
   const toggleControlStatus = (id: string) => {
-    setRiskItems(
-      riskItems.map((item) =>
+    const nextItems = riskItems.map((item) =>
         item.id === id ? { ...item, controlsImplemented: !item.controlsImplemented } : item
-      )
-    );
+      );
+    setRiskItems(nextItems);
+    persistRiskItems(nextItems);
   };
 
   const deleteRiskItem = (id: string) => {
-    setRiskItems(riskItems.filter((item) => item.id !== id));
+    const nextItems = riskItems.filter((item) => item.id !== id);
+    setRiskItems(nextItems);
+    persistRiskItems(nextItems);
   };
 
   // Run Real AI Evaluation API
@@ -296,7 +317,10 @@ export const RiskAssessmentView: React.FC<RiskAssessmentViewProps> = ({ onBackTo
             {PRESET_PROFILES.map((profile) => (
               <button
                 key={profile.label}
-                onClick={() => setRiskItems(profile.items)}
+                onClick={() => {
+                  setRiskItems(profile.items);
+                  persistRiskItems(profile.items);
+                }}
                 className="px-2.5 py-1 bg-[#111524] hover:bg-[#1a1e30] border border-[#1f2335] text-gray-300 text-[11px] rounded transition cursor-pointer"
               >
                 {profile.label}

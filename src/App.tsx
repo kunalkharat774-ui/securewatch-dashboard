@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
@@ -21,12 +21,38 @@ export default function App() {
   // File Activities performed by the user
   const [fileActivities, setFileActivities] = useState<FileActivity[]>([]);
 
+  useEffect(() => {
+    const loadPersistedActivity = async () => {
+      try {
+        const [urlResponse, fileResponse] = await Promise.all([
+          fetch('/api/url-scans', { cache: 'no-store' }),
+          fetch('/api/file-activities', { cache: 'no-store' }),
+        ]);
+        if (urlResponse.ok) setUrlScans(await urlResponse.json());
+        if (fileResponse.ok) setFileActivities(await fileResponse.json());
+      } catch {
+        // Local state remains available when persistence is temporarily unavailable.
+      }
+    };
+    void loadPersistedActivity();
+  }, []);
+
   const handleScanComplete = (newResult: UrlScanResult) => {
     setUrlScans((prev) => [newResult, ...prev]);
+    void fetch('/api/url-scans', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ scan: newResult }),
+    });
   };
 
   const handleFileActivity = (newActivity: FileActivity) => {
     setFileActivities((prev) => [newActivity, ...prev]);
+    void fetch('/api/file-activities', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ activity: newActivity }),
+    });
   };
 
   return (

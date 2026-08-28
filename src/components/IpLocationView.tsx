@@ -20,6 +20,7 @@ import {
   Building2,
   CheckCircle2,
 } from 'lucide-react';
+import { usePersistentComponentState } from '../utils/usePersistentComponentState';
 
 interface IpInfo {
   ip: string;
@@ -74,11 +75,17 @@ export const IpLocationView: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [mapMode, setMapMode] = useState<MapMode>('road');
+  const [persistedLocation, setPersistedLocation] = usePersistentComponentState<{ inputIp: string; data: IpInfo | null }>('ip-location', { inputIp: '', data: null });
 
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const tileLayerRef = useRef<L.TileLayer | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
+
+  useEffect(() => {
+    if (persistedLocation.inputIp) setInputIp(persistedLocation.inputIp);
+    if (persistedLocation.data) setData(persistedLocation.data);
+  }, [persistedLocation]);
 
   // Update Leaflet Map when data or mapMode changes
   useEffect(() => {
@@ -182,6 +189,7 @@ export const IpLocationView: React.FC = () => {
       };
       setData(parsed);
       setInputIp(parsed.ip);
+      setPersistedLocation({ inputIp: parsed.ip, data: parsed });
     } catch (lookupError) {
       setError(lookupError instanceof Error ? lookupError.message : 'Unable to retrieve live IP location.');
     } finally {

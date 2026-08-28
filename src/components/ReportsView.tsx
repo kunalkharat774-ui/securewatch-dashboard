@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface ReportsViewProps {
@@ -108,6 +108,18 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ onBackToDashboard }) =
   const [reportArchive, setReportArchive] = useState<SecurityReport[]>(defaultReports);
   const [activeReport, setActiveReport] = useState<SecurityReport>(defaultReports[0]);
 
+  useEffect(() => {
+    fetch('/api/reports', { cache: 'no-store' })
+      .then((response) => response.ok ? response.json() : [])
+      .then((reports) => {
+        if (Array.isArray(reports) && reports.length > 0) {
+          setReportArchive(reports);
+          setActiveReport(reports[0]);
+        }
+      })
+      .catch(() => undefined);
+  }, []);
+
   // Generator Wizard Inputs
   const [reportTypeInput, setReportTypeInput] = useState<string>('SOC2 Type II Executive Compliance Audit');
   const [timeframeInput, setTimeframeInput] = useState<string>('Last 30 Days');
@@ -145,8 +157,14 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ onBackToDashboard }) =
 
       if (res.ok) {
         const newRpt: SecurityReport = await res.json();
-        setReportArchive([newRpt, ...reportArchive]);
+        const nextReports = [newRpt, ...reportArchive];
+        setReportArchive(nextReports);
         setActiveReport(newRpt);
+        void fetch('/api/reports', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reports: nextReports }),
+        });
         setIsGeneratorModalOpen(false);
         showToast(`Report ${newRpt.reportId} successfully generated & compiled!`, 'success');
       } else {
@@ -200,7 +218,13 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ onBackToDashboard }) =
 
   // Delete Archive Item
   const handleDeleteReport = (id: string) => {
-    setReportArchive((prev) => prev.filter((r) => r.reportId !== id));
+    const nextReports = reportArchive.filter((r) => r.reportId !== id);
+    setReportArchive(nextReports);
+    void fetch('/api/reports', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reports: nextReports }),
+    });
     if (activeReport.reportId === id && reportArchive.length > 1) {
       setActiveReport(reportArchive.find((r) => r.reportId !== id) || reportArchive[0]);
     }

@@ -16,6 +16,15 @@ export const BinaryBackground: React.FC = () => {
   });
 
   useEffect(() => {
+    fetch('/api/settings', { cache: 'no-store' })
+      .then((response) => response.ok ? response.json() : null)
+      .then((settings) => {
+        if (settings && typeof settings.binaryMatrixBg === 'boolean') {
+          setIsEnabled(settings.binaryMatrixBg);
+        }
+      })
+      .catch(() => undefined);
+
     const handleSettingsUpdate = () => {
       const saved = localStorage.getItem('securewatch_system_settings');
       if (saved) {

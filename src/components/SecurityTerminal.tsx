@@ -68,6 +68,7 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     return localStorage.getItem('securewatch_authenticated') === 'true';
   });
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
 
   const [activeCreds, setActiveCreds] = useState({ username: '', password: '' });
   const [timeLeft, setTimeLeft] = useState(30);
@@ -103,20 +104,32 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
     }
   }, []);
 
-  const generateRandomString = (length: number) => {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    return Array.from({ length }, () => chars.charAt(Math.floor(Math.random() * chars.length))).join('');
-  };
+  const generateNewCredentials = useCallback(async () => {
+    try {
+      const response = await fetch('/api/auth/challenge', { cache: 'no-store' });
+      if (!response.ok) throw new Error('Challenge unavailable');
+      const challenge = await response.json() as { username: string; password: string; expiresAt: number };
+      setActiveCreds({ username: challenge.username, password: challenge.password });
+      setTimeLeft(Math.max(1, Math.ceil((challenge.expiresAt - Date.now()) / 1000)));
+      setErrorMsg('');
+      setInputUsername('');
+      setInputPassword('');
+    } catch {
+      setErrorMsg('CRITICAL: AUTH_SERVICE_UNAVAILABLE');
+    }
+  }, []);
 
-  const generateNewCredentials = useCallback(() => {
-    setActiveCreds({
-      username: 'NODE_' + generateRandomString(4),
-      password: generateRandomString(8),
-    });
-    setTimeLeft(30);
-    setErrorMsg('');
-    setInputUsername('');
-    setInputPassword('');
+  useEffect(() => {
+    fetch('/api/auth/session', { cache: 'no-store' })
+      .then((response) => response.ok ? response.json() : { authenticated: false })
+      .then((session: { authenticated?: boolean }) => {
+        const authenticated = session.authenticated === true;
+        setIsAuthenticated(authenticated);
+        if (authenticated) localStorage.setItem('securewatch_authenticated', 'true');
+        else localStorage.removeItem('securewatch_authenticated');
+      })
+      .catch(() => setIsAuthenticated(false))
+      .finally(() => setIsCheckingSession(false));
   }, []);
 
   // Preload intro image in memory for zero-latency display
@@ -128,12 +141,12 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
   // Timer Logic - 30 Seconds rotation
   useEffect(() => {
     if (isAuthenticated || isDecrypting) return;
-    if (!activeCreds.username) generateNewCredentials();
+    if (!activeCreds.username) void generateNewCredentials();
 
     const timerId = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
-          generateNewCredentials();
+          void generateNewCredentials();
           return 30;
         }
         return prev - 1;
@@ -143,18 +156,24 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
     return () => clearInterval(timerId);
   }, [isAuthenticated, isDecrypting, activeCreds.username, generateNewCredentials]);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (
-      inputUsername.trim().toUpperCase() === activeCreds.username.toUpperCase() &&
-      inputPassword.trim() === activeCreds.password
-    ) {
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: inputUsername, password: inputPassword }),
+      });
+      if (response.ok) {
       setIsDecrypting(true);
       setErrorMsg('');
-    } else {
+      } else {
+        throw new Error('Invalid credentials');
+      }
+    } catch {
       playVoiceFeedback('Access Denied. Identity verification failed.');
-      setErrorMsg('CRITICAL: INVALID_TOKEN_MISMATCH');
+      setErrorMsg('CRITICAL: INVALID_TOKEN_MISMATCH_OR_EXPIRED');
       setInputUsername('');
       setInputPassword('');
     }
@@ -170,8 +189,11 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
   const handleLogout = () => {
     setIsAuthenticated(false);
     localStorage.removeItem('securewatch_authenticated');
-    generateNewCredentials();
+    void fetch('/api/auth/logout', { method: 'POST' });
+    void generateNewCredentials();
   };
+
+  if (isCheckingSession) return null;
 
   if (isDecrypting) {
     return <CinematicLoadingScreen onComplete={handleCinematicComplete} />;

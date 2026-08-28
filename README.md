@@ -16,7 +16,8 @@ The backend sends every entered URL to `https://phishguard.in/api/analyze-url` a
 1. Import this repository into Vercel. The included `vercel.json` builds the Vite frontend and routes `/api/*` to the Node.js API function.
 2. Add the server-side variables in `.env.example` under **Project Settings > Environment Variables**. At minimum, set `SECUREWATCH_MASTER_PASSCODE` before using the admin endpoints.
 3. Add `GEMINI_API_KEY`, `PHISHGUARD_API_KEY`, `ISMALICIOUS_API_KEY`, and `PROJECTDISCOVERY_API_KEY` only when those integrations are needed. Keep these variables server-only; do not use the `VITE_` prefix for secrets.
-4. For durable IP chat storage, connect Vercel Postgres to the project so `POSTGRES_URL` and its related variables are injected automatically. Without Postgres, chat and file-backed session data are in-memory or ephemeral on serverless instances.
+4. In Supabase, copy the pooled connection string from **Project Settings > Database > Connection pooling** and add it in Vercel as the server-only `POSTGRES_URL` variable. You can also set `POSTGRES_PRISMA_URL` and `POSTGRES_URL_NON_POOLING` when available. The API automatically creates its `securewatch_tenants` and `ip_chat_messages` tables on first use.
+5. The tenant store persists users, SIEM logs, URL scan history, file activity history, and IP chat messages. Keep `VITE_SUPABASE_ANON_KEY` limited to the browser; never expose database passwords, service-role keys, JWT secrets, or pooled URLs with a `VITE_` prefix.
 
 The production build command is `npm run build`, and the generated output directory is `dist`.
 

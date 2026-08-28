@@ -101,12 +101,27 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onBackToDashboard })
   const [webhookTestStatus, setWebhookTestStatus] = useState<string | null>(null);
   const [isTestingWebhook, setIsTestingWebhook] = useState<boolean>(false);
 
+  useEffect(() => {
+    fetch('/api/settings', { cache: 'no-store' })
+      .then((response) => response.ok ? response.json() : null)
+      .then((remoteSettings) => {
+        if (!remoteSettings || typeof remoteSettings !== 'object') return;
+        setSettings((current) => ({ ...current, ...remoteSettings }));
+      })
+      .catch(() => undefined);
+  }, []);
+
   // Auto-save setting change & dispatch custom event
   const updateSetting = <K extends keyof SystemSettings>(key: K, value: SystemSettings[K]) => {
     setSettings((prev) => {
       const updated = { ...prev, [key]: value };
       localStorage.setItem('securewatch_system_settings', JSON.stringify(updated));
       window.dispatchEvent(new Event('system_settings_updated'));
+      void fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [key]: value }),
+      });
       return updated;
     });
     showToast(`Setting "${String(key)}" updated to ${String(value)}`, 'info');
@@ -140,6 +155,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onBackToDashboard })
     if (window.confirm('Are you sure you want to reset ALL system settings to default factory values?')) {
       setSettings(DEFAULT_SYSTEM_SETTINGS);
       localStorage.setItem('securewatch_system_settings', JSON.stringify(DEFAULT_SYSTEM_SETTINGS));
+      void fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(DEFAULT_SYSTEM_SETTINGS),
+      });
       window.dispatchEvent(new Event('system_settings_updated'));
       showToast('System settings restored to factory defaults!', 'danger');
     }
@@ -170,6 +190,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onBackToDashboard })
           const merged = { ...DEFAULT_SYSTEM_SETTINGS, ...parsed };
           setSettings(merged);
           localStorage.setItem('securewatch_system_settings', JSON.stringify(merged));
+          void fetch('/api/settings', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(merged),
+          });
           window.dispatchEvent(new Event('system_settings_updated'));
           showToast('System configuration successfully imported!', 'success');
         }
