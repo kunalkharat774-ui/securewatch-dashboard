@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
+import { BinaryBackground } from './BinaryBackground';
 
 interface CinematicLoadingScreenProps {
   onComplete: () => void;
@@ -77,19 +78,20 @@ export const CinematicLoadingScreen: React.FC<CinematicLoadingScreenProps> = ({ 
   }, [onComplete]);
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-[#020201] text-white flex flex-col items-center justify-center overflow-hidden select-none font-mono">
+    <div className="dark-blue-theme fixed inset-0 z-[9999] bg-[#02111f]/88 text-white flex flex-col items-center justify-center overflow-hidden select-none font-mono">
+      <BinaryBackground />
       {/* Background Matrix Particle FX */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-amber-950/40 via-[#080603] to-[#020201]" />
+      <div className="absolute inset-0 z-[1] bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-cyan-950/35 via-[#062b40]/70 to-[#02111f]/75" />
 
       {/* Cyber Grid Overlay */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#d977060d_1px,transparent_1px),linear-gradient(to_bottom,#d977060d_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none" />
+      <div className="absolute inset-0 z-[2] bg-[linear-gradient(to_right,#38bdf81a_1px,transparent_1px),linear-gradient(to_bottom,#38bdf81a_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none" />
 
       {/* Scanline CRT FX */}
       <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%)] bg-[size:100%_4px] pointer-events-none z-10 opacity-70" />
 
       {/* Golden Pulse Aura centered directly behind symbol */}
-      <div className="absolute w-64 h-64 sm:w-80 sm:h-80 bg-amber-500/25 rounded-full blur-[60px] animate-pulse pointer-events-none" />
-      <div className="absolute w-56 h-56 sm:w-72 sm:h-72 bg-yellow-400/20 rounded-full blur-[40px] pointer-events-none" />
+      <div className="absolute w-64 h-64 sm:w-80 sm:h-80 bg-cyan-500/20 rounded-full blur-[60px] animate-pulse pointer-events-none" />
+      <div className="absolute w-56 h-56 sm:w-72 sm:h-72 bg-blue-500/20 rounded-full blur-[40px] pointer-events-none" />
 
       {/* Main Center Container */}
       <div className="relative z-20 flex flex-col items-center text-center px-4 max-w-4xl w-full">
@@ -101,29 +103,31 @@ export const CinematicLoadingScreen: React.FC<CinematicLoadingScreenProps> = ({ 
           className="relative mb-8 flex items-center justify-center"
         >
           {/* Outer Glowing Golden Aura */}
-          <div className="absolute w-72 h-72 sm:w-96 sm:h-96 bg-amber-500/20 rounded-full blur-[70px] animate-pulse pointer-events-none" />
+          <div className="absolute w-72 h-72 sm:w-96 sm:h-96 bg-cyan-500/20 rounded-full blur-[70px] animate-pulse pointer-events-none" />
 
           {/* Concentric Rotating Outer HUD Rings surrounding the image circle cleanly */}
           <div className="absolute -inset-4 sm:-inset-6 rounded-full border-2 border-dashed border-amber-400/50 animate-[spin_20s_linear_infinite] pointer-events-none" />
           <div className="absolute -inset-8 sm:-inset-10 rounded-full border border-amber-500/30 animate-[spin_32s_linear_infinite_reverse] pointer-events-none" />
 
           {/* Main Golden Circle Frame containing the Eye of Horus image */}
-          <div className="relative aspect-square w-64 sm:w-80 rounded-full p-1.5 bg-gradient-to-b from-amber-400 via-amber-600 to-amber-950 shadow-[0_0_70px_rgba(245,158,11,0.5)] overflow-hidden flex items-center justify-center border-2 border-amber-300">
-            <motion.img
-              initial={{ scale: 1.15, opacity: 0.3 }}
-              animate={{ scale: [1.1, 1, 1.03, 1], opacity: 1 }}
-              transition={{ duration: 1.2, ease: 'easeOut' }}
-              src={loadingImageUrl}
-              alt="SecureWatch loading symbol"
-              loading="eager"
-              decoding="async"
-              referrerPolicy="no-referrer"
-              onError={(event) => {
-                event.currentTarget.onerror = null;
-                event.currentTarget.src = '/eye_providence_symbol.svg';
-              }}
-              className="block w-full h-full aspect-square object-cover rounded-full shadow-2xl filter brightness-105 contrast-110"
-            />
+          <div className="relative aspect-square w-64 sm:w-80 rounded-full p-1.5 bg-black shadow-[0_0_70px_rgba(245,158,11,0.5)] overflow-hidden flex items-center justify-center border-2 border-amber-300">
+            <div className="absolute inset-1.5 z-10 overflow-hidden rounded-full bg-[#061a33]">
+              <motion.img
+                initial={{ scale: 1.08, opacity: 0.3 }}
+                animate={{ scale: [1.04, 1, 1.02, 1], opacity: 1 }}
+                transition={{ duration: 1.2, ease: 'easeOut' }}
+                src={loadingImageUrl}
+                alt="SecureWatch loading symbol"
+                loading="eager"
+                decoding="async"
+                referrerPolicy="no-referrer"
+                onError={(event) => {
+                  event.currentTarget.onerror = null;
+                  event.currentTarget.src = '/eye_providence_symbol.svg';
+                }}
+                className="block h-full w-full aspect-square object-contain rounded-full shadow-2xl"
+              />
+            </div>
 
             {/* Subtle Golden Scan Beam */}
             <motion.div

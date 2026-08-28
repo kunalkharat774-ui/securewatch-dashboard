@@ -59,8 +59,8 @@ export const BinaryBackground: React.FC = () => {
     const handleResize = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
-      // Initialize Deep Dark Gold/Black background
-      ctx.fillStyle = '#050505';
+      // Initialize the deep blue matrix canvas.
+      ctx.fillStyle = '#02111f';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     };
 
@@ -72,7 +72,7 @@ export const BinaryBackground: React.FC = () => {
     const drops: number[] = Array.from({ length: columns }, () => Math.floor(Math.random() * -40));
     const chars = '01010101'; // Binary Matrix sequence
 
-    // Golden Telemetry Particles
+    // Ocean-cyan telemetry particles.
     const particles = Array.from({ length: 45 }, () => ({
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
@@ -88,17 +88,17 @@ export const BinaryBackground: React.FC = () => {
       if (delta < interval) return;
       lastTime = currentTime - (delta % interval);
 
-      // Deep Black trail fade layer
-      ctx.fillStyle = 'rgba(5, 5, 5, 0.18)';
+      // Deep blue trail fade layer
+      ctx.fillStyle = 'rgba(2, 17, 31, 0.18)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Render Floating Golden Ambient Telemetry Particles
+      // Render floating blue telemetry particles.
       ctx.shadowBlur = 0;
       for (let p = 0; p < particles.length; p++) {
         const pt = particles[p];
         ctx.beginPath();
         ctx.arc(pt.x, pt.y, pt.radius, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(245, 158, 11, ${pt.alpha})`;
+        ctx.fillStyle = `rgba(34, 211, 238, ${pt.alpha})`;
         ctx.fill();
 
         pt.y += pt.speedY;
@@ -115,17 +115,17 @@ export const BinaryBackground: React.FC = () => {
         const x = i * fontSize;
         const y = drops[i] * fontSize;
 
-        // Draw character - Golden Amber Binary Matrix Stream
-        ctx.shadowColor = 'rgba(245, 158, 11, 0.85)';
+        // Draw the blue binary matrix stream.
+        ctx.shadowColor = 'rgba(34, 211, 238, 0.9)';
         ctx.shadowBlur = 8;
-        ctx.fillStyle = 'rgba(217, 119, 6, 0.65)'; // Amber Gold
+        ctx.fillStyle = 'rgba(8, 145, 178, 0.72)';
         ctx.fillText(char, x, y);
 
-        // Highlight head character with White & Intense Golden Glow
+        // Highlight the leading character with a cyan glow.
         const nextChar = chars[Math.floor(Math.random() * chars.length)];
-        ctx.shadowColor = '#f59e0b';
+        ctx.shadowColor = '#67e8f9';
         ctx.shadowBlur = 14;
-        ctx.fillStyle = '#fef3c7'; // Gold White Head
+        ctx.fillStyle = '#e0f2fe';
         ctx.fillText(nextChar, x, y + fontSize);
 
         if (y > canvas.height && Math.random() > 0.975) {

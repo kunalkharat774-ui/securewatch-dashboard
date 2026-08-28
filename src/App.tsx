@@ -61,7 +61,7 @@ export default function App() {
   }
 
   return (
-      <div className="flex h-screen bg-[#0b1727] text-[#f9fbfd] font-sans overflow-hidden select-none relative falcon-dark-grid">
+      <div className="dark-blue-theme flex h-screen bg-[#041a2d] text-[#f9fbfd] font-sans overflow-hidden select-none relative falcon-dark-grid">
         {/* Live Falcon Dark Animated Telemetry & Matrix Canvas */}
         <BinaryBackground />
 
