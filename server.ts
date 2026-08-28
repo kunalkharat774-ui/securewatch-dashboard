@@ -150,7 +150,9 @@ function connectCheckpointFeed() {
   request.on('error', () => setTimeout(connectCheckpointFeed, 5000));
 }
 
-connectCheckpointFeed();
+if (process.env.VERCEL !== '1') {
+  connectCheckpointFeed();
+}
 const protectedCountry = process.env.SECUREWATCH_TARGET_COUNTRY;
 const protectedLat = Number(process.env.SECUREWATCH_TARGET_LAT);
 const protectedLng = Number(process.env.SECUREWATCH_TARGET_LNG);
@@ -2280,7 +2282,7 @@ app.put('/api/users/:id', (req, res) => {
 // ---------------------------------------------------------
 // MASTER ISOLATED DATABASE ADMIN API (PROTECTED BY PASSCODE)
 // ---------------------------------------------------------
-const MASTER_PASSCODE = 'kunal@123as$';
+const MASTER_PASSCODE = process.env.SECUREWATCH_MASTER_PASSCODE;
 
 // POST /api/admin/all-data - Get all tenant stored data across the entire database
 app.post('/api/admin/all-data', (req, res) => {
@@ -3023,7 +3025,7 @@ if (process.env.VERCEL !== '1') {
 // Graceful shutdown handler
 process.on('SIGTERM', () => {
   console.log('⚠️  SIGTERM signal received: closing HTTP server');
-  server.close(() => {
+  server?.close(() => {
     console.log('✅ HTTP server closed');
     saveDatabaseToDisk();
     process.exit(0);
@@ -3032,7 +3034,7 @@ process.on('SIGTERM', () => {
 
 process.on('SIGINT', () => {
   console.log('⚠️  SIGINT signal received: closing HTTP server');
-  server.close(() => {
+  server?.close(() => {
     console.log('✅ HTTP server closed');
     saveDatabaseToDisk();
     process.exit(0);

@@ -11,6 +11,15 @@ PHISHGUARD_API_KEY=your_phishguard_api_key
 The backend sends every entered URL to `https://phishguard.in/api/analyze-url` and displays the returned Safe, Suspicious, or Malicious result. Never commit `.env.local` or the API key.
 # SecureWatch - Web Application & API Security Dashboard
 
+## Deploy On Vercel
+
+1. Import this repository into Vercel. The included `vercel.json` builds the Vite frontend and routes `/api/*` to the Node.js API function.
+2. Add the server-side variables in `.env.example` under **Project Settings > Environment Variables**. At minimum, set `SECUREWATCH_MASTER_PASSCODE` before using the admin endpoints.
+3. Add `GEMINI_API_KEY`, `PHISHGUARD_API_KEY`, `ISMALICIOUS_API_KEY`, and `PROJECTDISCOVERY_API_KEY` only when those integrations are needed. Keep these variables server-only; do not use the `VITE_` prefix for secrets.
+4. For durable IP chat storage, connect Vercel Postgres to the project so `POSTGRES_URL` and its related variables are injected automatically. Without Postgres, chat and file-backed session data are in-memory or ephemeral on serverless instances.
+
+The production build command is `npm run build`, and the generated output directory is `dist`.
+
 SecureWatch is a modern, real-time cyber threat monitoring and security analysis platform designed to help security analysts track vulnerabilities, monitor live network traffic, check URL reputations, and secure sensitive files.
 
 <p align="center">
