@@ -5,6 +5,8 @@ interface CinematicLoadingScreenProps {
   onComplete: () => void;
 }
 
+const loadingImageUrl = '/eye_providence_symbol.svg';
+
 export const CinematicLoadingScreen: React.FC<CinematicLoadingScreenProps> = ({ onComplete }) => {
   const [progress, setProgress] = useState(0);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
@@ -106,16 +108,21 @@ export const CinematicLoadingScreen: React.FC<CinematicLoadingScreenProps> = ({ 
           <div className="absolute -inset-8 sm:-inset-10 rounded-full border border-amber-500/30 animate-[spin_32s_linear_infinite_reverse] pointer-events-none" />
 
           {/* Main Golden Circle Frame containing the Eye of Horus image */}
-          <div className="relative w-64 h-64 sm:w-80 sm:h-80 rounded-full p-1.5 bg-gradient-to-b from-amber-400 via-amber-600 to-amber-950 shadow-[0_0_70px_rgba(245,158,11,0.5)] overflow-hidden flex items-center justify-center border-2 border-amber-300">
+          <div className="relative aspect-square w-64 sm:w-80 rounded-full p-1.5 bg-gradient-to-b from-amber-400 via-amber-600 to-amber-950 shadow-[0_0_70px_rgba(245,158,11,0.5)] overflow-hidden flex items-center justify-center border-2 border-amber-300">
             <motion.img
               initial={{ scale: 1.15, opacity: 0.3 }}
               animate={{ scale: [1.1, 1, 1.03, 1], opacity: 1 }}
               transition={{ duration: 1.2, ease: 'easeOut' }}
-              src="/eye_providence_symbol.svg"
-              alt="SecureWatch Eye of Providence"
+              src={loadingImageUrl}
+              alt="SecureWatch loading symbol"
               loading="eager"
               decoding="async"
-              className="w-full h-full object-contain rounded-full shadow-2xl filter brightness-105 contrast-110"
+              referrerPolicy="no-referrer"
+              onError={(event) => {
+                event.currentTarget.onerror = null;
+                event.currentTarget.src = '/eye_providence_symbol.svg';
+              }}
+              className="block w-full h-full aspect-square object-cover rounded-full shadow-2xl filter brightness-105 contrast-110"
             />
 
             {/* Subtle Golden Scan Beam */}

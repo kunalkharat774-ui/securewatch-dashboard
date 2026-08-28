@@ -9,10 +9,11 @@ import { FileSecurity } from './components/FileSecurity';
 import { RecentTables } from './components/RecentTables';
 import { ExtraViews } from './components/ExtraViews';
 import { BinaryBackground } from './components/BinaryBackground';
-import { SecurityTerminal } from './components/SecurityTerminal';
+import { CinematicLoadingScreen } from './components/CinematicLoadingScreen';
 import { NavView, UrlScanResult, FileActivity } from './types';
 
 export default function App() {
+  const [isLoading, setIsLoading] = useState(true);
   const [currentView, setCurrentView] = useState<NavView>('dashboard');
 
   // URL Scans performed by the user
@@ -55,8 +56,11 @@ export default function App() {
     });
   };
 
+  if (isLoading) {
+    return <CinematicLoadingScreen onComplete={() => setIsLoading(false)} />;
+  }
+
   return (
-    <SecurityTerminal>
       <div className="flex h-screen bg-[#0b1727] text-[#f9fbfd] font-sans overflow-hidden select-none relative falcon-dark-grid">
         {/* Live Falcon Dark Animated Telemetry & Matrix Canvas */}
         <BinaryBackground />
@@ -188,6 +192,5 @@ export default function App() {
         </AnimatePresence>
       </main>
     </div>
-  </SecurityTerminal>
   );
 }
