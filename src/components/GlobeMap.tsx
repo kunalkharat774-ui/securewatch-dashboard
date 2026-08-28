@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import Globe from 'globe.gl';
 import { Country, SelectedCountryStats, CountryAttack } from '../types';
 import { CountryRealMap } from './CountryRealMap';
-import satelliteBackdrop from '../assets/images/live_satellite_wallpaper_1785397567579.jpg';
+import satelliteBackdrop from '../assets/images/dark_ocean_wallpaper_1785397034761.jpg';
 
 export const ALL_COUNTRIES: Country[] = [
   { name: 'United States', code: 'US', lat: 37.0902, lng: -95.7129 },

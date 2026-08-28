@@ -1821,6 +1821,75 @@ export const USER_LIVE_WEBCAMS: LiveWebcam[] = [
     description: '24/7 live high-definition railway camera capturing heavy freight trains, locomotives, switching operations, and rail junctions in real-time.',
     tags: ['RailCam', 'Trains Live', 'RailStream', 'Locomotive', 'Iron Triangle'],
   },
+  {
+    id: 'yt-2xSX9JErzqM',
+    callsign: 'OS-DEV-70',
+    sector: 'SEC-05 (DEVELOPMENT FEEDS)',
+    elevation: '0m ASL',
+    sensorType: 'External YouTube Live Feed',
+    title: 'Development Live Webcam Feed 01',
+    channelName: 'YouTube Live',
+    city: 'Unverified Source',
+    stateOrRegion: 'External Feed',
+    country: 'Cyber & DarkNet',
+    countryCode: 'CY',
+    continent: 'Development Network',
+    latitude: 52.0,
+    longitude: 10.0,
+    category: 'Development Feed',
+    youtubeId: '2xSX9JErzqM',
+    embedUrl: 'https://www.youtube-nocookie.com/embed/2xSX9JErzqM?autoplay=1&mute=1&playsinline=1&rel=0',
+    resolution: 'YouTube Live',
+    fps: 30,
+    timezone: 'UTC',
+    timezoneOffsetHours: 0,
+    viewersCount: 0,
+    status: 'External Feed',
+    description: 'User-provided external YouTube live feed for development and testing purposes.',
+    tags: ['Development', 'External Feed', 'YouTube Live'],
+  },
+  {
+    id: 'yt-4lHAyiUuckY', callsign: 'OS-DEV-71', sector: 'SEC-05 (DEVELOPMENT FEEDS)', elevation: '0m ASL', sensorType: 'External YouTube Live Feed', title: 'Development Live Webcam Feed 02', channelName: 'YouTube Live', city: 'Unverified Source', stateOrRegion: 'External Feed', country: 'Cyber & DarkNet', countryCode: 'CY', continent: 'Development Network', latitude: 49.0, longitude: 8.0, category: 'Development Feed', youtubeId: '4lHAyiUuckY', embedUrl: 'https://www.youtube-nocookie.com/embed/4lHAyiUuckY?autoplay=1&mute=1&playsinline=1&rel=0', resolution: 'YouTube Live', fps: 30, timezone: 'UTC', timezoneOffsetHours: 0, viewersCount: 0, status: 'External Feed', description: 'User-provided external YouTube live feed for development and testing purposes.', tags: ['Development', 'External Feed', 'YouTube Live']
+  },
+  {
+    id: 'yt-bd4lqAWNPJw', callsign: 'OS-DEV-72', sector: 'SEC-05 (DEVELOPMENT FEEDS)', elevation: '0m ASL', sensorType: 'External YouTube Live Feed', title: 'Development Live Webcam Feed 03', channelName: 'YouTube Live', city: 'Unverified Source', stateOrRegion: 'External Feed', country: 'Cyber & DarkNet', countryCode: 'CY', continent: 'Development Network', latitude: 55.0, longitude: 15.0, category: 'Development Feed', youtubeId: 'bd4lqAWNPJw', embedUrl: 'https://www.youtube-nocookie.com/embed/bd4lqAWNPJw?autoplay=1&mute=1&playsinline=1&rel=0', resolution: 'YouTube Live', fps: 30, timezone: 'UTC', timezoneOffsetHours: 0, viewersCount: 0, status: 'External Feed', description: 'User-provided external YouTube live feed for development and testing purposes.', tags: ['Development', 'External Feed', 'YouTube Live']
+  },
+  {
+    id: 'yt-EhDz-Ge_ufM', callsign: 'OS-DEV-73', sector: 'SEC-05 (DEVELOPMENT FEEDS)', elevation: '0m ASL', sensorType: 'External YouTube Live Feed', title: 'Development Live Webcam Feed 04', channelName: 'YouTube Live', city: 'Unverified Source', stateOrRegion: 'External Feed', country: 'Cyber & DarkNet', countryCode: 'CY', continent: 'Development Network', latitude: 47.0, longitude: 20.0, category: 'Development Feed', youtubeId: 'EhDz-Ge_ufM', embedUrl: 'https://www.youtube-nocookie.com/embed/EhDz-Ge_ufM?autoplay=1&mute=1&playsinline=1&rel=0', resolution: 'YouTube Live', fps: 30, timezone: 'UTC', timezoneOffsetHours: 0, viewersCount: 0, status: 'External Feed', description: 'User-provided external YouTube live feed for development and testing purposes.', tags: ['Development', 'External Feed', 'YouTube Live']
+  },
+  {
+    id: 'yt-Y4eIXH7O1z8', callsign: 'OS-DEV-74', sector: 'SEC-05 (DEVELOPMENT FEEDS)', elevation: '0m ASL', sensorType: 'External YouTube Live Feed', title: 'Development Live Webcam Feed 05', channelName: 'YouTube Live', city: 'Unverified Source', stateOrRegion: 'External Feed', country: 'Cyber & DarkNet', countryCode: 'CY', continent: 'Development Network', latitude: 43.0, longitude: 25.0, category: 'Development Feed', youtubeId: 'Y4eIXH7O1z8', embedUrl: 'https://www.youtube-nocookie.com/embed/Y4eIXH7O1z8?autoplay=1&mute=1&playsinline=1&rel=0', resolution: 'YouTube Live', fps: 30, timezone: 'UTC', timezoneOffsetHours: 0, viewersCount: 0, status: 'External Feed', description: 'User-provided external YouTube live feed for development and testing purposes.', tags: ['Development', 'External Feed', 'YouTube Live']
+  },
+  {
+    id: 'yt-OkQ0utdxwBY', callsign: 'OS-DEV-75', sector: 'SEC-05 (DEVELOPMENT FEEDS)', elevation: '0m ASL', sensorType: 'External YouTube Live Feed', title: 'Development Live Webcam Feed 06', channelName: 'YouTube Live', city: 'Unverified Source', stateOrRegion: 'External Feed', country: 'Cyber & DarkNet', countryCode: 'CY', continent: 'Development Network', latitude: 39.0, longitude: 30.0, category: 'Development Feed', youtubeId: 'OkQ0utdxwBY', embedUrl: 'https://www.youtube-nocookie.com/embed/OkQ0utdxwBY?autoplay=1&mute=1&playsinline=1&rel=0', resolution: 'YouTube Live', fps: 30, timezone: 'UTC', timezoneOffsetHours: 0, viewersCount: 0, status: 'External Feed', description: 'User-provided external YouTube live feed for development and testing purposes.', tags: ['Development', 'External Feed', 'YouTube Live']
+  },
+  {
+    id: 'yt-77akujLn4k8', callsign: 'OS-DEV-76', sector: 'SEC-05 (DEVELOPMENT FEEDS)', elevation: '0m ASL', sensorType: 'External YouTube Live Feed', title: 'Development Live Webcam Feed 07', channelName: 'YouTube Live', city: 'Unverified Source', stateOrRegion: 'External Feed', country: 'Cyber & DarkNet', countryCode: 'CY', continent: 'Development Network', latitude: 35.0, longitude: 35.0, category: 'Development Feed', youtubeId: '77akujLn4k8', embedUrl: 'https://www.youtube-nocookie.com/embed/77akujLn4k8?autoplay=1&mute=1&playsinline=1&rel=0', resolution: 'YouTube Live', fps: 30, timezone: 'UTC', timezoneOffsetHours: 0, viewersCount: 0, status: 'External Feed', description: 'User-provided external YouTube live feed for development and testing purposes.', tags: ['Development', 'External Feed', 'YouTube Live']
+  },
+  {
+    id: 'yt-GeB8rnbUISY', callsign: 'OS-DEV-77', sector: 'SEC-05 (DEVELOPMENT FEEDS)', elevation: '0m ASL', sensorType: 'External YouTube Live Feed', title: 'Development Live Webcam Feed 08', channelName: 'YouTube Live', city: 'Unverified Source', stateOrRegion: 'External Feed', country: 'Cyber & DarkNet', countryCode: 'CY', continent: 'Development Network', latitude: 31.0, longitude: 40.0, category: 'Development Feed', youtubeId: 'GeB8rnbUISY', embedUrl: 'https://www.youtube-nocookie.com/embed/GeB8rnbUISY?autoplay=1&mute=1&playsinline=1&rel=0', resolution: 'YouTube Live', fps: 30, timezone: 'UTC', timezoneOffsetHours: 0, viewersCount: 0, status: 'External Feed', description: 'User-provided external YouTube live feed for development and testing purposes.', tags: ['Development', 'External Feed', 'YouTube Live']
+  },
+  {
+    id: 'yt-WKGK_hYnlGE', callsign: 'OS-DEV-78', sector: 'SEC-05 (DEVELOPMENT FEEDS)', elevation: '0m ASL', sensorType: 'External YouTube Live Feed', title: 'Development Live Webcam Feed 09', channelName: 'YouTube Live', city: 'Unverified Source', stateOrRegion: 'External Feed', country: 'Cyber & DarkNet', countryCode: 'CY', continent: 'Development Network', latitude: 27.0, longitude: 45.0, category: 'Development Feed', youtubeId: 'WKGK_hYnlGE', embedUrl: 'https://www.youtube-nocookie.com/embed/WKGK_hYnlGE?autoplay=1&mute=1&playsinline=1&rel=0', resolution: 'YouTube Live', fps: 30, timezone: 'UTC', timezoneOffsetHours: 0, viewersCount: 0, status: 'External Feed', description: 'User-provided external YouTube live feed for development and testing purposes.', tags: ['Development', 'External Feed', 'YouTube Live']
+  },
+  {
+    id: 'yt-fO9e9jnhYK8', callsign: 'OS-DEV-79', sector: 'SEC-05 (DEVELOPMENT FEEDS)', elevation: '0m ASL', sensorType: 'External YouTube Live Feed', title: 'Development Live Webcam Feed 10', channelName: 'YouTube Live', city: 'Unverified Source', stateOrRegion: 'External Feed', country: 'Cyber & DarkNet', countryCode: 'CY', continent: 'Development Network', latitude: 23.0, longitude: 50.0, category: 'Development Feed', youtubeId: 'fO9e9jnhYK8', embedUrl: 'https://www.youtube-nocookie.com/embed/fO9e9jnhYK8?autoplay=1&mute=1&playsinline=1&rel=0', resolution: 'YouTube Live', fps: 30, timezone: 'UTC', timezoneOffsetHours: 0, viewersCount: 0, status: 'External Feed', description: 'User-provided external YouTube live feed for development and testing purposes.', tags: ['Development', 'External Feed', 'YouTube Live']
+  },
+  {
+    id: 'yt--29gQhlOsTQ', callsign: 'OS-DEV-80', sector: 'SEC-05 (DEVELOPMENT FEEDS)', elevation: '0m ASL', sensorType: 'External YouTube Live Feed', title: 'Development Live Webcam Feed 11', channelName: 'YouTube Live', city: 'Unverified Source', stateOrRegion: 'External Feed', country: 'Cyber & DarkNet', countryCode: 'CY', continent: 'Development Network', latitude: 19.0, longitude: 55.0, category: 'Development Feed', youtubeId: '-29gQhlOsTQ', embedUrl: 'https://www.youtube-nocookie.com/embed/-29gQhlOsTQ?autoplay=1&mute=1&playsinline=1&rel=0', resolution: 'YouTube Live', fps: 30, timezone: 'UTC', timezoneOffsetHours: 0, viewersCount: 0, status: 'External Feed', description: 'User-provided external YouTube live feed for development and testing purposes.', tags: ['Development', 'External Feed', 'YouTube Live']
+  },
+  {
+    id: 'yt-DwKCna1mumk', callsign: 'OS-DEV-81', sector: 'SEC-05 (DEVELOPMENT FEEDS)', elevation: '0m ASL', sensorType: 'External YouTube Live Feed', title: 'Development Live Webcam Feed 12', channelName: 'YouTube Live', city: 'Unverified Source', stateOrRegion: 'External Feed', country: 'Cyber & DarkNet', countryCode: 'CY', continent: 'Development Network', latitude: 15.0, longitude: 60.0, category: 'Development Feed', youtubeId: 'DwKCna1mumk', embedUrl: 'https://www.youtube-nocookie.com/embed/DwKCna1mumk?autoplay=1&mute=1&playsinline=1&rel=0', resolution: 'YouTube Live', fps: 30, timezone: 'UTC', timezoneOffsetHours: 0, viewersCount: 0, status: 'External Feed', description: 'User-provided external YouTube live feed for development and testing purposes.', tags: ['Development', 'External Feed', 'YouTube Live']
+  },
+  {
+    id: 'yt-6DS40wWyKzA', callsign: 'OS-DEV-82', sector: 'SEC-05 (DEVELOPMENT FEEDS)', elevation: '0m ASL', sensorType: 'External YouTube Live Feed', title: 'Development Live Webcam Feed 13', channelName: 'YouTube Live', city: 'Unverified Source', stateOrRegion: 'External Feed', country: 'Cyber & DarkNet', countryCode: 'CY', continent: 'Development Network', latitude: 11.0, longitude: 65.0, category: 'Development Feed', youtubeId: '6DS40wWyKzA', embedUrl: 'https://www.youtube-nocookie.com/embed/6DS40wWyKzA?autoplay=1&mute=1&playsinline=1&rel=0', resolution: 'YouTube Live', fps: 30, timezone: 'UTC', timezoneOffsetHours: 0, viewersCount: 0, status: 'External Feed', description: 'User-provided external YouTube live feed for development and testing purposes.', tags: ['Development', 'External Feed', 'YouTube Live']
+  },
+  {
+    id: 'yt-2r0iuqfUW7E', callsign: 'OS-DEV-83', sector: 'SEC-05 (DEVELOPMENT FEEDS)', elevation: '0m ASL', sensorType: 'External YouTube Live Feed', title: 'Development Live Webcam Feed 14', channelName: 'YouTube Live', city: 'Unverified Source', stateOrRegion: 'External Feed', country: 'Cyber & DarkNet', countryCode: 'CY', continent: 'Development Network', latitude: 7.0, longitude: 70.0, category: 'Development Feed', youtubeId: '2r0iuqfUW7E', embedUrl: 'https://www.youtube-nocookie.com/embed/2r0iuqfUW7E?autoplay=1&mute=1&playsinline=1&rel=0', resolution: 'YouTube Live', fps: 30, timezone: 'UTC', timezoneOffsetHours: 0, viewersCount: 0, status: 'External Feed', description: 'User-provided external YouTube live feed for development and testing purposes.', tags: ['Development', 'External Feed', 'YouTube Live']
+  },
+  {
+    id: 'yt-a1mcaV3Sf9U', callsign: 'OS-DEV-84', sector: 'SEC-05 (DEVELOPMENT FEEDS)', elevation: '0m ASL', sensorType: 'External YouTube Live Feed', title: 'Development Live Webcam Feed 15', channelName: 'YouTube Live', city: 'Unverified Source', stateOrRegion: 'External Feed', country: 'Cyber & DarkNet', countryCode: 'CY', continent: 'Development Network', latitude: 3.0, longitude: 75.0, category: 'Development Feed', youtubeId: 'a1mcaV3Sf9U', embedUrl: 'https://www.youtube-nocookie.com/embed/a1mcaV3Sf9U?autoplay=1&mute=1&playsinline=1&rel=0', resolution: 'YouTube Live', fps: 30, timezone: 'UTC', timezoneOffsetHours: 0, viewersCount: 0, status: 'External Feed', description: 'User-provided external YouTube live feed for development and testing purposes.', tags: ['Development', 'External Feed', 'YouTube Live']
+  },
 ];
 
 export interface CountryGroup {

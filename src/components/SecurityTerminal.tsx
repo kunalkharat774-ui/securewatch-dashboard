@@ -76,6 +76,7 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
   const [inputPassword, setInputPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [isDecrypting, setIsDecrypting] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Voice Feedback logic
   const playVoiceFeedback = useCallback((text: string) => {
@@ -158,6 +159,10 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting || !activeCreds.username) return;
+
+    setIsSubmitting(true);
+    setErrorMsg('');
 
     try {
       const response = await fetch('/api/auth/login', {
@@ -166,8 +171,7 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
         body: JSON.stringify({ username: inputUsername, password: inputPassword }),
       });
       if (response.ok) {
-      setIsDecrypting(true);
-      setErrorMsg('');
+        setIsDecrypting(true);
       } else {
         throw new Error('Invalid credentials');
       }
@@ -176,6 +180,8 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
       setErrorMsg('CRITICAL: INVALID_TOKEN_MISMATCH_OR_EXPIRED');
       setInputUsername('');
       setInputPassword('');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -216,23 +222,23 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
             background-size: 100% 3px, 3px 100%; pointer-events: none; z-index: 5;
           }
           .marquee-container {
-            position: fixed; bottom: 0; width: 100%; background: rgba(5, 5, 5, 0.95);
-            border-top: 1px solid #f59e0b; padding: 12px 0; overflow: hidden; z-index: 100;
+            position: fixed; bottom: 0; left: 0; width: 100%; background: rgba(5, 5, 5, 0.95);
+            border-top: 1px solid #f59e0b; padding: 10px 0; overflow: hidden; z-index: 100;
           }
           .marquee-text {
             display: inline-block; font-family: monospace; color: #fbbf24;
             white-space: nowrap;
-            animation: marquee 30s linear infinite; text-transform: uppercase; font-size: 13px;
+            animation: marquee 30s linear infinite; text-transform: uppercase; font-size: 12px;
           }
           .spinner-animate {
             animation: spin 1s linear infinite;
           }
         `}</style>
 
-        <div style={styles.glassCard}>
+        <main style={styles.glassCard} aria-labelledby="security-auth-title">
           <div style={styles.header}>
             <div style={styles.statusBadge}>SYSTEM REQUIRED</div>
-            <h1 style={styles.mainTitle}>🛡️SECURITY AUTH</h1>
+            <h1 id="security-auth-title" style={styles.mainTitle}>SECURITY AUTH</h1>
             <p style={styles.subTitle}>MULTI-FACTOR ENCRYPTION ENABLED</p>
           </div>
 
@@ -267,6 +273,7 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
               <form onSubmit={handleLogin} style={styles.form}>
                 <input
                   type="text"
+                  aria-label="Access ID"
                   placeholder="ACCESS ID"
                   value={inputUsername}
                   onChange={(e) => setInputUsername(e.target.value.toUpperCase())}
@@ -276,6 +283,7 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
                 />
                 <input
                   type="password"
+                  aria-label="Password"
                   placeholder="PASSWORD"
                   value={inputPassword}
                   onChange={(e) => setInputPassword(e.target.value)}
@@ -284,8 +292,8 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
                 />
 
                 {errorMsg && <p style={styles.errorText}>{errorMsg}</p>}
-                <button type="submit" style={styles.authBtn}>
-                  AUTHORIZE LOGIN
+                <button type="submit" style={{ ...styles.authBtn, ...(isSubmitting ? styles.authBtnDisabled : {}) }} disabled={isSubmitting || !activeCreds.username}>
+                  {isSubmitting ? 'VERIFYING...' : 'AUTHORIZE LOGIN'}
                 </button>
               </form>
             </>
@@ -296,7 +304,7 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
               DEVELOPED BY <span style={styles.kunalName}>KUNAL KHARAT</span>
             </p>
           </div>
-        </div>
+        </main>
 
         <div className="marquee-container">
           <div className="marquee-text">
@@ -336,29 +344,33 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
 const styles: { [key: string]: React.CSSProperties } = {
   canvas: { position: 'fixed', top: 0, left: 0, zIndex: 0, opacity: 0.6, pointerEvents: 'none' },
   terminalWrapper: {
-    height: '100vh',
+    minHeight: '100vh',
+    height: '100dvh',
     width: '100vw',
     backgroundColor: '#000',
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
     fontFamily: 'monospace',
-    overflow: 'hidden',
+    overflow: 'auto',
     position: 'relative',
+    padding: '24px 16px 64px',
+    boxSizing: 'border-box',
   },
   glassCard: {
     width: '100%',
     maxWidth: '400px',
-    padding: '35px',
+    padding: 'clamp(22px, 6vw, 35px)',
     backgroundColor: 'rgba(5, 5, 5, 0.95)',
     border: '1px solid rgba(245, 158, 11, 0.4)',
     position: 'relative',
     zIndex: 10,
     boxShadow: '0 0 50px rgba(0, 0, 0, 0.9), 0 0 30px rgba(245, 158, 11, 0.15)',
     backdropFilter: 'blur(10px)',
-    margin: '20px',
+    margin: '0 auto',
+    boxSizing: 'border-box',
   },
-  header: { textAlign: 'center', marginBottom: '25px' },
+  header: { textAlign: 'center', marginBottom: '22px' },
   statusBadge: {
     fontSize: '8px',
     color: '#f59e0b',
@@ -367,20 +379,20 @@ const styles: { [key: string]: React.CSSProperties } = {
     padding: '2px 8px',
     letterSpacing: '1px',
   },
-  mainTitle: { color: '#ffffff', fontSize: '24px', letterSpacing: '4px', margin: '15px 0 5px', fontWeight: 'bold' },
+  mainTitle: { color: '#ffffff', fontSize: 'clamp(19px, 6vw, 24px)', letterSpacing: 'clamp(2px, 1vw, 4px)', margin: '15px 0 5px', fontWeight: 'bold' },
   subTitle: { color: '#fbbf24', fontSize: '9px', opacity: 0.8, letterSpacing: '1px' },
   tokenBox: {
     background: 'rgba(10, 8, 2, 0.9)',
-    padding: '20px',
+    padding: '18px 14px',
     border: '1px solid rgba(245, 158, 11, 0.25)',
     marginBottom: '25px',
     position: 'relative',
   },
   progressBarWrapper: { position: 'absolute', top: 0, left: 0, width: '100%', height: '2px', background: '#111' },
   progressBar: { height: '100%', background: 'linear-gradient(90deg, #d97706, #fbbf24)', boxShadow: '0 0 10px #f59e0b' },
-  credItem: { display: 'flex', justifyContent: 'space-between', margin: '8px 0' },
+  credItem: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', margin: '8px 0' },
   label: { color: '#f59e0b', fontSize: '10px' },
-  value: { color: '#ffffff', fontSize: '15px', fontWeight: 'bold' },
+  value: { color: '#ffffff', fontSize: 'clamp(12px, 4vw, 15px)', fontWeight: 'bold', overflowWrap: 'anywhere', textAlign: 'right' },
   timerText: { fontSize: '9px', color: '#888', textAlign: 'right', marginTop: '10px' },
   form: { display: 'flex', flexDirection: 'column', gap: '15px' },
   terminalInput: {
@@ -404,6 +416,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     letterSpacing: '2px',
     boxShadow: '0 0 20px rgba(245, 158, 11, 0.3)',
   },
+  authBtnDisabled: { opacity: 0.55, cursor: 'wait' },
   errorText: { color: '#ff4444', fontSize: '10px', textAlign: 'center', margin: 0, fontWeight: 'bold' },
   loadingArea: { textAlign: 'center', padding: '40px' },
   spinner: {

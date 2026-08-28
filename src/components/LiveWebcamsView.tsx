@@ -105,8 +105,8 @@ export const LiveWebcamsView: React.FC = () => {
   const [mapStyle, setMapStyle] = useState<MapStyle>('dark');
 
   // HUD & UI state
-  const [isFeedHudMinimized, setIsFeedHudMinimized] = useState<boolean>(true);
-  const [isFeedHudOpen, setIsFeedHudOpen] = useState<boolean>(false);
+  const [isFeedHudMinimized, setIsFeedHudMinimized] = useState<boolean>(false);
+  const [isFeedHudOpen, setIsFeedHudOpen] = useState<boolean>(true);
   const [isFullScreenVideo, setIsFullScreenVideo] = useState<boolean>(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
   const [playerKey, setPlayerKey] = useState<number>(0);
@@ -393,7 +393,7 @@ export const LiveWebcamsView: React.FC = () => {
   return (
     <div
       id="osiris-tactical-live-webcams-view"
-      className="relative w-full h-[calc(100vh-105px)] min-h-[640px] select-none overflow-hidden rounded-2xl border-2 border-amber-500/50 bg-[#070502] shadow-[0_0_55px_rgba(217,119,6,0.28)] font-sans flex flex-col"
+      className="relative w-full h-[calc(100dvh-105px)] min-h-[560px] select-none overflow-hidden rounded-2xl border-2 border-amber-500/50 bg-[#070502] shadow-[0_0_55px_rgba(217,119,6,0.28)] font-sans flex flex-col"
     >
       {/* ========================================================================= */}
       {/* OSIRIS TACTICAL CORNER BRACKETS (LUXURY GOLD)                             */}
@@ -531,6 +531,7 @@ export const LiveWebcamsView: React.FC = () => {
       <div className="relative flex-1 w-full min-h-0 bg-[#060401] overflow-hidden">
         {/* Leaflet Map DOM Element */}
         <div ref={mapContainerRef} className="absolute inset-0 w-full h-full z-0" />
+
       </div>
 
       {/* ========================================================================= */}

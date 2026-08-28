@@ -9081,10 +9081,32 @@
   },
   "usr_session_orbvseq78_mta7q8gq": {
     "users": [],
-    "logs": [],
+    "logs": [
+      {
+        "id": "LOG-162066",
+        "timestamp": "2026-08-28T08:25:17.101Z",
+        "level": "INFO",
+        "service": "Auth Gateway",
+        "message": "Successful terminal login for NODE_6E50",
+        "sourceIp": "127.0.0.1",
+        "destination": "securewatch-auth",
+        "action": "ALLOWED",
+        "traceId": "TRACE-1787905517101",
+        "details": {
+          "principal": "NODE_6E50"
+        }
+      }
+    ],
     "urlScans": [],
     "fileScans": [],
-    "settings": {}
+    "settings": {
+      "__auth": {
+        "authenticated": true,
+        "principal": "NODE_6E50",
+        "loggedInAt": "2026-08-28T08:25:17.101Z",
+        "lastLoginAt": "2026-08-28T08:25:17.101Z"
+      }
+    }
   },
   "usr_session_3diwgf9a2_mtaa49zg": {
     "users": [],
@@ -9102,10 +9124,32 @@
   },
   "usr_session_efezcjrm9_mtb8fpe2": {
     "users": [],
-    "logs": [],
+    "logs": [
+      {
+        "id": "LOG-665268",
+        "timestamp": "2026-08-28T08:26:19.766Z",
+        "level": "INFO",
+        "service": "Auth Gateway",
+        "message": "Successful terminal login for NODE_4C38",
+        "sourceIp": "127.0.0.1",
+        "destination": "securewatch-auth",
+        "action": "ALLOWED",
+        "traceId": "TRACE-1787905579765",
+        "details": {
+          "principal": "NODE_4C38"
+        }
+      }
+    ],
     "urlScans": [],
     "fileScans": [],
-    "settings": {}
+    "settings": {
+      "__auth": {
+        "authenticated": true,
+        "principal": "NODE_4C38",
+        "loggedInAt": "2026-08-28T08:26:19.765Z",
+        "lastLoginAt": "2026-08-28T08:26:19.765Z"
+      }
+    }
   },
   "usr_session_c4g8bmruf_mtbjp2d3": {
     "users": [],
@@ -9113,5 +9157,36 @@
     "urlScans": [],
     "fileScans": [],
     "settings": {}
+  },
+  "usr_session_84gh26ezn_mtcp6l9l": {
+    "users": [],
+    "logs": [
+      {
+        "id": "LOG-916091",
+        "timestamp": "2026-08-28T08:37:45.295Z",
+        "level": "INFO",
+        "service": "Auth Gateway",
+        "message": "Successful terminal login for NODE_BA43",
+        "sourceIp": "127.0.0.1",
+        "destination": "securewatch-auth",
+        "action": "ALLOWED",
+        "traceId": "TRACE-1787906265294",
+        "details": {
+          "principal": "NODE_BA43"
+        }
+      }
+    ],
+    "urlScans": [],
+    "fileScans": [],
+    "settings": {
+      "__auth": {
+        "authenticated": true,
+        "principal": "NODE_BA43",
+        "loggedInAt": "2026-08-28T08:37:45.294Z",
+        "lastLoginAt": "2026-08-28T08:37:45.294Z"
+      }
+    },
+    "reports": [],
+    "riskItems": []
   }
 }
