@@ -2077,7 +2077,6 @@ const hasTenantDatabase = Boolean(
 );
 let tenantTableReady: Promise<void> | null = null;
 const tenantLoadPromises = new Map<string, Promise<void>>();
-const authChallenges = new Map<string, AuthChallenge>();
 
 async function ensureTenantTable() {
   if (!hasTenantDatabase) return;
@@ -2198,21 +2197,22 @@ async function getTenantDb(req: express.Request): Promise<{ sessionId: string; d
   return { sessionId, db: dbStores[sessionId] };
 }
 
-// Login metadata is durable, while the short-lived challenge remains server-only.
+// Keep the short-lived challenge in the tenant store so Vercel instances can share it.
 app.get('/api/auth/challenge', async (req, res) => {
-  const { sessionId } = await getTenantDb(req);
+  const { sessionId, db } = await getTenantDb(req);
   const challenge: AuthChallenge = {
     username: `NODE_${crypto.randomBytes(2).toString('hex').toUpperCase()}`,
     password: crypto.randomBytes(4).toString('hex').toUpperCase(),
     expiresAt: Date.now() + 30_000,
   };
-  authChallenges.set(sessionId, challenge);
+  db.settings.__authChallenge = challenge;
+  await persistTenantStore(sessionId);
   return res.json({ username: challenge.username, password: challenge.password, expiresAt: challenge.expiresAt });
 });
 
 app.post('/api/auth/login', async (req, res) => {
   const { sessionId, db } = await getTenantDb(req);
-  const challenge = authChallenges.get(sessionId);
+  const challenge = db.settings.__authChallenge as AuthChallenge | undefined;
   const username = String(req.body?.username || '').trim().toUpperCase();
   const password = String(req.body?.password || '').trim();
   const valid = Boolean(challenge && challenge.expiresAt > Date.now() && challenge.username === username && challenge.password === password);
@@ -2231,7 +2231,7 @@ app.post('/api/auth/login', async (req, res) => {
     return res.status(401).json({ authenticated: false, error: 'Invalid or expired access credentials.' });
   }
 
-  authChallenges.delete(sessionId);
+  delete db.settings.__authChallenge;
   db.settings.__auth = {
     authenticated: true,
     principal: username,
@@ -2265,7 +2265,7 @@ app.post('/api/auth/logout', async (req, res) => {
     principal: previousAuth?.principal || null,
     loggedOutAt: new Date().toISOString(),
   };
-  authChallenges.delete(sessionId);
+  delete db.settings.__authChallenge;
   recordSecurityLog({
     level: 'INFO',
     service: 'Auth Gateway',
