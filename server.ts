@@ -2223,12 +2223,17 @@ async function getTenantDb(req: express.Request): Promise<{ sessionId: string; d
 }
 
 app.get('/api/auth/challenge', async (req, res) => {
-  const challenge: AuthChallenge = {
-    username: `NODE_${crypto.randomBytes(2).toString('hex').toUpperCase()}`,
-    password: crypto.randomBytes(4).toString('hex').toUpperCase(),
-    expiresAt: Date.now() + 30_000,
-  };
-  return res.json({ ...challenge, token: signAuthChallenge(challenge) });
+  try {
+    const challenge: AuthChallenge = {
+      username: `NODE_${crypto.randomBytes(2).toString('hex').toUpperCase()}`,
+      password: crypto.randomBytes(4).toString('hex').toUpperCase(),
+      expiresAt: Date.now() + 30_000,
+    };
+    return res.set('Cache-Control', 'no-store').json({ ...challenge, token: signAuthChallenge(challenge) });
+  } catch (error) {
+    console.error('Challenge Error:', error);
+    return res.status(500).json({ error: 'Unable to generate access credentials.' });
+  }
 });
 
 async function handleAuthLogin(req: express.Request, res: express.Response) {

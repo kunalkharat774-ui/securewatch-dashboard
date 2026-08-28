@@ -106,18 +106,21 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
   }, []);
 
   const generateNewCredentials = useCallback(async () => {
-    try {
-      const response = await fetch('/api/auth/challenge', { cache: 'no-store' });
-      if (!response.ok) throw new Error('Challenge unavailable');
-      const challenge = await response.json() as { username: string; password: string; expiresAt: number; token: string };
-      if (!challenge.username || !challenge.password || !challenge.token) throw new Error('Invalid challenge response');
-      setActiveCreds({ username: challenge.username, password: challenge.password, token: challenge.token });
-      setTimeLeft(Math.max(1, Math.ceil((challenge.expiresAt - Date.now()) / 1000)));
-      setErrorMsg('');
-      setInputUsername('');
-      setInputPassword('');
-    } catch {
-      setErrorMsg('CRITICAL: AUTH_SERVICE_UNAVAILABLE');
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        const response = await fetch(`/api/auth/challenge?refresh=${Date.now()}`, { cache: 'no-store' });
+        if (!response.ok) throw new Error('Challenge unavailable');
+        const challenge = await response.json() as { username: string; password: string; expiresAt: number; token: string };
+        if (!challenge.username || !challenge.password || !challenge.token) throw new Error('Invalid challenge response');
+        setActiveCreds({ username: challenge.username, password: challenge.password, token: challenge.token });
+        setTimeLeft(Math.max(1, Math.ceil((challenge.expiresAt - Date.now()) / 1000)));
+        setErrorMsg('');
+        setInputUsername('');
+        setInputPassword('');
+        return;
+      } catch {
+        if (attempt === 1) setErrorMsg('CRITICAL: AUTH_SERVICE_UNAVAILABLE');
+      }
     }
   }, []);
 
