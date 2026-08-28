@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
+import { NavView } from '../types';
 
 interface KpiCardsProps {
-  onSelectView?: (viewId: string) => void;
+  onSelectView?: (viewId: NavView) => void;
 }
 
 export const KpiCards: React.FC<KpiCardsProps> = ({ onSelectView }) => {
@@ -47,7 +48,7 @@ export const KpiCards: React.FC<KpiCardsProps> = ({ onSelectView }) => {
       icon: 'fa-shield',
       iconBg: 'bg-amber-500/10 text-amber-400 border border-amber-500/20',
       borderColor: 'hover:border-amber-500/50',
-      targetView: 'api-monitoring',
+      targetView: 'api-monitoring' as NavView,
     },
     {
       id: 'threats',
@@ -60,7 +61,7 @@ export const KpiCards: React.FC<KpiCardsProps> = ({ onSelectView }) => {
       icon: 'fa-triangle-exclamation',
       iconBg: 'bg-red-500/10 text-red-400 border border-red-500/20',
       borderColor: 'hover:border-red-500/40',
-      targetView: 'alerts',
+      targetView: 'alerts' as NavView,
     },
     {
       id: 'vulns',
@@ -73,7 +74,7 @@ export const KpiCards: React.FC<KpiCardsProps> = ({ onSelectView }) => {
       icon: 'fa-bug',
       iconBg: 'bg-amber-500/10 text-amber-300 border border-amber-500/20',
       borderColor: 'hover:border-amber-500/40',
-      targetView: 'vulnerabilities',
+      targetView: 'vulnerabilities' as NavView,
     },
     {
       id: 'risk',
@@ -86,7 +87,7 @@ export const KpiCards: React.FC<KpiCardsProps> = ({ onSelectView }) => {
       icon: 'fa-shield-halved',
       iconBg: 'bg-amber-500/15 text-amber-400 border border-amber-500/30',
       borderColor: 'hover:border-amber-500/50',
-      targetView: 'risk',
+      targetView: 'risk-assessment' as NavView,
     },
   ];
 

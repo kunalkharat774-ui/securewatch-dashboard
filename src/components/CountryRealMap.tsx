@@ -17,8 +17,8 @@ export interface AttackItem {
   targetIp: string;
   targetPort: string;
   volume: string;
-  severity: 'CRITICAL' | 'HIGH' | 'MEDIUM';
-  status: 'ACTIVE' | 'MITIGATING' | 'BLOCKED';
+  severity: 'CRITICAL' | 'HIGH' | 'ELEVATED' | 'MEDIUM';
+  status: 'ACTIVE' | 'MITIGATING' | 'BLOCKED' | 'FILTERED';
   timestamp: string;
   targetSector: string;
 }

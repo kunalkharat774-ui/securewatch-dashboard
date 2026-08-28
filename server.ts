@@ -2259,16 +2259,7 @@ async function handleAuthLogin(req: express.Request, res: express.Response) {
     lastLoginAt: new Date().toISOString(),
   };
   recordSecurityLog({
-}
-
-app.post(['/api/auth/login', '/api/login'], async (req, res) => {
-  try {
-    return await handleAuthLogin(req, res);
-  } catch (error) {
-    console.error('Auth Error:', error);
-    return res.status(500).json({ authenticated: false, error: 'Auth service error' });
-  }
-});
+    level: 'INFO',
     service: 'Auth Gateway',
     message: `Successful terminal login for ${username}`,
     sourceIp: req.ip || '127.0.0.1',
@@ -2278,6 +2269,15 @@ app.post(['/api/auth/login', '/api/login'], async (req, res) => {
     details: { principal: username },
   }, sessionId);
   return res.json({ authenticated: true, principal: username, loggedInAt: db.settings.__auth.loggedInAt });
+}
+
+app.post(['/api/auth/login', '/api/login'], async (req, res) => {
+  try {
+    return await handleAuthLogin(req, res);
+  } catch (error) {
+    console.error('Auth Error:', error);
+    return res.status(500).json({ authenticated: false, error: 'Auth service error' });
+  }
 });
 
 app.get('/api/auth/session', async (req, res) => {

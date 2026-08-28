@@ -81,7 +81,7 @@ export interface UrlScanResult {
 export interface FileActivity {
   id: string;
   fileName: string;
-  action: 'Encrypted' | 'Decrypted';
+  action: 'Encrypted' | 'Decrypted' | `Scanned (${string})`;
   status: 'Success' | 'Failed';
   size: string;
   time: string;
