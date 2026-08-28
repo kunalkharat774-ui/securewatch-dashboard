@@ -166,10 +166,10 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
     setErrorMsg('');
 
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: inputUsername, password: inputPassword, challengeToken: activeCreds.token }),
+        body: JSON.stringify({ accessId: inputUsername, password: inputPassword, challengeToken: activeCreds.token }),
       });
       if (response.ok) {
         setIsDecrypting(true);

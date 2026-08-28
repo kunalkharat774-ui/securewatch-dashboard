@@ -2231,10 +2231,10 @@ app.get('/api/auth/challenge', async (req, res) => {
   return res.json({ ...challenge, token: signAuthChallenge(challenge) });
 });
 
-app.post('/api/auth/login', async (req, res) => {
+async function handleAuthLogin(req: express.Request, res: express.Response) {
   const { sessionId, db } = await getTenantDb(req);
   const challenge = verifyAuthChallenge(String(req.body?.challengeToken || ''));
-  const username = String(req.body?.username || '').trim().toUpperCase();
+  const username = String(req.body?.username || req.body?.accessId || '').trim().toUpperCase();
   const password = String(req.body?.password || '').trim();
   const valid = Boolean(challenge && challenge.expiresAt > Date.now() && challenge.username === username && challenge.password === password);
 
@@ -2259,7 +2259,16 @@ app.post('/api/auth/login', async (req, res) => {
     lastLoginAt: new Date().toISOString(),
   };
   recordSecurityLog({
-    level: 'INFO',
+}
+
+app.post(['/api/auth/login', '/api/login'], async (req, res) => {
+  try {
+    return await handleAuthLogin(req, res);
+  } catch (error) {
+    console.error('Auth Error:', error);
+    return res.status(500).json({ authenticated: false, error: 'Auth service error' });
+  }
+});
     service: 'Auth Gateway',
     message: `Successful terminal login for ${username}`,
     sourceIp: req.ip || '127.0.0.1',
