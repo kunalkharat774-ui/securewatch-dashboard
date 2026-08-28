@@ -70,7 +70,7 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
   });
   const [isCheckingSession, setIsCheckingSession] = useState(true);
 
-  const [activeCreds, setActiveCreds] = useState({ username: '', password: '' });
+  const [activeCreds, setActiveCreds] = useState({ username: '', password: '', token: '' });
   const [timeLeft, setTimeLeft] = useState(30);
   const [inputUsername, setInputUsername] = useState('');
   const [inputPassword, setInputPassword] = useState('');
@@ -109,8 +109,9 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
     try {
       const response = await fetch('/api/auth/challenge', { cache: 'no-store' });
       if (!response.ok) throw new Error('Challenge unavailable');
-      const challenge = await response.json() as { username: string; password: string; expiresAt: number };
-      setActiveCreds({ username: challenge.username, password: challenge.password });
+      const challenge = await response.json() as { username: string; password: string; expiresAt: number; token: string };
+      if (!challenge.username || !challenge.password || !challenge.token) throw new Error('Invalid challenge response');
+      setActiveCreds({ username: challenge.username, password: challenge.password, token: challenge.token });
       setTimeLeft(Math.max(1, Math.ceil((challenge.expiresAt - Date.now()) / 1000)));
       setErrorMsg('');
       setInputUsername('');
@@ -168,7 +169,7 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: inputUsername, password: inputPassword }),
+        body: JSON.stringify({ username: inputUsername, password: inputPassword, challengeToken: activeCreds.token }),
       });
       if (response.ok) {
         setIsDecrypting(true);

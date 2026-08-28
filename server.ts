@@ -2078,6 +2078,31 @@ const hasTenantDatabase = Boolean(
 let tenantTableReady: Promise<void> | null = null;
 const tenantLoadPromises = new Map<string, Promise<void>>();
 
+const authChallengeSecret = process.env.SECUREWATCH_MASTER_PASSCODE || 'securewatch-auth-challenge-secret';
+
+function signAuthChallenge(challenge: AuthChallenge): string {
+  const payload = Buffer.from(JSON.stringify(challenge)).toString('base64url');
+  const signature = crypto.createHmac('sha256', authChallengeSecret).update(payload).digest('base64url');
+  return `${payload}.${signature}`;
+}
+
+function verifyAuthChallenge(token: string): AuthChallenge | null {
+  const [payload, signature] = token.split('.');
+  if (!payload || !signature) return null;
+
+  const expectedSignature = crypto.createHmac('sha256', authChallengeSecret).update(payload).digest('base64url');
+  const actual = Buffer.from(signature);
+  const expected = Buffer.from(expectedSignature);
+  if (actual.length !== expected.length || !crypto.timingSafeEqual(actual, expected)) return null;
+
+  try {
+    const challenge = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as AuthChallenge;
+    return challenge.expiresAt > Date.now() && challenge.username && challenge.password ? challenge : null;
+  } catch {
+    return null;
+  }
+}
+
 async function ensureTenantTable() {
   if (!hasTenantDatabase) return;
   tenantTableReady ??= sql`
@@ -2197,22 +2222,18 @@ async function getTenantDb(req: express.Request): Promise<{ sessionId: string; d
   return { sessionId, db: dbStores[sessionId] };
 }
 
-// Keep the short-lived challenge in the tenant store so Vercel instances can share it.
 app.get('/api/auth/challenge', async (req, res) => {
-  const { sessionId, db } = await getTenantDb(req);
   const challenge: AuthChallenge = {
     username: `NODE_${crypto.randomBytes(2).toString('hex').toUpperCase()}`,
     password: crypto.randomBytes(4).toString('hex').toUpperCase(),
     expiresAt: Date.now() + 30_000,
   };
-  db.settings.__authChallenge = challenge;
-  await persistTenantStore(sessionId);
-  return res.json({ username: challenge.username, password: challenge.password, expiresAt: challenge.expiresAt });
+  return res.json({ ...challenge, token: signAuthChallenge(challenge) });
 });
 
 app.post('/api/auth/login', async (req, res) => {
   const { sessionId, db } = await getTenantDb(req);
-  const challenge = db.settings.__authChallenge as AuthChallenge | undefined;
+  const challenge = verifyAuthChallenge(String(req.body?.challengeToken || ''));
   const username = String(req.body?.username || '').trim().toUpperCase();
   const password = String(req.body?.password || '').trim();
   const valid = Boolean(challenge && challenge.expiresAt > Date.now() && challenge.username === username && challenge.password === password);
@@ -2231,7 +2252,6 @@ app.post('/api/auth/login', async (req, res) => {
     return res.status(401).json({ authenticated: false, error: 'Invalid or expired access credentials.' });
   }
 
-  delete db.settings.__authChallenge;
   db.settings.__auth = {
     authenticated: true,
     principal: username,
@@ -2265,7 +2285,6 @@ app.post('/api/auth/logout', async (req, res) => {
     principal: previousAuth?.principal || null,
     loggedOutAt: new Date().toISOString(),
   };
-  delete db.settings.__authChallenge;
   recordSecurityLog({
     level: 'INFO',
     service: 'Auth Gateway',
