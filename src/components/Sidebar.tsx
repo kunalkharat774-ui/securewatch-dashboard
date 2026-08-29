@@ -45,17 +45,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onSelectView, ale
   ];
 
   return (
-    <aside className="w-64 bg-[#080705]/90 backdrop-blur-2xl border-r border-amber-500/30 flex flex-col p-4 shrink-0 overflow-y-auto relative z-20 shadow-[0_0_40px_rgba(0,0,0,0.9)]">
+    <aside className="w-64 bg-[#07131d]/90 backdrop-blur-2xl border-r border-orange-500/25 flex flex-col p-4 shrink-0 overflow-y-auto relative z-20 shadow-[0_0_40px_rgba(0,0,0,0.9)]">
       {/* Logo */}
-      <div className="flex items-center gap-2.5 pb-4 mb-4 border-b border-amber-500/30">
-        <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-400/50 flex items-center justify-center text-amber-300 glass-glow-sm">
-          <i className="fa-solid fa-shield-halved text-lg text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.6)]" />
+      <div className="flex items-center gap-2.5 pb-4 mb-4 border-b border-orange-500/25">
+        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-500/20 via-sky-500/15 to-emerald-500/15 border border-orange-400/50 flex items-center justify-center text-orange-300 glass-glow-sm">
+          <i className="fa-solid fa-shield-halved text-lg text-orange-300 drop-shadow-[0_0_8px_rgba(249,115,22,0.6)]" />
         </div>
         <div>
-          <div className="font-extrabold text-white text-base leading-tight tracking-wide bg-gradient-to-r from-white via-amber-100 to-amber-400 bg-clip-text text-transparent">
+          <div className="font-extrabold text-white text-base leading-tight tracking-wide bg-gradient-to-r from-white via-orange-200 via-sky-200 to-emerald-300 bg-clip-text text-transparent">
             SecureWatch
           </div>
-          <span className="text-[10px] text-amber-300/90 block font-mono tracking-wider font-semibold">WEB APP &amp; API SECURITY</span>
+          <span className="text-[10px] text-orange-200/90 block font-mono tracking-wider font-semibold">WEB APP &amp; API SECURITY</span>
         </div>
       </div>
 
@@ -70,14 +70,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onSelectView, ale
               onClick={() => onSelectView(item.id)}
               className={`w-full flex items-center px-3 py-2.5 text-xs rounded-xl transition-all cursor-pointer text-left relative ${
                 isActive
-                  ? 'text-white font-bold bg-amber-500/20 border border-amber-400/50 shadow-[0_0_24px_rgba(245,158,11,0.35)] backdrop-blur-md'
-                  : 'text-gray-300 hover:bg-amber-950/40 hover:text-white'
+                  ? 'text-white font-bold bg-gradient-to-r from-orange-500/20 via-sky-500/10 to-emerald-500/10 border border-orange-400/40 shadow-[0_0_24px_rgba(249,115,22,0.25)] backdrop-blur-md'
+                  : 'text-gray-300 hover:bg-[#0d1f2d] hover:text-white'
               }`}
             >
               {isActive && (
                 <motion.div
                   layoutId="sidebarActivePill"
-                  className="absolute left-0 top-0 bottom-0 w-1 bg-amber-400 rounded-r shadow-[0_0_12px_#f59e0b]"
+                  className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-orange-400 via-sky-400 to-emerald-400 rounded-r shadow-[0_0_12px_rgba(56,189,248,0.9)]"
                   transition={{ type: 'spring', stiffness: 350, damping: 30 }}
                 />
               )}
@@ -106,13 +106,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onSelectView, ale
       </nav>
 
       {/* System Status Panel */}
-      <div className="mt-6 p-3.5 bg-[#0a0803]/80 backdrop-blur-xl rounded-xl border border-amber-500/30 shadow-lg">
+      <div className="mt-6 p-3.5 bg-[#0a141d]/80 backdrop-blur-xl rounded-xl border border-orange-500/25 shadow-lg">
         <div className="flex justify-between items-center text-xs font-semibold mb-3 text-white">
           <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse shadow-[0_0_10px_#f59e0b]" />
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.8)]" />
             System Status
           </span>
-          <span className="text-amber-300 text-[11px] font-medium font-mono">Protected</span>
+          <span className="text-orange-300 text-[11px] font-medium font-mono">Protected</span>
         </div>
 
         <div className="space-y-2.5 text-[11px]">

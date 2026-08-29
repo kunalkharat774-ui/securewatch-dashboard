@@ -15,12 +15,30 @@ import { NavView, UrlScanResult, FileActivity } from './types';
 export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [currentView, setCurrentView] = useState<NavView>('dashboard');
+  const [alertCount, setAlertCount] = useState<number>(0);
 
   // URL Scans performed by the user
   const [urlScans, setUrlScans] = useState<UrlScanResult[]>([]);
 
   // File Activities performed by the user
   const [fileActivities, setFileActivities] = useState<FileActivity[]>([]);
+
+  const refreshAlertCount = async () => {
+    try {
+      const response = await fetch('/api/security-logs', { cache: 'no-store' });
+      if (!response.ok) return;
+      const data = await response.json() as { logs?: Array<{ level?: string; action?: string }> };
+      const logs = Array.isArray(data.logs) ? data.logs : [];
+      const activeAlerts = logs.filter((log) => {
+        const level = String(log.level || '').toUpperCase();
+        const action = String(log.action || '').toUpperCase();
+        return (level === 'CRITICAL' || level === 'ERROR' || level === 'WARN') && action !== 'ALLOWED';
+      }).length;
+      setAlertCount(activeAlerts);
+    } catch {
+      setAlertCount(0);
+    }
+  };
 
   useEffect(() => {
     const loadPersistedActivity = async () => {
@@ -36,6 +54,12 @@ export default function App() {
       }
     };
     void loadPersistedActivity();
+    void refreshAlertCount();
+
+    const interval = setInterval(() => {
+      void refreshAlertCount();
+    }, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleScanComplete = (newResult: UrlScanResult) => {
@@ -61,26 +85,26 @@ export default function App() {
   }
 
   return (
-      <div className="dark-blue-theme flex h-screen bg-[#041a2d] text-[#f9fbfd] font-sans overflow-hidden select-none relative falcon-dark-grid">
+      <div className="app-shell dark-blue-theme flex h-screen text-[#f9fbfd] font-sans overflow-hidden select-none relative">
         {/* Live Falcon Dark Animated Telemetry & Matrix Canvas */}
         <BinaryBackground />
 
       {/* Falcon Dark Enterprise Radial Ambient Glows */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[1000px] h-[450px] bg-[#2c7be5]/15 blur-[160px] rounded-full animate-ocean-pulse" />
-        <div className="absolute top-1/4 right-10 w-[550px] h-[550px] bg-[#27bcfd]/12 blur-[180px] rounded-full animate-bioluminescence" />
-        <div className="absolute bottom-10 left-10 w-[500px] h-[500px] bg-[#3950ff]/10 blur-[170px] rounded-full" />
+        <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[1100px] h-[500px] bg-[#f97316]/12 blur-[200px] rounded-full animate-ocean-pulse" />
+        <div className="absolute top-1/4 right-8 w-[600px] h-[600px] bg-[#38bdf8]/12 blur-[200px] rounded-full animate-bioluminescence" />
+        <div className="absolute bottom-5 left-6 w-[520px] h-[520px] bg-[#22c55e]/10 blur-[190px] rounded-full" />
       </div>
 
       {/* Sidebar Navigation */}
       <Sidebar
         currentView={currentView}
         onSelectView={(v) => setCurrentView(v)}
-        alertCount={12}
+        alertCount={alertCount}
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col overflow-y-auto p-4 md:p-6 bg-transparent z-10 relative">
+      <main className="cyber-main-panel flex-1 flex flex-col overflow-y-auto p-4 md:p-6 bg-transparent z-10 relative">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentView}

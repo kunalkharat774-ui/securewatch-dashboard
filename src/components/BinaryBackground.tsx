@@ -59,26 +59,24 @@ export const BinaryBackground: React.FC = () => {
     const handleResize = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
-      // Initialize the deep blue matrix canvas.
-      ctx.fillStyle = '#02111f';
+      ctx.fillStyle = '#020a12';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     };
 
     handleResize();
     window.addEventListener('resize', handleResize);
 
-    const fontSize = 15;
-    const columns = Math.floor(canvas.width / fontSize) + 1;
-    const drops: number[] = Array.from({ length: columns }, () => Math.floor(Math.random() * -40));
-    const chars = '01010101'; // Binary Matrix sequence
+    const fontSize = 16;
+    const columns = Math.floor(canvas.width / fontSize) + 2;
+    const drops: number[] = Array.from({ length: columns }, () => Math.floor(Math.random() * -60));
+    const chars = '01<>#*%X@∎';
 
-    // Ocean-cyan telemetry particles.
-    const particles = Array.from({ length: 45 }, () => ({
+    const particles = Array.from({ length: 90 }, () => ({
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
-      radius: Math.random() * 1.8 + 0.5,
-      speedY: -(Math.random() * 0.4 + 0.1),
-      alpha: Math.random() * 0.5 + 0.2,
+      radius: Math.random() * 2.6 + 0.7,
+      speedY: -(Math.random() * 0.7 + 0.15),
+      alpha: Math.random() * 0.8 + 0.2,
     }));
 
     const draw = (currentTime: number) => {
@@ -88,17 +86,16 @@ export const BinaryBackground: React.FC = () => {
       if (delta < interval) return;
       lastTime = currentTime - (delta % interval);
 
-      // Deep blue trail fade layer
-      ctx.fillStyle = 'rgba(2, 17, 31, 0.18)';
+      ctx.fillStyle = 'rgba(2, 8, 14, 0.18)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Render floating blue telemetry particles.
       ctx.shadowBlur = 0;
       for (let p = 0; p < particles.length; p++) {
         const pt = particles[p];
+        const hue = p % 3 === 0 ? 'rgba(249,115,22,' : p % 3 === 1 ? 'rgba(56,189,248,' : 'rgba(34,197,94,';
         ctx.beginPath();
         ctx.arc(pt.x, pt.y, pt.radius, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(34, 211, 238, ${pt.alpha})`;
+        ctx.fillStyle = `${hue}${pt.alpha})`;
         ctx.fill();
 
         pt.y += pt.speedY;
@@ -108,31 +105,30 @@ export const BinaryBackground: React.FC = () => {
         }
       }
 
-      ctx.font = `${fontSize}px monospace`;
+      ctx.font = `${fontSize}px 'SFMono-Regular', monospace`;
 
       for (let i = 0; i < drops.length; i++) {
         const char = chars[Math.floor(Math.random() * chars.length)];
         const x = i * fontSize;
         const y = drops[i] * fontSize;
 
-        // Draw the blue binary matrix stream.
-        ctx.shadowColor = 'rgba(34, 211, 238, 0.9)';
-        ctx.shadowBlur = 8;
-        ctx.fillStyle = 'rgba(8, 145, 178, 0.72)';
+        const color = i % 3 === 0 ? 'rgba(249, 115, 22, 0.88)' : i % 3 === 1 ? 'rgba(96, 165, 250, 0.88)' : 'rgba(52, 211, 153, 0.78)';
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 14;
+        ctx.fillStyle = color;
         ctx.fillText(char, x, y);
 
-        // Highlight the leading character with a cyan glow.
         const nextChar = chars[Math.floor(Math.random() * chars.length)];
-        ctx.shadowColor = '#67e8f9';
-        ctx.shadowBlur = 14;
-        ctx.fillStyle = '#e0f2fe';
+        ctx.shadowColor = 'rgba(255,255,255,0.9)';
+        ctx.shadowBlur = 18;
+        ctx.fillStyle = 'rgba(255,255,255,0.9)';
         ctx.fillText(nextChar, x, y + fontSize);
 
-        if (y > canvas.height && Math.random() > 0.975) {
+        if (y > canvas.height && Math.random() > 0.985) {
           drops[i] = 0;
         }
 
-        drops[i]++;
+        drops[i] += Math.random() > 0.75 ? 1.2 : 1;
       }
     };
 

@@ -36,6 +36,24 @@ interface SecurityLogRecord {
   details?: Record<string, unknown>;
 }
 
+interface ThreatIndicator {
+  id: string;
+  pulseName: string;
+  indicator: string;
+  indicatorType: string;
+  created: string;
+  tags: string[];
+  sourceCountry?: { name: string; code: string; lat: number; lng: number };
+  targetCountry?: { name: string; code: string; lat: number; lng: number };
+  targetIp?: string;
+}
+
+interface ThreatFeed {
+  source: string;
+  fetchedAt: string;
+  threats: ThreatIndicator[];
+}
+
 const mapLogToAlert = (log: SecurityLogRecord): SecurityAlert => {
   const severity = log.level === 'CRITICAL' ? 'Critical' : log.level === 'ERROR' ? 'High' : log.level === 'WARN' ? 'Medium' : 'Low';
   const status = log.action === 'BLOCKED' ? 'Blocked' : 'Active';
@@ -56,6 +74,27 @@ const mapLogToAlert = (log: SecurityLogRecord): SecurityAlert => {
     requestsPerSec,
     protocol: 'Not reported',
     riskScore: severity === 'Critical' ? 90 : severity === 'High' ? 70 : severity === 'Medium' ? 40 : 15,
+  };
+};
+
+const mapThreatToAlert = (threat: ThreatIndicator, index: number): SecurityAlert => {
+  const hasHighRiskTag = threat.tags?.some((tag) => /exploit|malware|ransomware|ddos|botnet|c2|credential|phish/i.test(tag));
+  const severity: 'Critical' | 'High' | 'Medium' | 'Low' = hasHighRiskTag ? 'Critical' : 'High';
+  return {
+    id: threat.id || `threat-${index}`,
+    title: threat.pulseName || `ThreatCloud Attack Event #${index + 1}`,
+    severity,
+    srcIp: threat.sourceCountry?.code || threat.indicator?.split(' -> ')[0] || 'N/A',
+    country: threat.sourceCountry?.name || 'Unknown',
+    countryCode: threat.sourceCountry?.code || 'XX',
+    targetEndpoint: threat.targetCountry?.name || threat.indicator?.split(' -> ')[1] || 'Protected Network',
+    timestamp: threat.created || new Date().toISOString(),
+    status: 'Active',
+    attackVector: threat.indicatorType || 'LIVE ATTACK',
+    owaspCategory: threat.tags?.join(', ') || 'Cross-site threat',
+    requestsPerSec: 0,
+    protocol: 'Multi-protocol',
+    riskScore: hasHighRiskTag ? 95 : 75,
   };
 };
 
@@ -101,13 +140,49 @@ export const SecurityAlertsView: React.FC<SecurityAlertsViewProps> = ({
 
   const loadLiveAlerts = async () => {
     try {
-      const response = await fetch('/api/security-logs', { cache: 'no-store' });
-      if (!response.ok) throw new Error(`SIEM request failed with HTTP ${response.status}`);
-      const payload = await response.json() as { logs?: SecurityLogRecord[] };
-      const securityEvents = (payload.logs || []).filter((log) => log.level !== 'INFO' || log.action !== 'ALLOWED');
-      setAlerts(securityEvents.map(mapLogToAlert));
+      const allAlerts: SecurityAlert[] = [];
+      
+      // Fetch real threat data from Check Point ThreatCloud
+      try {
+        const threatResponse = await fetch('/api/threats?limit=20', { cache: 'no-store' });
+        if (threatResponse.ok) {
+          const threatPayload = await threatResponse.json() as ThreatFeed;
+          const realThreats = (threatPayload.threats || []).map(mapThreatToAlert);
+          allAlerts.push(...realThreats);
+          if (realThreats.length > 0) {
+            showToast(`Live Threat Feed: ${realThreats.length} real-time attacks detected from Check Point ThreatCloud`, 'info');
+          }
+        }
+      } catch (threatError) {
+        console.warn('Threat feed unavailable, falling back to SIEM logs:', threatError);
+      }
+      
+      // Fetch SIEM security logs as backup
+      try {
+        const siemResponse = await fetch('/api/security-logs', { cache: 'no-store' });
+        if (siemResponse.ok) {
+          const siemPayload = await siemResponse.json() as { logs?: SecurityLogRecord[] };
+          const siemAlerts = (siemPayload.logs || [])
+            .filter((log) => log.level !== 'INFO' || log.action !== 'ALLOWED')
+            .map(mapLogToAlert);
+          allAlerts.push(...siemAlerts);
+        }
+      } catch (siemError) {
+        console.warn('SIEM logs unavailable:', siemError);
+      }
+      
+      // Remove duplicates and set alerts
+      const uniqueAlerts = allAlerts.filter((alert, index, arr) =>
+        arr.findIndex((a) => a.srcIp === alert.srcIp && a.country === alert.country && a.targetEndpoint === alert.targetEndpoint) === index
+      );
+      
+      if (uniqueAlerts.length === 0) {
+        showToast('No active security alerts at this moment', 'info');
+      }
+      
+      setAlerts(uniqueAlerts);
     } catch (error) {
-      showToast(`Live SIEM feed unavailable: ${error instanceof Error ? error.message : 'request failed'}`, 'danger');
+      showToast(`Alert feed unavailable: ${error instanceof Error ? error.message : 'request failed'}`, 'danger');
       setAlerts([]);
     } finally {
       setIsLoadingAlerts(false);

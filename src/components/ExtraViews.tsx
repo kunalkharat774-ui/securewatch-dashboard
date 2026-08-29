@@ -401,7 +401,7 @@ export const ExtraViews: React.FC<ExtraViewsProps> = ({ view, onBackToDashboard 
 
       {/* 2. SECURITY ALERTS */}
       {view === 'alerts' && (
-        <SecurityAlertsView onBackToDashboard={onBackToDashboard} />
+        <SecurityAlertsView onBackToDashboard={onBackToDashboard} onAlertCountChange={(_count) => undefined} />
       )}
 
       {/* 3. VULNERABILITY SCANNER */}

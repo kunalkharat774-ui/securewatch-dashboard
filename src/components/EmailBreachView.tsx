@@ -217,7 +217,7 @@ export const EmailBreachView: React.FC<EmailBreachViewProps> = ({ onBackToDashbo
             )}
             <h2 className="text-xl font-bold text-white flex items-center gap-2 tracking-tight">
               <i className="fa-solid fa-user-shield text-red-400"></i>
-              xHunter Dark Web Breach & Password Intelligence
+              Securewatch Dark Web Breach & Password Intelligence
             </h2>
           </div>
           <p className="text-xs text-gray-400 mt-1">

@@ -274,7 +274,7 @@ export const TextEncryptView: React.FC = () => {
                   Text Encryption & Decryption Tool
                 </h1>
                 <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                  xHunter
+                  Securewatch
                 </span>
               </div>
               <p className="text-sm text-gray-400 mt-1">
@@ -473,7 +473,7 @@ export const TextEncryptView: React.FC = () => {
           {/* Info Card */}
           <div className="bg-[#0b1021] border border-[#1e294b] rounded-2xl p-4 text-xs text-gray-400 space-y-2">
             <div className="flex items-center gap-2 text-indigo-400 font-semibold">
-              <Info className="w-4 h-4" /> xHunter Cryptography Rules
+              <Info className="w-4 h-4" /> Securewatch Cryptography Rules
             </div>
             <p className="leading-relaxed">
               Symmetric algorithms (AES, 3DES, DES) encrypt and decrypt data using the exact same secret passphrase. Ensure secret key matches during decryption.

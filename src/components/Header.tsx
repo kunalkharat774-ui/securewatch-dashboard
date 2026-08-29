@@ -123,7 +123,7 @@ export const Header: React.FC = () => {
   }, []);
 
   return (
-    <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 border-b border-amber-500/30 pb-4 relative z-30 p-4 rounded-2xl bg-[#090703]/85 backdrop-blur-2xl border border-amber-500/40 shadow-[0_12px_40px_-10px_rgba(0,0,0,0.9)]">
+    <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 border-b border-orange-500/25 pb-4 relative z-30 p-4 rounded-2xl bg-[#07131d]/85 backdrop-blur-2xl border border-orange-500/25 shadow-[0_12px_40px_-10px_rgba(0,0,0,0.9)]">
       <div>
         <div className="flex items-center gap-2">
           <h1 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
@@ -136,16 +136,16 @@ export const Header: React.FC = () => {
               Web Application &amp; API Security Dashboard
             </motion.span>
           </h1>
-          <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-400/40 font-mono glass-glow-sm tracking-wider">
+          <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-bold bg-gradient-to-r from-orange-500/15 to-sky-500/15 text-orange-200 border border-orange-400/30 font-mono glass-glow-sm tracking-wider">
             v2.6 Version
           </span>
         </div>
-        <p className="text-xs text-amber-200/80 mt-0.5">Real-time Cyber Threat Monitoring &amp; Deep Security Intelligence</p>
+        <p className="text-xs text-sky-100/80 mt-0.5">Real-time Cyber Threat Monitoring &amp; Deep Security Intelligence</p>
       </div>
 
       <div className="flex items-center gap-4 self-end sm:self-auto">
         {/* Live Clock Indicator */}
-        <div className="flex items-center gap-3 bg-[#0d0a03]/80 border border-amber-500/40 px-3.5 py-2 rounded-xl backdrop-blur-md shadow-[0_0_15px_rgba(245,158,11,0.2)]">
+        <div className="flex items-center gap-3 bg-[#0b1a26]/80 border border-orange-500/30 px-3.5 py-2 rounded-xl backdrop-blur-md shadow-[0_0_15px_rgba(56,189,248,0.2)]">
           <div className="relative flex items-center justify-center">
             <span className="animate-ping absolute inline-flex h-3 w-3 rounded-full bg-emerald-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
@@ -155,10 +155,10 @@ export const Header: React.FC = () => {
               <i className="fa-regular fa-clock text-emerald-400"></i>
               LIVE
             </div>
-            <strong className="text-base text-amber-300 block leading-tight font-mono drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]">
+            <strong className="text-base text-orange-200 block leading-tight font-mono drop-shadow-[0_0_8px_rgba(249,115,22,0.5)]">
               {time || '14:35:42'}
             </strong>
-            <span className="text-[10px] text-amber-200/70 font-mono block">
+            <span className="text-[10px] text-sky-100/70 font-mono block">
               {date || '26 Jul 2026, Sunday'}
             </span>
           </div>

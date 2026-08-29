@@ -14,10 +14,10 @@ export const CinematicLoadingScreen: React.FC<CinematicLoadingScreenProps> = ({ 
   const [glitchText, setGlitchText] = useState('WEB APPLICATION & API SECURITY INTELLIGENCE DASHBOARD');
 
   const steps = [
-    'INITIALIZING QUANTUM ENCRYPTION TUNNEL...',
+    'INITIALIZING ORANGE-BLUE SECURITY TUNNEL...',
     'DECRYPTING THREAT TELEMETRY & ATTACK VECTORS...',
     'CONNECTING TO SECUREWATCH NEURAL GATEWAY...',
-    'LOADING WEB APPLICATION & API SECURITY INTELLIGENCE DASHBOARD...',
+    'LOADING SECUREWATCH THREAT INTELLIGENCE CONSOLE...',
     'VERIFYING ZERO-TRUST IDENTITY CREDENTIALS...',
     'AUTHENTICATION COMPLETE. GRANTED ACCESS TO SECUREWATCH.'
   ];
@@ -78,40 +78,34 @@ export const CinematicLoadingScreen: React.FC<CinematicLoadingScreenProps> = ({ 
   }, [onComplete]);
 
   return (
-    <div className="dark-blue-theme fixed inset-0 z-[9999] bg-[#02111f]/88 text-white flex flex-col items-center justify-center overflow-hidden select-none font-mono">
+    <div className="cinematic-loading-screen dark-blue-theme fixed inset-0 z-[9999] text-white flex flex-col items-center justify-center overflow-hidden select-none font-mono">
       <BinaryBackground />
-      {/* Background Matrix Particle FX */}
-      <div className="absolute inset-0 z-[1] bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-cyan-950/35 via-[#062b40]/70 to-[#02111f]/75" />
+      <div className="absolute inset-0 z-[1] bg-[radial-gradient(circle_at_50%_30%,rgba(249,115,22,0.22),transparent_28%),radial-gradient(circle_at_70%_65%,rgba(56,189,248,0.18),transparent_30%),radial-gradient(circle_at_20%_80%,rgba(34,197,94,0.12),transparent_28%),rgba(5,10,18,0.88)]" />
 
-      {/* Cyber Grid Overlay */}
-      <div className="absolute inset-0 z-[2] bg-[linear-gradient(to_right,#38bdf81a_1px,transparent_1px),linear-gradient(to_bottom,#38bdf81a_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none" />
+      <div className="absolute inset-0 z-[2] bg-[linear-gradient(to_right,rgba(249,115,22,0.12)_1px,transparent_1px),linear-gradient(to_bottom,rgba(56,189,248,0.12)_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none opacity-70" />
 
-      {/* Scanline CRT FX */}
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%)] bg-[size:100%_4px] pointer-events-none z-10 opacity-70" />
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.32)_50%)] bg-[size:100%_4px] pointer-events-none z-10 opacity-90" />
 
-      {/* Golden Pulse Aura centered directly behind symbol */}
-      <div className="absolute w-64 h-64 sm:w-80 sm:h-80 bg-cyan-500/20 rounded-full blur-[60px] animate-pulse pointer-events-none" />
-      <div className="absolute w-56 h-56 sm:w-72 sm:h-72 bg-blue-500/20 rounded-full blur-[40px] pointer-events-none" />
+      <div className="absolute w-72 h-72 sm:w-96 sm:h-96 bg-orange-500/15 rounded-full blur-[120px] animate-pulse pointer-events-none" />
+      <div className="absolute w-60 h-60 sm:w-80 sm:h-80 bg-sky-500/15 rounded-full blur-[110px] pointer-events-none" />
+      <div className="absolute w-48 h-48 sm:w-64 sm:h-64 bg-emerald-500/10 rounded-full blur-[90px] pointer-events-none" />
 
       {/* Main Center Container */}
       <div className="relative z-20 flex flex-col items-center text-center px-4 max-w-4xl w-full">
-        {/* Emblem Box with Golden Triangle & Eye of Providence */}
         <motion.div
           initial={{ scale: 0.85, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.5, ease: 'easeOut' }}
           className="relative mb-8 flex items-center justify-center"
         >
-          {/* Outer Glowing Golden Aura */}
-          <div className="absolute w-72 h-72 sm:w-96 sm:h-96 bg-cyan-500/20 rounded-full blur-[70px] animate-pulse pointer-events-none" />
+          <div className="absolute w-72 h-72 sm:w-[28rem] sm:h-[28rem] bg-gradient-to-r from-orange-500/20 via-sky-500/10 to-emerald-500/10 rounded-full blur-[90px] animate-pulse pointer-events-none" />
 
-          {/* Concentric Rotating Outer HUD Rings surrounding the image circle cleanly */}
-          <div className="absolute -inset-4 sm:-inset-6 rounded-full border-2 border-dashed border-amber-400/50 animate-[spin_20s_linear_infinite] pointer-events-none" />
-          <div className="absolute -inset-8 sm:-inset-10 rounded-full border border-amber-500/30 animate-[spin_32s_linear_infinite_reverse] pointer-events-none" />
+          <div className="absolute -inset-5 sm:-inset-7 rounded-full border-2 border-dashed border-orange-400/60 animate-[spin_20s_linear_infinite] pointer-events-none shadow-[0_0_30px_rgba(56,189,248,0.2)]" />
+          <div className="absolute -inset-8 sm:-inset-10 rounded-full border border-sky-400/35 animate-[spin_32s_linear_infinite_reverse] pointer-events-none" />
+          <div className="absolute -inset-12 sm:-inset-16 rounded-full border border-white/10 animate-[spin_50s_linear_infinite] pointer-events-none" />
 
-          {/* Main Golden Circle Frame containing the Eye of Horus image */}
-          <div className="relative aspect-square w-64 sm:w-80 rounded-full p-1.5 bg-black shadow-[0_0_70px_rgba(245,158,11,0.5)] overflow-hidden flex items-center justify-center border-2 border-amber-300">
-            <div className="absolute inset-1.5 z-10 overflow-hidden rounded-full bg-[#061a33]">
+          <div className="relative aspect-square w-64 sm:w-80 rounded-full p-1.5 bg-[radial-gradient(circle_at_center,_rgba(249,115,22,0.22),_rgba(8,15,23,0.96)_58%,_rgba(59,130,246,0.18))] shadow-[0_0_80px_rgba(56,189,248,0.45)] overflow-hidden flex items-center justify-center border border-orange-300/70">
+            <div className="absolute inset-1.5 z-10 overflow-hidden rounded-full bg-[#070d17] ring-1 ring-sky-400/30">
               <motion.img
                 initial={{ scale: 1.08, opacity: 0.3 }}
                 animate={{ scale: [1.04, 1, 1.02, 1], opacity: 1 }}
@@ -125,79 +119,70 @@ export const CinematicLoadingScreen: React.FC<CinematicLoadingScreenProps> = ({ 
                   event.currentTarget.onerror = null;
                   event.currentTarget.src = '/eye_providence_symbol.svg';
                 }}
-                className="block h-full w-full aspect-square object-contain rounded-full shadow-2xl"
+                className="block h-full w-full aspect-square object-contain rounded-full shadow-[0_0_35px_rgba(249,115,22,0.35)]"
               />
             </div>
 
-            {/* Subtle Golden Scan Beam */}
             <motion.div
               animate={{ y: ['-120%', '120%'] }}
               transition={{ repeat: Infinity, duration: 2.2, ease: 'easeInOut' }}
-              className="absolute inset-x-0 h-12 bg-gradient-to-b from-transparent via-amber-300/30 to-transparent border-y border-amber-300/60 pointer-events-none z-20"
+              className="absolute inset-x-0 h-14 bg-gradient-to-b from-transparent via-orange-300/35 via-sky-300/20 to-transparent border-y border-orange-300/60 pointer-events-none z-20"
             />
 
-            {/* Subtle Protective Gradient Ring */}
-            <div className="absolute inset-0 bg-gradient-to-b from-amber-400/10 via-transparent to-black/30 pointer-events-none rounded-full" />
+            <div className="absolute inset-0 bg-gradient-to-b from-orange-400/10 via-sky-400/5 to-emerald-400/10 pointer-events-none rounded-full" />
           </div>
         </motion.div>
 
-        {/* System Subtitle Badge */}
-        <div className="mb-4 inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/40 text-amber-300 text-[11px] font-bold tracking-widest uppercase shadow-[0_0_15px_rgba(245,158,11,0.25)]">
-          <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+        <div className="mb-4 inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-orange-500/10 border border-orange-400/40 text-orange-200 text-[11px] font-bold tracking-widest uppercase shadow-[0_0_15px_rgba(249,115,22,0.25)]">
+          <span className="w-2 h-2 rounded-full bg-green-400 animate-ping" />
           SECUREWATCH SYSTEM INITIATED
         </div>
 
-        {/* Glitch Title text */}
         <div className="relative mb-6">
           <h1
-            className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-amber-400 to-yellow-500 uppercase font-mono filter drop-shadow-[0_0_15px_rgba(245,158,11,0.5)] glitch-text-effect"
+            className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-white via-orange-300 via-sky-300 to-emerald-300 uppercase font-mono filter drop-shadow-[0_0_15px_rgba(59,130,246,0.5)] glitch-text-effect"
             data-text={glitchText}
           >
             {glitchText}
           </h1>
         </div>
 
-        {/* High Tech Cyber Progress Bar */}
-        <div className="w-full max-w-xl bg-black/80 border border-amber-500/40 rounded-xl p-4 shadow-2xl relative overflow-hidden backdrop-blur-md">
-          {/* Header Progress Info */}
+        <div className="w-full max-w-xl bg-black/80 border border-orange-500/40 rounded-xl p-4 shadow-2xl relative overflow-hidden backdrop-blur-md">
           <div className="flex justify-between items-center text-xs font-bold mb-2">
-            <span className="text-amber-400 flex items-center gap-2">
-              <span className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" />
+            <span className="text-orange-300 flex items-center gap-2">
+              <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
               SYSTEM DECRYPTION & LOADING
             </span>
-            <span className="text-yellow-300 font-mono text-sm tracking-wider">
+            <span className="text-sky-300 font-mono text-sm tracking-wider">
               {progress}%
             </span>
           </div>
 
-          {/* Bar track */}
-          <div className="w-full h-3 bg-gray-950 rounded-full border border-amber-900/60 overflow-hidden relative p-0.5">
+          <div className="w-full h-3 bg-gray-950 rounded-full border border-orange-900/60 overflow-hidden relative p-0.5">
             <motion.div
-              className="h-full bg-gradient-to-r from-amber-600 via-yellow-400 to-amber-300 rounded-full shadow-[0_0_15px_#f59e0b]"
+              className="h-full bg-gradient-to-r from-orange-500 via-sky-400 to-emerald-400 rounded-full shadow-[0_0_15px_rgba(34,211,238,0.9)]"
               style={{ width: `${progress}%` }}
               transition={{ ease: 'linear' }}
             />
           </div>
 
-          {/* Live Step Status Log */}
-          <div className="mt-3 text-[11px] text-gray-300 font-mono text-left flex items-center justify-between border-t border-amber-900/40 pt-2.5">
-            <span className="text-amber-200/90 truncate flex items-center gap-2">
-              <span className="text-amber-500">&gt;&gt;</span>
+          <div className="mt-3 text-[11px] text-gray-300 font-mono text-left flex items-center justify-between border-t border-orange-900/40 pt-2.5">
+            <span className="text-sky-100/90 truncate flex items-center gap-2">
+              <span className="text-orange-400">&gt;&gt;</span>
               {steps[currentStepIndex]}
             </span>
-            <span className="text-amber-400 font-bold ml-2 shrink-0">
+            <span className="text-emerald-400 font-bold ml-2 shrink-0">
               STATUS: RUNNING
             </span>
           </div>
         </div>
 
-        {/* Footer Credit & Status */}
-        <div className="mt-8 text-[11px] text-gray-400 flex flex-col sm:flex-row items-center gap-3 border-t border-amber-500/20 pt-4 w-full max-w-xl justify-between">
-          <span className="text-amber-400/80 font-semibold tracking-wider">
+        <div className="mt-8 text-[11px] text-gray-400 flex flex-col sm:flex-row items-center gap-3 border-t border-orange-500/20 pt-4 w-full max-w-xl justify-between">
+          <span className="text-orange-300/80 font-semibold tracking-wider">
             AUTHORIZATION NODE: <span className="text-white">ADMIN_NODE_01</span>
           </span>
           <span className="text-gray-400 font-bold">
-            DEVELOPED BY <span className="text-amber-300">KUNAL KHARAT</span>
+            DEVELOPED BY <span className="text-sky-300">KUNAL KHARAT</span>
           </span>
         </div>
       </div>

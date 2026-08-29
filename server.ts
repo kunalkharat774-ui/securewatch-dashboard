@@ -588,15 +588,18 @@ async function inspectUrlLive(targetUrl: URL) {
   const indicators: string[] = [];
   const suspiciousPattern = /(login|signin|verify|verification|wallet|crypto|password|credential|bonus|free[-_ ]?gift|reset)/i;
   const suspiciousTlds = ['.tk', '.ml', '.ga', '.cf', '.gq', '.xyz', '.top', '.work', '.date'];
+  const temporaryTunnelDomains = ['.trycloudflare.com', '.workers.dev', '.ngrok-free.app', '.serveo.net'];
   const brands = ['sbi', 'hdfc', 'icici', 'axisbank', 'paytm', 'phonepe', 'irctc', 'aadhaar', 'gpay', 'upi'];
   const isIpAddress = net.isIP(hostname) !== 0;
   const isPunycode = hostname.includes('xn--');
+  const isTemporaryTunnel = temporaryTunnelDomains.some((domain) => hostname.endsWith(domain));
   const isBrandDomain = brands.some((brand) => hostname.split('.').some((label) => label === brand || label.startsWith(`${brand}-`)));
   const isOfficialBrandDomain = brands.some((brand) => hostname === `${brand}.com` || hostname === `${brand}.in` || hostname.endsWith(`.${brand}.com`) || hostname.endsWith(`.${brand}.in`));
 
   if (targetUrl.protocol !== 'https:') indicators.push('unencrypted HTTP');
   if (isIpAddress) indicators.push('direct IP address');
   if (isPunycode) indicators.push('internationalized/punycode hostname');
+  if (isTemporaryTunnel) indicators.push('temporary tunnel domain often used for transient, untrusted hosting');
   if (suspiciousPattern.test(`${hostname}${targetUrl.pathname}`)) indicators.push('credential or reward themed URL');
   if (hostname.split('.').length > 4) indicators.push('unusually deep hostname');
   if (suspiciousTlds.some((tld) => hostname.endsWith(tld))) indicators.push('suspicious top-level domain');
@@ -633,6 +636,13 @@ async function inspectUrlLive(targetUrl: URL) {
   const reputationScore = malicious ? 20 : suspicious ? 55 : 92;
   const severity = malicious ? 'High' : suspicious ? 'Medium' : 'Low';
   const category = indicators.length > 0 ? indicators.join(', ') : 'No obvious risk indicators detected';
+  const recommendationText = isTemporaryTunnel
+    ? 'This domain is a temporary tunnel endpoint and should be treated as untrusted unless it belongs to a known internal service or verified project.'
+    : malicious
+      ? 'Do not visit this URL or submit credentials. Live inspection found high-risk indicators.'
+      : suspicious
+        ? 'Treat this URL with caution and verify the destination independently before continuing.'
+        : 'No obvious risk indicators were found by the live inspection. This is not a guarantee of safety.';
 
   return {
     id: `live-inspection-${Date.now()}`,
@@ -659,11 +669,7 @@ async function inspectUrlLive(targetUrl: URL) {
       ...indicators.map((indicator) => ({ name: indicator, result: 'Flagged' as const })),
       { name: 'SSL Certificate', result: certificate.valid ? 'Clean' as const : 'Flagged' as const },
     ],
-    recommendation: malicious
-      ? 'Do not visit this URL or submit credentials. Live inspection found high-risk indicators.'
-      : suspicious
-        ? 'Treat this URL with caution and verify the destination independently before continuing.'
-        : 'No obvious risk indicators were found by the live inspection. This is not a guarantee of safety.',
+    recommendation: recommendationText,
     provider: 'SecureWatch live DNS/TLS inspection',
   };
 }

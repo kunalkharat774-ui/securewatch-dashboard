@@ -18,106 +18,9 @@ interface RiskAssessmentViewProps {
   onBackToDashboard?: () => void;
 }
 
-const PRESET_PROFILES: { label: string; items: RiskItem[] }[] = [
-  {
-    label: 'FinTech Cloud Infrastructure',
-    items: [
-      {
-        id: 'risk-1',
-        assetName: 'Customer PII & Credit Card S3 Bucket',
-        category: 'Cloud',
-        threatVector: 'Public S3 Bucket Misconfiguration & Data Leak',
-        assetCriticality: 5,
-        likelihood: 4,
-        impact: 5,
-        controlsImplemented: false,
-        mitigationNotes: 'Missing KMS encryption at rest and bucket public access block policy.',
-        nistControl: 'AC-3 (Access Enforcement), SC-28 (Protection of Information at Rest)',
-      },
-      {
-        id: 'risk-2',
-        assetName: 'Core Payment Gateway API',
-        category: 'API',
-        threatVector: 'Credential Stuffing & Rate Limit Bypass',
-        assetCriticality: 5,
-        likelihood: 3,
-        impact: 5,
-        controlsImplemented: true,
-        mitigationNotes: 'Protected by Cloudflare WAF and OAuth 2.0 JWT token validation.',
-        nistControl: 'IA-2 (Identification and Authentication), SC-7 (Boundary Protection)',
-      },
-      {
-        id: 'risk-3',
-        assetName: 'Corporate Email & Identity Provider',
-        category: 'Human / Phishing',
-        threatVector: 'Spear Phishing & Session Token Hijacking',
-        assetCriticality: 4,
-        likelihood: 4,
-        impact: 4,
-        controlsImplemented: true,
-        mitigationNotes: 'Enforced FIDO2 WebAuthn hardware keys and automated phishing training.',
-        nistControl: 'AT-2 (Literacy Training), IA-2(1) (Multi-Factor Authentication)',
-      },
-      {
-        id: 'risk-4',
-        assetName: 'PostgreSQL Production Cluster',
-        category: 'Database',
-        threatVector: 'Unencrypted Database Backups & Exfiltration',
-        assetCriticality: 5,
-        likelihood: 2,
-        impact: 5,
-        controlsImplemented: false,
-        mitigationNotes: 'Automated snapshots stored without cross-region backup lock.',
-        nistControl: 'CP-9 (Information System Backups)',
-      },
-    ],
-  },
-  {
-    label: 'Healthcare HIPAA Web Portal',
-    items: [
-      {
-        id: 'risk-h1',
-        assetName: 'Electronic Health Records (EHR) Portal',
-        category: 'Database',
-        threatVector: 'SQL Injection via Legacy Query Endpoint',
-        assetCriticality: 5,
-        likelihood: 3,
-        impact: 5,
-        controlsImplemented: false,
-        mitigationNotes: 'Parameterized queries missing on older PHP backend scripts.',
-        nistControl: 'SI-10 (Information Input Validation)',
-      },
-      {
-        id: 'risk-h2',
-        assetName: 'Hospital Staff Workstations',
-        category: 'Endpoint',
-        threatVector: 'Ransomware Infection via Malicious Email Attachment',
-        assetCriticality: 4,
-        likelihood: 4,
-        impact: 4,
-        controlsImplemented: true,
-        mitigationNotes: 'CrowdStrike EDR installed with automated ransomware isolation.',
-        nistControl: 'SI-4 (Information System Monitoring)',
-      },
-      {
-        id: 'risk-h3',
-        assetName: 'Telehealth Video Gateway',
-        category: 'Network',
-        threatVector: 'Man-In-The-Middle (MITM) Eavesdropping',
-        assetCriticality: 4,
-        likelihood: 2,
-        impact: 4,
-        controlsImplemented: true,
-        mitigationNotes: 'Mandatory WebRTC TLS 1.3 encryption for video streams.',
-        nistControl: 'SC-8 (Transmission Confidentiality and Integrity)',
-      },
-    ],
-  },
-];
-
 export const RiskAssessmentView: React.FC<RiskAssessmentViewProps> = ({ onBackToDashboard }) => {
   const [framework, setFramework] = useState<string>('NIST SP 800-30');
-  const [riskItems, setRiskItems] = useState<RiskItem[]>(PRESET_PROFILES[0].items);
+  const [riskItems, setRiskItems] = useState<RiskItem[]>([]);
   const [selectedCell, setSelectedCell] = useState<{ likelihood: number; impact: number } | null>(null);
 
   // New Item Form State
@@ -156,9 +59,13 @@ export const RiskAssessmentView: React.FC<RiskAssessmentViewProps> = ({ onBackTo
     fetch('/api/risk-items', { cache: 'no-store' })
       .then((response) => response.ok ? response.json() : [])
       .then((items) => {
-        if (Array.isArray(items) && items.length > 0) setRiskItems(items);
+        if (Array.isArray(items) && items.length > 0) {
+          setRiskItems(items);
+          return;
+        }
+        setRiskItems([]);
       })
-      .catch(() => undefined);
+      .catch(() => setRiskItems([]));
   }, []);
 
   // Helper score calculator
@@ -312,21 +219,6 @@ export const RiskAssessmentView: React.FC<RiskAssessmentViewProps> = ({ onBackTo
             ))}
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-400 font-semibold">Load Risk Profile:</span>
-            {PRESET_PROFILES.map((profile) => (
-              <button
-                key={profile.label}
-                onClick={() => {
-                  setRiskItems(profile.items);
-                  persistRiskItems(profile.items);
-                }}
-                className="px-2.5 py-1 bg-[#111524] hover:bg-[#1a1e30] border border-[#1f2335] text-gray-300 text-[11px] rounded transition cursor-pointer"
-              >
-                {profile.label}
-              </button>
-            ))}
-          </div>
         </div>
       </div>
 

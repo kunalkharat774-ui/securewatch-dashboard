@@ -227,7 +227,7 @@ export const IpLocationView: React.FC = () => {
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-white tracking-tight">
-                  xHunter IP Location Lookup
+                  Securewatch IP Location Lookup
                 </h1>
                 <p className="text-xs text-gray-400 mt-0.5">
                   Real-time IP network route tracing & location search

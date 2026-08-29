@@ -9097,7 +9097,88 @@
         }
       }
     ],
-    "urlScans": [],
+    "urlScans": [
+      {
+        "id": "live-inspection-1787991085242",
+        "url": "https://medieval-bunny-letting-ultimate.trycloudflare.com/",
+        "domain": "medieval-bunny-letting-ultimate.trycloudflare.com",
+        "blacklistStatus": "Review required: temporary tunnel domain often used for transient, untrusted hosting",
+        "ipAddress": "104.16.230.132",
+        "phishing": "Suspicious",
+        "category": "temporary tunnel domain often used for transient, untrusted hosting",
+        "malware": "Clean",
+        "reputationScore": 55,
+        "spam": "Flagged",
+        "lastScanned": "29 Aug 2026, 13:41",
+        "threatLevel": "Medium",
+        "overallResult": "Suspicious",
+        "sslIssuer": "Google Trust Services",
+        "sslValid": true,
+        "serverLocation": "Live DNS/TLS inspection",
+        "httpStatus": 200,
+        "responseTimeMs": 614,
+        "redirectUrl": null,
+        "screenshot_url": "https://api.urlmeta.org/?url=https%3A%2F%2Fmedieval-bunny-letting-ultimate.trycloudflare.com%2F",
+        "enginesDetected": [
+          {
+            "name": "temporary tunnel domain often used for transient, untrusted hosting",
+            "result": "Flagged"
+          },
+          {
+            "name": "SSL Certificate",
+            "result": "Clean"
+          }
+        ],
+        "recommendation": "This domain is a temporary tunnel endpoint and should be treated as untrusted unless it belongs to a known internal service or verified project.",
+        "provider": "IsMalicious + SecureWatch live inspection"
+      },
+      {
+        "id": "live-inspection-1787990922456",
+        "url": "https://encouraged-scott-advertisement-alternatives.trycloudflare.com/",
+        "domain": "encouraged-scott-advertisement-alternatives.trycloudflare.com",
+        "blacklistStatus": "Review required: temporary tunnel domain often used for transient, untrusted hosting, hostname does not resolve in DNS, HTTP endpoint could not be reached, TLS certificate could not be validated",
+        "ipAddress": "N/A",
+        "phishing": "Malicious",
+        "category": "temporary tunnel domain often used for transient, untrusted hosting, hostname does not resolve in DNS, HTTP endpoint could not be reached, TLS certificate could not be validated",
+        "malware": "Clean",
+        "reputationScore": 20,
+        "spam": "Clean",
+        "lastScanned": "29 Aug 2026, 13:38",
+        "threatLevel": "High",
+        "overallResult": "Malicious",
+        "sslIssuer": "N/A",
+        "sslValid": false,
+        "serverLocation": "Live DNS/TLS inspection",
+        "httpStatus": null,
+        "responseTimeMs": 14,
+        "redirectUrl": null,
+        "screenshot_url": "https://api.urlmeta.org/?url=https%3A%2F%2Fencouraged-scott-advertisement-alternatives.trycloudflare.com%2F",
+        "enginesDetected": [
+          {
+            "name": "temporary tunnel domain often used for transient, untrusted hosting",
+            "result": "Flagged"
+          },
+          {
+            "name": "hostname does not resolve in DNS",
+            "result": "Flagged"
+          },
+          {
+            "name": "HTTP endpoint could not be reached",
+            "result": "Flagged"
+          },
+          {
+            "name": "TLS certificate could not be validated",
+            "result": "Flagged"
+          },
+          {
+            "name": "SSL Certificate",
+            "result": "Flagged"
+          }
+        ],
+        "recommendation": "This domain is a temporary tunnel endpoint and should be treated as untrusted unless it belongs to a known internal service or verified project.",
+        "provider": "IsMalicious + SecureWatch live inspection"
+      }
+    ],
     "fileScans": [],
     "settings": {
       "__auth": {
@@ -9105,6 +9186,25 @@
         "principal": "NODE_6E50",
         "loggedInAt": "2026-08-28T08:25:17.101Z",
         "lastLoginAt": "2026-08-28T08:25:17.101Z"
+      },
+      "__componentState": {
+        "api-monitoring": {
+          "endpoints": [
+            {
+              "id": "health",
+              "name": "SecureWatch Backend Health",
+              "path": "/api/health",
+              "method": "GET",
+              "status": "Healthy",
+              "latencyMs": 3,
+              "uptimePct": 0,
+              "errorRatePct": 0,
+              "authType": "Public",
+              "rateLimit": "Not reported",
+              "lastTested": "Just now"
+            }
+          ]
+        }
       }
     }
   },
@@ -9190,6 +9290,15 @@
     "riskItems": []
   },
   "usr_session_l7nk9gfkf_mtd4i2cq": {
+    "users": [],
+    "logs": [],
+    "urlScans": [],
+    "fileScans": [],
+    "settings": {},
+    "reports": [],
+    "riskItems": []
+  },
+  "usr_session_so2ou0dnn_mtdyqz79": {
     "users": [],
     "logs": [],
     "urlScans": [],

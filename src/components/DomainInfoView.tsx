@@ -336,7 +336,7 @@ export const DomainInfoView: React.FC<DomainInfoViewProps> = ({ onBackToDashboar
   const handleCopyReport = () => {
     if (!domainData) return;
     const reportText = `
-=== XHUNTER DOMAIN INTELLIGENCE REPORT ===
+=== Securewatch DOMAIN INTELLIGENCE REPORT ===
 Domain Name: ${domainData.domain}
 Query Time: ${domainData.queryTime}
 Registrar: ${domainData.registrar || 'N/A'}
@@ -419,7 +419,7 @@ CNAME Records: ${domainData.dnsRecords.CNAME.length}
             )}
             <h2 className="text-xl font-bold text-white flex items-center gap-2 tracking-tight">
               <i className="fa-solid fa-globe text-emerald-400"></i>
-              xHunter Domain Intelligence & WHOIS
+              Securewatch Domain Intelligence & WHOIS
             </h2>
           </div>
           <p className="text-xs text-gray-400 mt-1">

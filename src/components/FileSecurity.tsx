@@ -31,8 +31,8 @@ export const FileSecurity: React.FC<FileSecurityProps> = ({ onFileActivity }) =>
 
   // Encrypt state
   const [encryptFile, setEncryptFile] = useState<File | null>(null);
-  const [encPassword, setEncPassword] = useState<string>('xHunterPass2026!');
-  const [encConfirmPassword, setEncConfirmPassword] = useState<string>('xHunterPass2026!');
+  const [encPassword, setEncPassword] = useState<string>('SecurewatchPass2026!');
+  const [encConfirmPassword, setEncConfirmPassword] = useState<string>('SecurewatchPass2026!');
   const [showEncPassword, setShowEncPassword] = useState<boolean>(false);
   const [showEncConfirm, setShowEncConfirm] = useState<boolean>(false);
   const [isEncrypting, setIsEncrypting] = useState<boolean>(false);
@@ -155,7 +155,7 @@ export const FileSecurity: React.FC<FileSecurityProps> = ({ onFileActivity }) =>
 
   // Handle Real Encrypt
   const handleEncrypt = async () => {
-    const file = encryptFile || new File(['Sample Confidential xHunter Audit Payload\nClassification: RESTRICTED'], 'xHunter_Security_Audit.pdf', { type: 'application/pdf' });
+    const file = encryptFile || new File(['Sample Confidential Securewatch Audit Payload\nClassification: RESTRICTED'], 'Securewatch_Security_Audit.pdf', { type: 'application/pdf' });
 
     if (!encPassword) {
       showToast('Please set a encryption password', 'error');
@@ -349,7 +349,7 @@ export const FileSecurity: React.FC<FileSecurityProps> = ({ onFileActivity }) =>
     if (!scanResult) return;
     const certContent = JSON.stringify(
       {
-        header: 'xHUNTER CRYPTOGRAPHIC FILE INTEGRITY CERTIFICATE',
+        header: 'Securewatch CRYPTOGRAPHIC FILE INTEGRITY CERTIFICATE',
         timestamp: scanResult.scannedAt,
         fileName: scanResult.fileName,
         fileSize: scanResult.fileSize,
@@ -410,7 +410,7 @@ export const FileSecurity: React.FC<FileSecurityProps> = ({ onFileActivity }) =>
         <div>
           <div className="flex items-center gap-2 font-bold text-sm text-white">
             <i className="fa-solid fa-file-shield text-amber-400 text-lg" />
-            <span>xHunter File Security & Cryptographic Integrity Suite</span>
+            <span>Securewatch File Security & Cryptographic Integrity Suite</span>
             <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 font-mono">
               AES-256 GCM + SHA-256
             </span>
@@ -498,7 +498,7 @@ export const FileSecurity: React.FC<FileSecurityProps> = ({ onFileActivity }) =>
                 <i className="fa-solid fa-file-contract text-2xl text-amber-400 shrink-0" />
                 <div className="min-w-0 flex-1">
                   <h5 className="text-xs font-bold text-white truncate">
-                    {encryptFile ? encryptFile.name : 'xHunter_Security_Audit.pdf'}
+                    {encryptFile ? encryptFile.name : 'Securewatch_Security_Audit.pdf'}
                   </h5>
                   <p className="text-[11px] text-gray-400">
                     {encryptFile ? formatSize(encryptFile.size) : 'PDF - 2.45 MB'}

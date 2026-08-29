@@ -33,80 +33,8 @@ export interface SecurityReport {
 }
 
 export const ReportsView: React.FC<ReportsViewProps> = ({ onBackToDashboard }) => {
-  // Preset Templates
-  const defaultReports: SecurityReport[] = [
-    {
-      reportId: 'RPT-904812',
-      reportType: 'SOC2 Type II Executive Compliance Audit',
-      timeframe: 'Last 30 Days',
-      classification: 'STRICTLY CONFIDENTIAL',
-      targetScope: 'xHunter Production Microservice Infrastructure',
-      generatedAt: new Date(Date.now() - 3600000 * 24 * 2).toISOString(),
-      complianceScore: 96,
-      complianceStatus: 'COMPLIANT',
-      executiveSummary:
-        'This official SOC2 Type II compliance audit evaluates xHunter security perimeter controls across access management, encryption standards, and threat mitigation mechanisms. Over the evaluated 30-day window, zero unauthorized access breaches or unencrypted data leaks were recorded. WAF rules successfully intercepted over 1,400 malicious ingress payloads.',
-      keyFindings: [
-        'Zero credential leaks or unauthenticated database intrusions detected.',
-        'WAF ingress filtering maintained a 100% block rate on OWASP Top 10 web exploit attempts.',
-        'All database traffic encrypted in transit (TLS 1.3) and at rest (AES-256).',
-        'Role-Based Access Control (RBAC) enforced with 100% MFA compliance across technical staff.',
-      ],
-      frameworkBreakdown: [
-        { standard: 'SOC2 Type II (Trust Services Criteria)', compliancePct: 96, status: 'PASSED', keyRule: 'CC6.1 Logical Access Security' },
-        { standard: 'ISO 27001:2022', compliancePct: 94, status: 'PASSED', keyRule: 'A.12.6 Technical Vulnerability Management' },
-        { standard: 'PCI-DSS v4.0', compliancePct: 98, status: 'PASSED', keyRule: 'Req 6.4 Public Web App Firewall Defense' },
-        { standard: 'GDPR / Privacy Compliance', compliancePct: 95, status: 'PASSED', keyRule: 'Art 32 Security of Data Processing' },
-      ],
-      recommendedActions: [
-        'Rotate OAuth 2.0 client secret keys for legacy integration test suites.',
-        'Schedule bi-annual third-party penetration testing on API gateway endpoints.',
-        'Expand automated log retention buffer from 90 days to 180 days.',
-      ],
-      metrics: {
-        totalThreatsBlocked: 1428,
-        vulnerabilitiesMitigated: 37,
-        apiUptimeSla: '99.998%',
-        avgApiLatency: '22 ms',
-        activeDefenses: ['WAF CRS v3.3', 'Rate Limiter', 'IP Threat Reputation', 'TLS 1.3 Enforcement'],
-      },
-    },
-    {
-      reportId: 'RPT-883104',
-      reportType: 'ISO 27001 Security Controls Audit',
-      timeframe: 'Q2 2026 Audit',
-      classification: 'INTERNAL SECURITY USE',
-      targetScope: 'xHunter API Gateway & Data Pipeline',
-      generatedAt: new Date(Date.now() - 3600000 * 24 * 7).toISOString(),
-      complianceScore: 92,
-      complianceStatus: 'COMPLIANT',
-      executiveSummary:
-        'Comprehensive review of Information Security Management System (ISMS) controls under ISO 27001:2022 standards. The system demonstrated high resilience against automated port scanners, XSS attack vectors, and distributed denial-of-service attempts.',
-      keyFindings: [
-        'SIEM security event logging active with real-time anomaly telemetry alerts.',
-        'Disaster recovery backup snapshots executed daily with verified recovery time objective (RTO < 15 mins).',
-        'Dependency vulnerability patching SLA compliance held at 98.4%.',
-      ],
-      frameworkBreakdown: [
-        { standard: 'ISO 27001 Clause 8 Operations', compliancePct: 95, status: 'PASSED', keyRule: 'A.8.20 Network Security' },
-        { standard: 'ISO 27001 Clause 5 Leadership', compliancePct: 90, status: 'PASSED', keyRule: 'A.5.15 Access Control' },
-      ],
-      recommendedActions: [
-        'Enforce strict Content-Security-Policy (CSP) headers on all administrative web apps.',
-        'Conduct mandatory quarterly cybersecurity phishing awareness simulations for internal teams.',
-      ],
-      metrics: {
-        totalThreatsBlocked: 2190,
-        vulnerabilitiesMitigated: 42,
-        apiUptimeSla: '99.995%',
-        avgApiLatency: '25 ms',
-        activeDefenses: ['WAF CRS v3.3', 'mTLS Internal Mesh', 'Strict CSP'],
-      },
-    },
-  ];
-
-  const [reportArchive, setReportArchive] = useState<SecurityReport[]>(defaultReports);
-  const [activeReport, setActiveReport] = useState<SecurityReport>(defaultReports[0]);
+  const [reportArchive, setReportArchive] = useState<SecurityReport[]>([]);
+  const [activeReport, setActiveReport] = useState<SecurityReport | null>(null);
 
   useEffect(() => {
     fetch('/api/reports', { cache: 'no-store' })
@@ -115,16 +43,22 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ onBackToDashboard }) =
         if (Array.isArray(reports) && reports.length > 0) {
           setReportArchive(reports);
           setActiveReport(reports[0]);
+          return;
         }
+        setReportArchive([]);
+        setActiveReport(null);
       })
-      .catch(() => undefined);
+      .catch(() => {
+        setReportArchive([]);
+        setActiveReport(null);
+      });
   }, []);
 
   // Generator Wizard Inputs
   const [reportTypeInput, setReportTypeInput] = useState<string>('SOC2 Type II Executive Compliance Audit');
   const [timeframeInput, setTimeframeInput] = useState<string>('Last 30 Days');
   const [classificationInput, setClassificationInput] = useState<string>('STRICTLY CONFIDENTIAL');
-  const [targetScopeInput, setTargetScopeInput] = useState<string>('xHunter Cloud Infrastructure');
+  const [targetScopeInput, setTargetScopeInput] = useState<string>('Securewatch Cloud Infrastructure');
 
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [isGeneratorModalOpen, setIsGeneratorModalOpen] = useState<boolean>(false);
@@ -141,7 +75,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ onBackToDashboard }) =
   const handleCompileReport = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setIsGenerating(true);
-    showToast('Compiling xHunter Executive Security Report live via AI engine...', 'info');
+    showToast('Compiling Securewatch Executive Security Report live via AI engine...', 'info');
 
     try {
       const res = await fetch('/api/generate-security-report', {
@@ -184,9 +118,10 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ onBackToDashboard }) =
 
   // Export CSV of Findings
   const handleExportCSV = () => {
+    if (!activeReportData) return;
     const headers = ['Report ID', 'Standard/Rule', 'Compliance %', 'Status', 'Key Rule'];
-    const rows = activeReport.frameworkBreakdown.map((f) => [
-      `"${activeReport.reportId}"`,
+    const rows = activeReportData.frameworkBreakdown.map((f) => [
+      `"${activeReportData.reportId}"`,
       `"${f.standard}"`,
       `"${f.compliancePct}%"`,
       `"${f.status}"`,
@@ -197,7 +132,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ onBackToDashboard }) =
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `${activeReport.reportId}_Compliance_Matrix.csv`);
+    link.setAttribute('download', `${activeReportData.reportId}_Compliance_Matrix.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -206,10 +141,11 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ onBackToDashboard }) =
 
   // Export JSON
   const handleExportJSON = () => {
-    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(activeReport, null, 2));
+    if (!activeReportData) return;
+    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(activeReportData, null, 2));
     const downloadAnchor = document.createElement('a');
     downloadAnchor.setAttribute('href', dataStr);
-    downloadAnchor.setAttribute('download', `${activeReport.reportId}_Full_Report.json`);
+    downloadAnchor.setAttribute('download', `${activeReportData.reportId}_Full_Report.json`);
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
@@ -225,11 +161,54 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ onBackToDashboard }) =
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ reports: nextReports }),
     });
-    if (activeReport.reportId === id && reportArchive.length > 1) {
-      setActiveReport(reportArchive.find((r) => r.reportId !== id) || reportArchive[0]);
+    if (activeReport && activeReport.reportId === id) {
+      setActiveReport(nextReports[0] || null);
     }
     showToast(`Deleted report ${id} from archive`, 'info');
   };
+
+  if (!activeReport && reportArchive.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-[#0d111c] border border-[#1f2335] rounded-xl p-5 print:hidden">
+          <div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={onBackToDashboard}
+                className="px-2.5 py-1 bg-[#15192b] hover:bg-[#1f243d] text-gray-300 rounded text-xs transition cursor-pointer flex items-center gap-1"
+              >
+                <i className="fa-solid fa-arrow-left text-[10px]" /> Back
+              </button>
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <i className="fa-solid fa-file-contract text-purple-400" /> Securewatch Executive Security & Compliance Reports
+              </h2>
+            </div>
+            <p className="text-xs text-gray-400 mt-1">
+              Generate, audit, export, and print SOC2 Type II, ISO 27001, PCI-DSS, and GDPR executive security reports.
+            </p>
+          </div>
+          <button
+            onClick={() => setIsGeneratorModalOpen(true)}
+            className="px-3.5 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg transition shadow cursor-pointer flex items-center gap-1.5"
+          >
+            <i className="fa-solid fa-wand-magic-sparkles" /> Generate New Report
+          </button>
+        </div>
+
+        <div className="bg-[#0d111c] border border-[#1f2335] rounded-xl p-8 text-center">
+          <div className="w-16 h-16 mx-auto rounded-full bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 text-2xl">
+            <i className="fa-solid fa-file-circle-plus" />
+          </div>
+          <h3 className="mt-4 text-xl font-bold text-white">No generated reports yet</h3>
+          <p className="mt-2 text-sm text-gray-400 max-w-xl mx-auto">
+            The report archive is empty. Generate a live compliance report to populate the security register and audit timeline.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const activeReportData = activeReport || reportArchive[0];
 
   return (
     <div className="space-y-6 print:p-0 print:m-0 print:bg-white print:text-black">
@@ -273,7 +252,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ onBackToDashboard }) =
               <i className="fa-solid fa-arrow-left text-[10px]" /> Back
             </button>
             <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <i className="fa-solid fa-file-contract text-purple-400" /> xHunter Executive Security & Compliance Reports
+              <i className="fa-solid fa-file-contract text-purple-400" /> Securewatch Executive Security & Compliance Reports
             </h2>
             <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">
               Live AI Compiler
@@ -382,14 +361,14 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ onBackToDashboard }) =
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="px-2.5 py-0.5 rounded text-[11px] font-bold font-mono bg-red-500/20 text-red-400 border border-red-500/30">
-                {activeReport.classification}
+                {activeReportData.classification}
               </span>
-              <span className="text-xs text-gray-400 font-mono">Report ID: {activeReport.reportId}</span>
+              <span className="text-xs text-gray-400 font-mono">Report ID: {activeReportData.reportId}</span>
             </div>
-            <h1 className="text-2xl font-extrabold text-white tracking-tight">{activeReport.reportType}</h1>
+            <h1 className="text-2xl font-extrabold text-white tracking-tight">{activeReportData.reportType}</h1>
             <p className="text-xs text-gray-400 mt-1">
-              Target Scope: <span className="text-white font-medium">{activeReport.targetScope}</span> | Timeframe:{' '}
-              <span className="text-purple-300 font-medium">{activeReport.timeframe}</span>
+              Target Scope: <span className="text-white font-medium">{activeReportData.targetScope}</span> | Timeframe:{' '}
+              <span className="text-purple-300 font-medium">{activeReportData.timeframe}</span>
             </p>
           </div>
 
@@ -397,14 +376,14 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ onBackToDashboard }) =
             <div className="text-right">
               <span className="text-[10px] text-gray-400 uppercase tracking-wider block font-bold">Audit Score</span>
               <div className="text-3xl font-extrabold text-emerald-400 font-mono leading-none mt-1">
-                {activeReport.complianceScore}%
+                {activeReportData.complianceScore}%
               </div>
             </div>
             <div className="h-9 w-px bg-[#1f2335]" />
             <div className="text-left">
               <span className="text-[10px] text-gray-400 uppercase tracking-wider block font-bold">Status</span>
               <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 block mt-1">
-                {activeReport.complianceStatus}
+                {activeReportData.complianceStatus}
               </span>
             </div>
           </div>
@@ -415,32 +394,32 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ onBackToDashboard }) =
           <h3 className="text-xs font-bold text-purple-300 uppercase tracking-wider flex items-center gap-2">
             <i className="fa-solid fa-brain" /> CISO Executive AI Summary & Risk Analysis
           </h3>
-          <p className="text-xs text-gray-200 leading-relaxed font-sans whitespace-pre-line">{activeReport.executiveSummary}</p>
+          <p className="text-xs text-gray-200 leading-relaxed font-sans whitespace-pre-line">{activeReportData.executiveSummary}</p>
         </div>
 
         {/* Real Metrics Highlights Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-[#080a10] border border-[#1f2335] p-4 rounded-xl">
             <span className="text-[11px] text-gray-400 block font-medium">Attacks Blocked</span>
-            <div className="text-xl font-bold text-red-400 font-mono mt-1">{activeReport.metrics.totalThreatsBlocked}</div>
+            <div className="text-xl font-bold text-red-400 font-mono mt-1">{activeReportData.metrics.totalThreatsBlocked}</div>
             <span className="text-[10px] text-gray-500 mt-1 block">Filtered at WAF level</span>
           </div>
 
           <div className="bg-[#080a10] border border-[#1f2335] p-4 rounded-xl">
             <span className="text-[11px] text-gray-400 block font-medium">Vulnerabilities Patched</span>
-            <div className="text-xl font-bold text-purple-400 font-mono mt-1">{activeReport.metrics.vulnerabilitiesMitigated}</div>
+            <div className="text-xl font-bold text-purple-400 font-mono mt-1">{activeReportData.metrics.vulnerabilitiesMitigated}</div>
             <span className="text-[10px] text-gray-500 mt-1 block">Resolved in pipeline</span>
           </div>
 
           <div className="bg-[#080a10] border border-[#1f2335] p-4 rounded-xl">
             <span className="text-[11px] text-gray-400 block font-medium">API Availability SLA</span>
-            <div className="text-xl font-bold text-emerald-400 font-mono mt-1">{activeReport.metrics.apiUptimeSla}</div>
+            <div className="text-xl font-bold text-emerald-400 font-mono mt-1">{activeReportData.metrics.apiUptimeSla}</div>
             <span className="text-[10px] text-gray-500 mt-1 block">Zero catastrophic outages</span>
           </div>
 
           <div className="bg-[#080a10] border border-[#1f2335] p-4 rounded-xl">
             <span className="text-[11px] text-gray-400 block font-medium">Avg API Latency</span>
-            <div className="text-xl font-bold text-blue-400 font-mono mt-1">{activeReport.metrics.avgApiLatency}</div>
+            <div className="text-xl font-bold text-blue-400 font-mono mt-1">{activeReportData.metrics.avgApiLatency}</div>
             <span className="text-[10px] text-gray-500 mt-1 block">Measured across gateways</span>
           </div>
         </div>
@@ -451,7 +430,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ onBackToDashboard }) =
             <i className="fa-solid fa-list-check text-emerald-400" /> Key Security Audit Findings & Verification
           </h3>
           <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-            {activeReport.keyFindings.map((finding, idx) => (
+            {activeReportData.keyFindings.map((finding, idx) => (
               <li
                 key={idx}
                 className="p-3 bg-[#111524] border border-[#1f2335] rounded-lg text-gray-300 flex items-start gap-2.5"
@@ -479,7 +458,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ onBackToDashboard }) =
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#1f2335] text-gray-300">
-                {activeReport.frameworkBreakdown.map((fw, idx) => (
+                {activeReportData.frameworkBreakdown.map((fw, idx) => (
                   <tr key={idx} className="hover:bg-[#111524]">
                     <td className="p-3 font-bold text-white font-sans">{fw.standard}</td>
                     <td className="p-3 text-gray-400 text-[11px]">{fw.keyRule}</td>
@@ -502,7 +481,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ onBackToDashboard }) =
             <i className="fa-solid fa-bullseye text-amber-400" /> Strategic Remediation & Action Recommendations
           </h3>
           <div className="space-y-2 text-xs">
-            {activeReport.recommendedActions.map((act, idx) => (
+            {activeReportData.recommendedActions.map((act, idx) => (
               <div key={idx} className="p-3 bg-[#111524] border border-[#1f2335] rounded-lg text-gray-200 flex items-center gap-3">
                 <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 font-bold font-mono text-[10px]">
                   ACTION #{idx + 1}
@@ -515,8 +494,8 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ onBackToDashboard }) =
 
         {/* Footer Meta */}
         <div className="border-t border-[#1f2335] pt-4 flex flex-col sm:flex-row justify-between items-center text-[11px] text-gray-500 font-mono">
-          <span>Generated by xHunter Security Engine v4.8</span>
-          <span>Timestamp: {new Date(activeReport.generatedAt).toUTCString()}</span>
+          <span>Generated by Securewatch Security Engine v4.8</span>
+          <span>Timestamp: {new Date(activeReportData.generatedAt).toUTCString()}</span>
           <span>Digitally Signed CISO Audit Token</span>
         </div>
       </div>
@@ -533,7 +512,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ onBackToDashboard }) =
               key={rpt.reportId}
               onClick={() => setActiveReport(rpt)}
               className={`p-4 rounded-xl border transition cursor-pointer flex justify-between items-center ${
-                activeReport.reportId === rpt.reportId
+                activeReportData?.reportId === rpt.reportId
                   ? 'bg-purple-950/30 border-purple-500/60'
                   : 'bg-[#111524] hover:bg-[#171c30] border-[#1f2335]'
               }`}
@@ -582,7 +561,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ onBackToDashboard }) =
             >
               <div className="flex justify-between items-center border-b border-[#1f2335] pb-3">
                 <h3 className="font-bold text-sm text-white flex items-center gap-2">
-                  <i className="fa-solid fa-wand-magic-sparkles text-purple-400" /> xHunter AI Security Report Generator
+                  <i className="fa-solid fa-wand-magic-sparkles text-purple-400" /> Securewatch AI Security Report Generator
                 </h3>
                 <button
                   onClick={() => setIsGeneratorModalOpen(false)}

@@ -21,6 +21,7 @@ export const UrlChecker: React.FC<UrlCheckerProps> = ({ onScanComplete, recentSc
 	const [scanError, setScanError] = useState('');
 	const [scanResult, setScanResult] = useState<UrlScanResult | null>(null);
 	const [showJsonModal, setShowJsonModal] = useState(false);
+	const [showPreviewModal, setShowPreviewModal] = useState(false);
 	const [screenshotError, setScreenshotError] = useState(false);
 	const [copiedToast, setCopiedToast] = useState(false);
 
@@ -78,7 +79,7 @@ export const UrlChecker: React.FC<UrlCheckerProps> = ({ onScanComplete, recentSc
 	const status = scanResult?.overallResult === 'Safe'
 		? { color: '#10b981', panel: 'bg-emerald-950/60 border-emerald-500/60', text: 'text-emerald-400', icon: 'fa-regular fa-circle-check', title: 'VERDICT: SAFE & SECURE WEBSITE', severity: 'Low' }
 		: scanResult?.overallResult === 'Suspicious'
-			? { color: '#f59e0b', panel: 'bg-amber-950/60 border-amber-500/60', text: 'text-amber-400', icon: 'fa-solid fa-triangle-exclamation', title: 'VERDICT: SUSPICIOUS / POTENTIAL RISK', severity: 'Medium' }
+			? { color: '#f59e0b', panel: 'bg-amber-950/60 border-amber-500/60', text: 'text-amber-400', icon: 'fa-solid fa-triangle-exclamation', title: 'VERDICT: SUSPICIOUS / UNTRUSTED ENDPOINT', severity: 'Medium' }
 			: { color: '#ef4444', panel: 'bg-red-950/60 border-red-500/60', text: 'text-red-400', icon: 'fa-solid fa-shield-virus', title: 'VERDICT: DANGEROUS / MALICIOUS THREAT DETECTED', severity: 'Critical' };
 
 	const copyReport = () => {
@@ -116,15 +117,21 @@ export const UrlChecker: React.FC<UrlCheckerProps> = ({ onScanComplete, recentSc
 							<div className="flex-1">
 								<h4 className={`font-black text-sm ${status.text} uppercase tracking-wider`}>{status.title}</h4>
 								<p className="text-xs text-gray-300 font-mono mt-1">{scanResult.domain}</p>
-								<div className="flex gap-2 mt-2 text-xs">
-									<span className={`px-2 py-1 rounded-full font-bold ${status.text === 'text-emerald-400' ? 'bg-emerald-500/20 text-emerald-300' : status.text === 'text-amber-400' ? 'bg-amber-500/20 text-amber-300' : 'bg-red-500/20 text-red-300'}`}>
-										Severity: {status.severity}
-									</span>
-									<span className="px-2 py-1 rounded-full bg-slate-700/50 text-gray-300">IP: {scanResult.ipAddress}</span>
+									<div className="flex gap-2 mt-2 text-xs flex-wrap">
+										<span className={`px-2 py-1 rounded-full font-bold ${status.text === 'text-emerald-400' ? 'bg-emerald-500/20 text-emerald-300' : status.text === 'text-amber-400' ? 'bg-amber-500/20 text-amber-300' : 'bg-red-500/20 text-red-300'}`}>
+											Severity: {status.severity}
+										</span>
+										<span className="px-2 py-1 rounded-full bg-slate-700/50 text-gray-300">IP: {scanResult.ipAddress}</span>
+										{scanResult.domain.toLowerCase().includes('trycloudflare.com') && (
+											<span className="px-2 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold">
+												Temporary tunnel domain
+											</span>
+										)}
 								</div>
 							</div>
 						</div>
 						<div className="flex gap-2">
+							<button onClick={() => setShowPreviewModal(true)} className="px-2.5 py-1 bg-slate-800 text-emerald-300 rounded text-[11px] cursor-pointer hover:bg-slate-700"><i className="fa-regular fa-eye" /> Preview</button>
 							<button onClick={copyReport} className="px-2.5 py-1 bg-slate-800 text-gray-200 rounded text-[11px] cursor-pointer hover:bg-slate-700"><i className="fa-regular fa-copy" /> {copiedToast ? 'Copied!' : 'Copy'}</button>
 							<button onClick={() => setShowJsonModal(true)} className="px-2.5 py-1 bg-slate-800 text-cyan-300 rounded text-[11px] cursor-pointer hover:bg-slate-700"><i className="fa-solid fa-code" /> JSON</button>
 						</div>
@@ -179,6 +186,28 @@ export const UrlChecker: React.FC<UrlCheckerProps> = ({ onScanComplete, recentSc
 			</motion.div>}
 			<div className="mt-auto border-t border-cyan-500/20 pt-3"><div className="flex justify-between mb-2 text-xs font-bold text-white"><span>Recent URL Scans</span><span className="text-cyan-300">Total Scanned: {recentScans.length}</span></div>{recentScans.length > 0 && <div className="overflow-x-auto max-h-[180px]"><table className="w-full text-left text-xs"><tbody>{recentScans.map((scan) => <tr key={scan.id} onClick={() => { setScanResult(scan); setActiveTab('overview'); setScreenshotError(false); }} className="border-b border-[#1f2335] cursor-pointer"><td className="py-2 font-mono text-white">{scan.url}</td><td className="py-2 px-2">{scan.overallResult}</td><td className="py-2 font-mono">{scan.reputationScore}/100</td></tr>)}</tbody></table></div>}</div>
 			<AnimatePresence>{showJsonModal && scanResult && <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"><div className="bg-[#0b1329] border border-cyan-500/40 rounded-xl p-5 max-w-lg w-full"><div className="flex justify-between text-cyan-300 font-bold mb-3"><span>Raw Telemetry JSON</span><button onClick={() => setShowJsonModal(false)}>X</button></div><pre className="p-3 bg-[#030814] text-[11px] text-cyan-300 max-h-80 overflow-y-auto">{JSON.stringify(scanResult, null, 2)}</pre></div></div>}</AnimatePresence>
+			<AnimatePresence>{showPreviewModal && scanResult && <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-3 sm:p-6"><div className="relative w-full h-full max-w-[96vw] max-h-[94vh] bg-[#070d1b] border border-amber-500/40 rounded-2xl overflow-hidden shadow-[0_0_40px_rgba(251,191,36,0.2)]">
+				<div className="flex items-center justify-between border-b border-[#1f2335] px-4 py-3 bg-[#0a0f1a]">
+					<div>
+						<div className="text-[10px] uppercase tracking-[0.2em] text-amber-300 font-bold">Website Preview</div>
+						<div className="text-xs text-gray-300 font-mono mt-1 truncate max-w-[70vw]">{scanResult.url}</div>
+					</div>
+					<button onClick={() => setShowPreviewModal(false)} className="px-3 py-1.5 rounded-lg bg-red-500/20 border border-red-500/40 text-red-200 text-xs font-bold cursor-pointer">Close</button>
+				</div>
+				{scanResult.screenshot_url && !screenshotError ? (
+					<img src={scanResult.screenshot_url} alt={`Website preview of ${scanResult.domain}`} className="w-full h-[calc(100%-60px)] object-cover" onError={() => setScreenshotError(true)} />
+				) : (
+					<iframe
+						src={scanResult.url}
+						title={`Preview of ${scanResult.domain}`}
+						className="w-full h-[calc(100%-60px)] border-0 bg-white"
+						loading="lazy"
+						allowFullScreen
+						referrerPolicy="no-referrer-when-downgrade"
+						sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+					/> 
+				)}
+			</div></div>}</AnimatePresence>
 		</div>
 	);
 };
