@@ -351,7 +351,7 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
                 <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500" />
               </span>
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <i className="fa-solid fa-network-wired text-purple-400" /> xHunter API Gateway & Health Monitor
+                <i className="fa-solid fa-network-wired text-purple-400" /> Securewatch API Gateway & Health Monitor
               </h2>
             </div>
             <p className="text-xs text-gray-400 mt-1">
@@ -472,7 +472,7 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
               <i className="fa-solid fa-chart-simple text-purple-400 text-sm" />
-              <h3 className="font-bold text-sm text-white">xHunter endpoint latency stream (ms)</h3>
+              <h3 className="font-bold text-sm text-white">Securewatch endpoint latency stream (ms)</h3>
             </div>
             <span className="text-[11px] text-gray-400 font-mono">Live Telemetry (2.5s Probe Interval)</span>
           </div>
