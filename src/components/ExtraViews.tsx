@@ -14,7 +14,6 @@ import { SecurityLogsView } from './SecurityLogsView';
 import { ReportsView } from './ReportsView';
 import { SecurityUsersView } from './SecurityUsersView';
 import { SettingsView } from './SettingsView';
-import { LiveWebcamsView } from './LiveWebcamsView';
 
 interface ExtraViewsProps {
   view: NavView;
@@ -600,9 +599,6 @@ export const ExtraViews: React.FC<ExtraViewsProps> = ({ view, onBackToDashboard 
 
       {/* 7.5 TEXT ENCRYPTION TOOL */}
       {view === 'text-encrypt' && <TextEncryptView />}
-
-      {/* 7.6 LIVE WEBCAMS */}
-      {view === 'live-webcams' && <LiveWebcamsView />}
 
       {/* 7.55 STEGANOGRAPHY TOOL */}
       {view === 'steganography' && <SteganographyView />}

@@ -592,9 +592,6 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
           </span>
           Live CyberBriefing IOC Intelligence
         </h1>
-        <p className="text-[11px] text-slate-300 mt-1 hidden sm:block tracking-[0.12em] uppercase font-medium opacity-90">
-          Click any country pin or globe area to inspect geolocated IOC observations
-        </p>
       </div>
 
       {/* Quick Country Selection Pills Bar */}

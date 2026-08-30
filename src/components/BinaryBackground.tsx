@@ -53,13 +53,13 @@ export const BinaryBackground: React.FC = () => {
 
     let animationFrameId: number;
     let lastTime = 0;
-    const fps = 24; // Smooth 24 FPS matrix speed
+    const fps = 30;
     const interval = 1000 / fps;
 
     const handleResize = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
-      ctx.fillStyle = '#020a12';
+      ctx.fillStyle = '#030b12';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     };
 
@@ -71,12 +71,12 @@ export const BinaryBackground: React.FC = () => {
     const drops: number[] = Array.from({ length: columns }, () => Math.floor(Math.random() * -60));
     const chars = '01<>#*%X@∎';
 
-    const particles = Array.from({ length: 90 }, () => ({
+    const particles = Array.from({ length: 120 }, () => ({
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
-      radius: Math.random() * 2.6 + 0.7,
-      speedY: -(Math.random() * 0.7 + 0.15),
-      alpha: Math.random() * 0.8 + 0.2,
+      radius: Math.random() * 2.8 + 0.9,
+      speedY: -(Math.random() * 0.9 + 0.2),
+      alpha: Math.random() * 0.9 + 0.2,
     }));
 
     const draw = (currentTime: number) => {
@@ -86,13 +86,13 @@ export const BinaryBackground: React.FC = () => {
       if (delta < interval) return;
       lastTime = currentTime - (delta % interval);
 
-      ctx.fillStyle = 'rgba(2, 8, 14, 0.18)';
+      ctx.fillStyle = 'rgba(3, 10, 18, 0.17)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       ctx.shadowBlur = 0;
       for (let p = 0; p < particles.length; p++) {
         const pt = particles[p];
-        const hue = p % 3 === 0 ? 'rgba(249,115,22,' : p % 3 === 1 ? 'rgba(56,189,248,' : 'rgba(34,197,94,';
+        const hue = p % 3 === 0 ? 'rgba(245,158,11,' : p % 3 === 1 ? 'rgba(56,189,248,' : 'rgba(34,197,94,';
         ctx.beginPath();
         ctx.arc(pt.x, pt.y, pt.radius, 0, Math.PI * 2);
         ctx.fillStyle = `${hue}${pt.alpha})`;
@@ -112,23 +112,23 @@ export const BinaryBackground: React.FC = () => {
         const x = i * fontSize;
         const y = drops[i] * fontSize;
 
-        const color = i % 3 === 0 ? 'rgba(249, 115, 22, 0.88)' : i % 3 === 1 ? 'rgba(96, 165, 250, 0.88)' : 'rgba(52, 211, 153, 0.78)';
+        const color = i % 3 === 0 ? 'rgba(245, 158, 11, 0.96)' : i % 3 === 1 ? 'rgba(96, 165, 250, 0.96)' : 'rgba(52, 211, 153, 0.86)';
         ctx.shadowColor = color;
-        ctx.shadowBlur = 14;
+        ctx.shadowBlur = 18;
         ctx.fillStyle = color;
         ctx.fillText(char, x, y);
 
         const nextChar = chars[Math.floor(Math.random() * chars.length)];
         ctx.shadowColor = 'rgba(255,255,255,0.9)';
-        ctx.shadowBlur = 18;
-        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        ctx.shadowBlur = 22;
+        ctx.fillStyle = 'rgba(255,255,255,0.85)';
         ctx.fillText(nextChar, x, y + fontSize);
 
-        if (y > canvas.height && Math.random() > 0.985) {
+        if (y > canvas.height && Math.random() > 0.97) {
           drops[i] = 0;
         }
 
-        drops[i] += Math.random() > 0.75 ? 1.2 : 1;
+        drops[i] += Math.random() > 0.78 ? 1.5 : 1.1;
       }
     };
 

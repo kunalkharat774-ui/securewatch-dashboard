@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { CinematicLoadingScreen } from './CinematicLoadingScreen';
 
 // --- Matrix Rain Animation Canvas ---
 const BinaryBackground: React.FC = () => {
@@ -75,7 +74,6 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
   const [inputUsername, setInputUsername] = useState('');
   const [inputPassword, setInputPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
-  const [isDecrypting, setIsDecrypting] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Voice Feedback logic
@@ -145,7 +143,7 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
 
   // Timer Logic - 30 Seconds rotation
   useEffect(() => {
-    if (isAuthenticated || isDecrypting) return;
+    if (isAuthenticated) return;
     if (!activeCreds.username) void generateNewCredentials();
 
     const timerId = setInterval(() => {
@@ -159,7 +157,7 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
     }, 1000);
 
     return () => clearInterval(timerId);
-  }, [isAuthenticated, isDecrypting, activeCreds.username, generateNewCredentials]);
+  }, [isAuthenticated, activeCreds.username, generateNewCredentials]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -175,7 +173,8 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
         body: JSON.stringify({ accessId: inputUsername, password: inputPassword, challengeToken: activeCreds.token }),
       });
       if (response.ok) {
-        setIsDecrypting(true);
+        setIsAuthenticated(true);
+        localStorage.setItem('securewatch_authenticated', 'true');
       } else {
         throw new Error('Invalid credentials');
       }
@@ -189,13 +188,6 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
     }
   };
 
-  const handleCinematicComplete = useCallback(() => {
-    playVoiceFeedback('Access Granted. Welcome to Web Application and API Security Intelligence Dashboard.');
-    setIsAuthenticated(true);
-    localStorage.setItem('securewatch_authenticated', 'true');
-    setIsDecrypting(false);
-  }, [playVoiceFeedback]);
-
   const handleLogout = () => {
     setIsAuthenticated(false);
     localStorage.removeItem('securewatch_authenticated');
@@ -204,10 +196,6 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
   };
 
   if (isCheckingSession) return null;
-
-  if (isDecrypting) {
-    return <CinematicLoadingScreen onComplete={handleCinematicComplete} />;
-  }
 
   if (!isAuthenticated) {
     return (
@@ -246,13 +234,7 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
             <p style={styles.subTitle}>MULTI-FACTOR ENCRYPTION ENABLED</p>
           </div>
 
-          {isDecrypting ? (
-            <div style={styles.loadingArea}>
-              <div className="spinner-animate" style={styles.spinner}></div>
-              <p style={styles.decryptText}>ESTABLISHING SECURE TUNNEL...</p>
-            </div>
-          ) : (
-            <>
+          <>
               <div style={styles.tokenBox}>
                 <div style={styles.progressBarWrapper}>
                   <div

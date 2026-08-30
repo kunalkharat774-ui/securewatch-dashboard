@@ -15,7 +15,48 @@ import dotenv from 'dotenv';
 dotenv.config({ path: ['.env.local', '.env'] });
 
 const app = express();
-const PORT = Number(process.env.PORT || 3002);
+
+function resolveRequestedPort(defaultPort: number): number {
+  const args = process.argv.slice(2);
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if ((arg === '--port' || arg === '-p') && args[index + 1]) {
+      const parsed = Number(args[index + 1]);
+      if (Number.isFinite(parsed) && parsed > 0) return parsed;
+    }
+    if (arg.startsWith('--port=')) {
+      const parsed = Number(arg.slice('--port='.length));
+      if (Number.isFinite(parsed) && parsed > 0) return parsed;
+    }
+  }
+
+  const envPort = Number(process.env.PORT);
+  if (Number.isFinite(envPort) && envPort > 0) return envPort;
+  return defaultPort;
+}
+
+function getAvailablePort(startPort: number): Promise<number> {
+  return new Promise((resolve) => {
+    const attempt = (port: number) => {
+      const tester = net.createServer();
+      tester.once('error', () => {
+        if (port >= startPort + 50) {
+          resolve(startPort);
+          return;
+        }
+        attempt(port + 1);
+      });
+      tester.once('listening', () => {
+        tester.close(() => resolve(port));
+      });
+      tester.listen(port, '0.0.0.0');
+    };
+
+    attempt(startPort);
+  });
+}
+
+let PORT = resolveRequestedPort(3002);
 
 app.use(express.json());
 
@@ -3314,6 +3355,8 @@ async function startServer() {
   app.use((req, res) => {
     res.status(404).json({ error: 'Endpoint not found', path: req.path, method: req.method });
   });
+
+  PORT = await getAvailablePort(PORT);
 
   server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`\n✅ SecureWatch Backend Server Running Securely`);

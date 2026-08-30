@@ -24,8 +24,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onSelectView, ale
 
   const navItems: { id: NavView; label: string; icon: string; badge?: { text: string; type: 'live' | 'new' | 'count' | 'green' } }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: 'fa-gauge-high' },
-    { id: 'live-webcams', label: 'Live Webcams', icon: 'fa-video', badge: { text: 'LIVE', type: 'green' } },
     { id: 'live-map', label: 'Live Attack Map', icon: 'fa-map-location-dot', badge: { text: 'LIVE', type: 'live' } },
+    { id: 'live-webcams', label: 'Live Webcams', icon: 'fa-video', badge: { text: 'LIVE', type: 'live' } },
     { id: 'api-monitoring', label: 'API Monitoring', icon: 'fa-network-wired' },
     { id: 'alerts', label: 'Security Alerts', icon: 'fa-bell', badge: { text: `${alertCount}`, type: 'count' } },
     { id: 'vulnerability-scanner', label: 'Vulnerability Scanner', icon: 'fa-bug' },

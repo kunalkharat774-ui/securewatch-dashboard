@@ -10,6 +10,7 @@ import { RecentTables } from './components/RecentTables';
 import { ExtraViews } from './components/ExtraViews';
 import { BinaryBackground } from './components/BinaryBackground';
 import { CinematicLoadingScreen } from './components/CinematicLoadingScreen';
+import { LiveWebcamsView } from './components/LiveWebcamsView';
 import { NavView, UrlScanResult, FileActivity } from './types';
 
 export default function App() {
@@ -59,7 +60,15 @@ export default function App() {
     const interval = setInterval(() => {
       void refreshAlertCount();
     }, 5000);
-    return () => clearInterval(interval);
+
+    const fallbackLoaderTimer = window.setTimeout(() => {
+      setIsLoading(false);
+    }, 3000);
+
+    return () => {
+      clearInterval(interval);
+      window.clearTimeout(fallbackLoaderTimer);
+    };
   }, []);
 
   const handleScanComplete = (newResult: UrlScanResult) => {
@@ -169,6 +178,22 @@ export default function App() {
                 </div>
                 <FileSecurity onFileActivity={handleFileActivity} />
                 <RecentTables urlScans={urlScans} fileActivities={fileActivities} />
+              </div>
+            ) : currentView === 'live-webcams' ? (
+              <div className="flex-1 min-h-[640px]">
+                <div className="flex justify-between items-center mb-4 border-b border-[#1f2335] pb-4">
+                  <div>
+                    <h2 className="text-xl font-bold text-white">Live Webcams</h2>
+                    <p className="text-xs text-gray-400">Global surveillance map and selectable live video feed network</p>
+                  </div>
+                  <button
+                    onClick={() => setCurrentView('dashboard')}
+                    className="px-3.5 py-1.5 bg-[#1a1e30] hover:bg-[#252b42] text-gray-200 text-xs rounded border border-[#1f2335] transition flex items-center gap-2 cursor-pointer"
+                  >
+                    <i className="fa-solid fa-gauge-high text-xs" /> Back to Dashboard
+                  </button>
+                </div>
+                <LiveWebcamsView />
               </div>
             ) : currentView !== 'dashboard' ? (
               /* OTHER SIDEBAR MODULE VIEWS */
