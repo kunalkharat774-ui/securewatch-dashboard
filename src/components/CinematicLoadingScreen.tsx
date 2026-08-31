@@ -304,7 +304,7 @@ export const OsirisLoadingScreen: React.FC<OsirisLoadingScreenProps> = ({ onComp
 
         {/* Center: System Classification */}
         <div className="text-slate-600 hidden md:block text-center text-[9px]">
-                © 2026 SecureWatch Dashboard. All Rights Reserved.
+                  © 2026 SecureWatch Dashboard. All Rights Reserved.
         </div>
 
         {/* Right: Security Standard */}

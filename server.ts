@@ -16,6 +16,9 @@ dotenv.config({ path: ['.env.local', '.env'] });
 
 const app = express();
 
+app.use(express.json({ limit: '2mb' }));
+app.use(express.urlencoded({ extended: true, limit: '2mb' }));
+
 function resolveRequestedPort(defaultPort: number): number {
   const args = process.argv.slice(2);
   for (let index = 0; index < args.length; index += 1) {
@@ -57,8 +60,6 @@ function getAvailablePort(startPort: number): Promise<number> {
 }
 
 let PORT = resolveRequestedPort(3002);
-
-app.use(express.json());
 
 interface ThreatIndicator {
   id: string;
@@ -3204,6 +3205,23 @@ app.get('/api/security-logs', async (req, res) => {
   }
 });
 
+// POST /api/security-logs/clear - Clear the current session's SIEM log buffer.
+app.post('/api/security-logs/clear', async (req, res) => {
+  try {
+    const { sessionId, db } = await getTenantDb(req);
+    db.logs = [];
+    saveDatabaseToDisk();
+    return res.json({
+      success: true,
+      sessionId,
+      cleared: true,
+      remaining: 0,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || 'Unable to clear security logs' });
+  }
+});
+
 // POST /api/security-logs/ingest - Persist a verified security event for the current tenant
 app.post('/api/security-logs/ingest', async (req, res) => {
   const { level, service, message, sourceIp, destination, action, details } = req.body || {};
@@ -3373,6 +3391,20 @@ if (process.env.VERCEL !== '1') {
     process.exit(1);
   });
 }
+
+app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  const statusCode = Number(err?.statusCode || err?.status || 500);
+  const message = typeof err?.message === 'string' && err.message.trim().length > 0
+    ? err.message
+    : 'Internal Server Error';
+
+  console.error('Unhandled API error:', { statusCode, message, stack: err?.stack && String(err.stack).slice(0, 1200) });
+
+  res.status(statusCode).json({
+    error: statusCode >= 500 ? 'Internal Server Error' : message,
+    ...(process.env.NODE_ENV !== 'production' ? { details: message } : {}),
+  });
+});
 
 // Graceful shutdown handler
 process.on('SIGTERM', () => {

@@ -9681,5 +9681,73 @@
     "settings": {},
     "reports": [],
     "riskItems": []
+  },
+  "usr_session_ry7mblfrb_mtgrmyuz": {
+    "users": [],
+    "logs": [],
+    "urlScans": [
+      {
+        "id": "live-inspection-1788152225757",
+        "url": "https://www.phishingbase.com/",
+        "domain": "www.phishingbase.com",
+        "blacklistStatus": "Review required: HTTP endpoint could not be reached, TLS certificate could not be validated",
+        "ipAddress": "104.21.45.105",
+        "phishing": "Suspicious",
+        "category": "HTTP endpoint could not be reached, TLS certificate could not be validated",
+        "malware": "Clean",
+        "reputationScore": 55,
+        "spam": "Flagged",
+        "lastScanned": "31 Aug 2026, 10:27",
+        "threatLevel": "Medium",
+        "overallResult": "Suspicious",
+        "sslIssuer": "N/A",
+        "sslValid": false,
+        "serverLocation": "Live DNS/TLS inspection",
+        "httpStatus": null,
+        "responseTimeMs": 7000,
+        "redirectUrl": null,
+        "screenshot_url": "https://api.urlmeta.org/?url=https%3A%2F%2Fwww.phishingbase.com%2F",
+        "enginesDetected": [
+          {
+            "name": "HTTP endpoint could not be reached",
+            "result": "Flagged"
+          },
+          {
+            "name": "TLS certificate could not be validated",
+            "result": "Flagged"
+          },
+          {
+            "name": "SSL Certificate",
+            "result": "Flagged"
+          }
+        ],
+        "recommendation": "Treat this URL with caution and verify the destination independently before continuing.",
+        "provider": "IsMalicious + SecureWatch live inspection"
+      }
+    ],
+    "fileScans": [],
+    "settings": {
+      "__componentState": {
+        "api-monitoring": {
+          "endpoints": [
+            {
+              "id": "health",
+              "name": "SecureWatch Backend Health",
+              "path": "/api/health",
+              "method": "GET",
+              "status": "Healthy",
+              "latencyMs": 340,
+              "uptimePct": 0,
+              "errorRatePct": 0,
+              "authType": "Public",
+              "rateLimit": "Not reported",
+              "lastTested": "Just now"
+            }
+          ]
+        }
+      }
+    },
+    "reports": [],
+    "riskItems": []
   }
 }
