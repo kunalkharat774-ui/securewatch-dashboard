@@ -14,7 +14,17 @@ import dotenv from 'dotenv';
 
 dotenv.config({ path: ['.env.local', '.env'] });
 
+const isServerlessRuntime = Boolean(
+  process.env.VERCEL ||
+  process.env.AWS_LAMBDA_FUNCTION_NAME ||
+  process.env.NEXT_RUNTIME ||
+  process.env.LAMBDA_TASK_ROOT ||
+  process.env.NETLIFY ||
+  process.env.VERCEL_ENV
+);
+
 const app = express();
+app.disable('x-powered-by');
 
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
@@ -193,7 +203,7 @@ function connectCheckpointFeed() {
   request.on('error', () => setTimeout(connectCheckpointFeed, 5000));
 }
 
-if (process.env.VERCEL !== '1') {
+if (!isServerlessRuntime) {
   connectCheckpointFeed();
 }
 const protectedCountry = process.env.SECUREWATCH_TARGET_COUNTRY;
@@ -3385,7 +3395,7 @@ async function startServer() {
   });
 }
 
-if (process.env.VERCEL !== '1') {
+if (!isServerlessRuntime) {
   startServer().catch((error) => {
     console.error('Unable to start SecureWatch server:', error);
     process.exit(1);

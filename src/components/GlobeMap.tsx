@@ -298,9 +298,12 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
       .pointsData(countryCatalogRef.current)
       .pointLat((d: any) => d.lat)
       .pointLng((d: any) => d.lng)
-      .pointColor(() => '#f59e0b')
+      .pointColor(() => '#22c55e')
       .pointAltitude(0.02)
-      .pointRadius(0.35)
+      .pointRadius(0.45)
+      .onPointClick((country: Country) => {
+        handleSelectCountry(country);
+      })
       .onGlobeClick(({ lat, lng }: { lat: number; lng: number }) => {
         let closest: Country = countryCatalogRef.current[0];
         let minDistance = Infinity;
@@ -325,60 +328,14 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
           handleSelectCountry(closest);
         }
       })
-      .htmlElementsData(countryCatalogRef.current)
-      .htmlLat((d: any) => d.lat)
-      .htmlLng((d: any) => d.lng)
-      .htmlAltitude(() => 0.01)
-      .htmlElement((d: Country) => {
-        const el = document.createElement('div');
-        el.className = 'country-marker-node';
-        el.style.display = 'flex';
-        el.style.alignItems = 'center';
-        el.style.gap = '5px';
-        el.style.background = 'linear-gradient(135deg, rgba(12,21,37,0.92), rgba(14,31,58,0.86))';
-        el.style.padding = '3px 8px';
-        el.style.borderRadius = '10px';
-        el.style.border = '1px solid rgba(56, 189, 248, 0.38)';
-        el.style.boxShadow = '0 0 0 1px rgba(59,130,246,0.2), 0 8px 22px rgba(2,8,23,0.8), 0 0 20px rgba(34,211,238,0.15)';
-        el.style.cursor = 'pointer';
-        el.style.transition = 'all 0.2s ease';
-        el.style.backdropFilter = 'blur(10px)';
-
-        const flag = document.createElement('img');
-        flag.src = `https://flagcdn.com/24x18/${d.code.toLowerCase()}.png`;
-        flag.style.width = '16px';
-        flag.style.height = '12px';
-        flag.style.borderRadius = '2px';
-        flag.style.objectFit = 'cover';
-
-        const label = document.createElement('span');
-        label.innerText = d.name;
-        label.style.color = '#e2e8f0';
-        label.style.fontSize = '11px';
-        label.style.fontWeight = '600';
-
-        el.appendChild(flag);
-        el.appendChild(label);
-
-        el.onmouseenter = () => {
-          el.style.background = 'linear-gradient(135deg, rgba(14,116,144,0.9), rgba(59,130,246,0.7))';
-          el.style.borderColor = '#38bdf8';
-          el.style.transform = 'scale(1.12)';
-          el.style.boxShadow = '0 0 0 1px rgba(96,165,250,0.45), 0 12px 28px rgba(15,23,42,0.9), 0 0 26px rgba(59,130,246,0.4)';
-        };
-        el.onmouseleave = () => {
-          el.style.background = 'linear-gradient(135deg, rgba(12,21,37,0.92), rgba(14,31,58,0.86))';
-          el.style.borderColor = 'rgba(6, 182, 212, 0.35)';
-          el.style.transform = 'scale(1)';
-          el.style.boxShadow = '0 0 0 1px rgba(59,130,246,0.2), 0 8px 22px rgba(2,8,23,0.8), 0 0 20px rgba(34,211,238,0.15)';
-        };
-
-        el.onclick = (e) => {
-          e.stopPropagation();
-          handleSelectCountry(d);
-        };
-
-        return el;
+      .pointsData(countryCatalogRef.current)
+      .pointLat((d: any) => d.lat)
+      .pointLng((d: any) => d.lng)
+      .pointColor(() => '#22c55e')
+      .pointAltitude(0.02)
+      .pointRadius(0.45)
+      .onPointClick((country: Country) => {
+        handleSelectCountry(country);
       });
 
     worldRef.current = world;
