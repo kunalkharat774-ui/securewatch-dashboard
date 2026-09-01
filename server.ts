@@ -69,7 +69,7 @@ function getAvailablePort(startPort: number): Promise<number> {
   });
 }
 
-let PORT = resolveRequestedPort(3002);
+let PORT = resolveRequestedPort(3009);
 
 interface ThreatIndicator {
   id: string;
