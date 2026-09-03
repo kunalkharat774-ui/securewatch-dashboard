@@ -986,5 +986,14 @@
     "settings": {},
     "reports": [],
     "riskItems": []
+  },
+  "usr_session_d04rt0edh_mtlsakdm": {
+    "users": [],
+    "logs": [],
+    "urlScans": [],
+    "fileScans": [],
+    "settings": {},
+    "reports": [],
+    "riskItems": []
   }
 }
