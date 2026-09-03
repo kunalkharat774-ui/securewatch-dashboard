@@ -283,7 +283,6 @@ export const SecurityTerminal: React.FC<SecurityTerminalProps> = ({ children }) 
                 </button>
               </form>
             </>
-          )}
 
           <div style={styles.footerBranding}>
             <p style={styles.kunalBranding}>

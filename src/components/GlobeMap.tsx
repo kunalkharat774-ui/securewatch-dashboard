@@ -452,7 +452,6 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
     world.arcsData(liveArcs);
     world.ringsData(rings);
     world.pointsData(countryCatalog);
-    world.htmlElementsData(countryCatalog);
     if (selectedCountry && countryCatalog.some((country) => country.code === selectedCountry.code)) {
       const selectedAttacks = attacksForCountry(selectedCountry);
       setSelectedStats((current) => current ? {

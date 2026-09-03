@@ -85,7 +85,7 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
   };
 
   // Real Request Metrics Counter
-  const [totalProbesCount, setTotalProbesCount] = useState<number>(14);
+  const [totalProbesCount, setTotalProbesCount] = useState<number>(0);
   const [isProbingAll, setIsProbingAll] = useState<boolean>(false);
 
   // Add Endpoint Modal State
@@ -222,7 +222,7 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
       uptimePct: 0,
       errorRatePct: 0,
       authType: newEpAuth,
-      rateLimit: '100 req/min',
+      rateLimit: 'Not reported',
       lastTested: 'Just now',
     };
 

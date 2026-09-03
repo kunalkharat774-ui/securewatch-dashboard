@@ -56,7 +56,7 @@ interface ThreatFeed {
 
 const mapLogToAlert = (log: SecurityLogRecord): SecurityAlert => {
   const severity = log.level === 'CRITICAL' ? 'Critical' : log.level === 'ERROR' ? 'High' : log.level === 'WARN' ? 'Medium' : 'Low';
-  const status = log.action === 'BLOCKED' ? 'Blocked' : 'Active';
+  const status = typeof log.details?.alertStatus === 'string' ? log.details.alertStatus as SecurityAlert['status'] : log.action === 'BLOCKED' ? 'Blocked' : 'Active';
   const numericDetails = log.details || {};
   const requestsPerSec = typeof numericDetails.requestsPerSec === 'number' ? numericDetails.requestsPerSec : 0;
   return {
@@ -233,32 +233,34 @@ export const SecurityAlertsView: React.FC<SecurityAlertsViewProps> = ({
   };
 
   // Actions
-  const handleBlockIp = (id: string, srcIp: string) => {
-    setAlerts((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, status: 'Blocked' } : a))
-    );
-    showToast(`Firewall Rule Applied: IP ${srcIp} permanently blocked on Edge WAF`, 'success');
+  const updateAlertStatus = async (id: string, status: 'Investigating' | 'Blocked' | 'Resolved') => {
+    const response = await fetch(`/api/security-alerts/${encodeURIComponent(id)}/status`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }),
+    });
+    if (!response.ok) throw new Error((await response.json().catch(() => ({}))).error || `HTTP ${response.status}`);
+    setAlerts((prev) => prev.map((alert) => alert.id === id ? { ...alert, status } : alert));
   };
 
-  const handleAcknowledge = (id: string) => {
-    setAlerts((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, status: 'Investigating' } : a))
-    );
-    showToast(`Alert ${id} assigned to SOC Incident Response team`, 'info');
+  const handleBlockIp = async (id: string, srcIp: string) => {
+    try { await updateAlertStatus(id, 'Blocked'); showToast(`Alert ${id} recorded as blocked for ${srcIp}.`, 'success'); }
+    catch (error) { showToast(`Block action unavailable: ${error instanceof Error ? error.message : 'request failed'}`, 'danger'); }
   };
 
-  const handleResolve = (id: string) => {
-    setAlerts((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, status: 'Resolved' } : a))
-    );
-    showToast(`Alert ${id} marked as resolved and mitigated`, 'success');
+  const handleAcknowledge = async (id: string) => {
+    try { await updateAlertStatus(id, 'Investigating'); showToast(`Alert ${id} status saved as investigating.`, 'info'); }
+    catch (error) { showToast(`Status update unavailable: ${error instanceof Error ? error.message : 'request failed'}`, 'danger'); }
   };
 
-  const handleEmergencyLockdown = () => {
-    setAlerts((prev) =>
-      prev.map((a) => (a.severity === 'Critical' || a.severity === 'High' ? { ...a, status: 'Blocked' } : a))
-    );
-    showToast('Emergency WAF Lockdown Initiated: All Critical & High risk IPs blocked!', 'danger');
+  const handleResolve = async (id: string) => {
+    try { await updateAlertStatus(id, 'Resolved'); showToast(`Alert ${id} resolution saved.`, 'success'); }
+    catch (error) { showToast(`Resolution unavailable: ${error instanceof Error ? error.message : 'request failed'}`, 'danger'); }
+  };
+
+  const handleEmergencyLockdown = async () => {
+    const highRiskAlerts = alerts.filter((alert) => alert.severity === 'Critical' || alert.severity === 'High');
+    const results = await Promise.allSettled(highRiskAlerts.map((alert) => updateAlertStatus(alert.id, 'Blocked')));
+    const saved = results.filter((result) => result.status === 'fulfilled').length;
+    showToast(`${saved}/${highRiskAlerts.length} alert status changes were saved.`, saved === highRiskAlerts.length ? 'success' : 'danger');
   };
 
   const handleResetFeed = () => {

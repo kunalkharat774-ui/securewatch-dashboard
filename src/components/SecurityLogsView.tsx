@@ -52,7 +52,7 @@ export const SecurityLogsView: React.FC<SecurityLogsViewProps> = ({ onBackToDash
   const [ingestLevel, setIngestLevel] = useState<'CRITICAL' | 'ERROR' | 'WARN' | 'INFO'>('CRITICAL');
   const [ingestService, setIngestService] = useState<string>('WAF Guard');
   const [ingestMessage, setIngestMessage] = useState<string>('');
-  const [ingestSourceIp, setIngestSourceIp] = useState<string>('185.220.101.45');
+  const [ingestSourceIp, setIngestSourceIp] = useState<string>('');
   const [ingestAction, setIngestAction] = useState<'BLOCKED' | 'FLAGGED' | 'ALLOWED' | 'QUARANTINED'>('BLOCKED');
 
   // Toast

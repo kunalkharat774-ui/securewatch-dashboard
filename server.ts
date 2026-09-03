@@ -1769,20 +1769,16 @@ app.post('/api/evaluate-risk', async (req, res) => {
       if (inherent >= 15) highCriticalCount++;
     });
 
-    const avgInherent = riskItems.length > 0 ? (totalInherentScore / riskItems.length).toFixed(1) : '12.0';
-    const avgResidual = riskItems.length > 0 ? (totalResidualScore / riskItems.length).toFixed(1) : '5.2';
+    const avgInherent = riskItems.length > 0 ? (totalInherentScore / riskItems.length).toFixed(1) : '0';
+    const avgResidual = riskItems.length > 0 ? (totalResidualScore / riskItems.length).toFixed(1) : '0';
 
-    let executiveSummary = `Risk Assessment report generated under framework ${framework} for ${organizationType}. Analyzed ${riskItems.length} active risk scenarios. Unmitigated risk density indicates ${highCriticalCount} high-priority threats requiring mitigation controls.`;
-    let complianceGaps = [
-      'NIST SP 800-53 Control AC-2: Account Management review required for administrative access.',
-      'ISO 27001 Clause 8.2: Information security risk assessment documentation needs scheduled quarterly reviews.',
-      'SOC 2 CC6.1: Perimeter firewalls and endpoint protection controls require automated log aggregation.',
-    ];
-    let recommendedActions = [
-      'Enforce hardware key Multi-Factor Authentication (MFA) across all administrative cloud portals.',
-      'Implement automated immutable cloud backups with 3-2-1 retention rules for data loss prevention.',
-      'Deploy EDR (Endpoint Detection & Response) agents with 24/7 SIEM monitoring across all corporate endpoints.',
-    ];
+    let executiveSummary = `Risk Assessment under ${framework} for ${organizationType}: ${riskItems.length} recorded scenarios were evaluated. ${highCriticalCount} high-priority scenarios require mitigation controls.`;
+    let complianceGaps = riskItems.filter((item: any) => !item.controlsImplemented).map((item: any) => `${item.assetName || 'Recorded asset'}: control ${item.nistControl || 'not specified'} is not marked implemented.`);
+    let recommendedActions = riskItems.filter((item: any) => !item.controlsImplemented).map((item: any) => `Implement and document the planned control for ${item.assetName || 'the recorded asset'} (${item.threatVector || 'risk vector'}).`);
+    if (riskItems.length === 0) {
+      complianceGaps = ['No risk items were submitted; compliance gaps cannot be evaluated.'];
+      recommendedActions = ['Add verified asset and control evidence before relying on this assessment.'];
+    }
 
     const ai = getGeminiClient();
     if (ai && riskItems.length > 0) {
@@ -1848,12 +1844,16 @@ app.post('/api/analyze-alert', async (req, res) => {
       return res.status(400).json({ error: 'Alert object is required' });
     }
 
+    const ai = getGeminiClient();
+    if (!ai) {
+      return res.status(503).json({ error: 'Incident analysis requires a configured GEMINI_API_KEY.' });
+    }
+
     let rootCause = `Attacker originating from IP ${alert.src || '192.168.1.1'} executed repeated ${alert.title || 'security anomaly'} patterns targeting ${alert.target || 'endpoint'}.`;
     let mitreTechnique = 'T1110 (Brute Force) / T1190 (Exploit Public-Facing Application)';
     let recommendedFirewallRule = `iptables -A INPUT -s ${alert.src || '192.168.1.1'} -j DROP`;
     let recommendedPlaybookStep = '1. Revoke active JWT session tokens. 2. Enforce 2FA re-authentication. 3. Block IP address across Edge Cloudflare WAF.';
 
-    const ai = getGeminiClient();
     if (ai) {
       try {
         const prompt = `You are a Tier 3 Senior SOC Analyst and Incident Responder.
@@ -1996,11 +1996,11 @@ app.post('/api/ping-endpoint', async (req, res) => {
       statusText: result.statusCode < 400 ? 'OK' : result.statusCode === 404 ? 'Not Found' : 'Error',
       latencyMs: result.latencyMs,
       protocol: result.protocol,
-      serverHeader: result.headers['server'] || result.headers['x-powered-by'] || 'Express Node.js',
+      serverHeader: result.headers['server'] || result.headers['x-powered-by'] || 'Not reported',
       contentType: result.headers['content-[#type]'] || result.headers['content-type'] || 'application/json',
       contentLength: result.headers['content-length'] || String(result.bodySnippet.length),
-      corsHeader: result.headers['access-control-allow-origin'] || '*',
-      rateLimitRemaining: result.headers['x-ratelimit-remaining'] || '100',
+      corsHeader: result.headers['access-control-allow-origin'] || 'Not reported',
+      rateLimitRemaining: result.headers['x-ratelimit-remaining'] || 'Not reported',
       headers: result.headers,
       bodySnippet: result.bodySnippet,
       timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
@@ -2130,8 +2130,20 @@ try {
 
 let dbStores: Record<string, TenantDatabase> = {};
 
+function isPooledPostgresUrl(value: string | undefined): boolean {
+  if (!value) return false;
+  try {
+    const parsed = new URL(value);
+    const hostname = parsed.hostname.toLowerCase();
+    return hostname.includes('vercel-storage.com') ||
+      (hostname.includes('pooler') && parsed.port === '6543');
+  } catch {
+    return false;
+  }
+}
+
 const hasTenantDatabase = Boolean(
-  process.env.POSTGRES_URL || process.env.POSTGRES_PRISMA_URL || process.env.POSTGRES_URL_NON_POOLING,
+  isServerlessRuntime && isPooledPostgresUrl(process.env.POSTGRES_URL),
 );
 let tenantTableReady: Promise<void> | null = null;
 const tenantLoadPromises = new Map<string, Promise<void>>();
@@ -2219,6 +2231,10 @@ try {
   }
   if (rawData) {
     dbStores = JSON.parse(rawData);
+    // Checked-in SEC-LOG records are development fixtures, never live telemetry.
+    Object.values(dbStores).forEach((store) => {
+      store.logs = Array.isArray(store.logs) ? store.logs.filter((log) => !String(log.id).startsWith('SEC-LOG-')) : [];
+    });
   }
 } catch (e) {
   console.error('Failed to parse database file, initializing clean store:', e);
@@ -2898,30 +2914,41 @@ Provide a JSON verdict with keys:
 app.post('/api/generate-security-report', async (req, res) => {
   try {
     const { reportType = 'SOC2 Executive Compliance Audit', timeframe = 'Last 30 Days', classification = 'CONFIDENTIAL', targetScope = 'Entire Enterprise Infrastructure' } = req.body || {};
+    const { db } = await getTenantDb(req);
+    const logs = db.logs || [];
+    const riskItems = db.riskItems || [];
+    const blockedThreats = logs.filter((log) => log.action === 'BLOCKED' || log.action === 'QUARANTINED').length;
+    const mitigatedRisks = riskItems.filter((item) => item.controlsImplemented === true).length;
+    const measuredApiLogs = logs.filter((log) => log.service === 'API Monitor' && typeof log.details?.latencyMs === 'number');
+    const averageLatency = measuredApiLogs.length
+      ? Math.round(measuredApiLogs.reduce((sum, log) => sum + Number(log.details?.latencyMs || 0), 0) / measuredApiLogs.length)
+      : null;
+    let complianceScore = riskItems.length
+      ? Math.round((mitigatedRisks / riskItems.length) * 100)
+      : null;
 
     const reportId = `RPT-${Math.floor(Math.random() * 900000 + 100000)}`;
     const generatedAt = new Date().toISOString();
 
-    let executiveSummary = `This executive report presents an overarching security, risk mitigation, and regulatory compliance audit for ${targetScope} over the ${timeframe}.`;
-    let complianceScore = 94;
-    let complianceStatus = 'COMPLIANT';
+    let executiveSummary = `Report evidence for ${targetScope} over ${timeframe}: ${logs.length} persisted security events and ${riskItems.length} recorded risk items were available at generation time.`;
+    let complianceStatus = complianceScore !== null && complianceScore >= 80 ? 'COMPLIANT' : 'NEEDS_ATTENTION';
     let keyFindings: string[] = [
-      'Zero unauthorized data exfiltrations or critical database breaches detected.',
-      'Web Application Firewall (WAF) successfully filtered and dropped 1,420+ SQLi, XSS, and bot probe attacks.',
-      'API Gateway maintained a 99.998% uptime SLA with an average response latency of 22ms.',
-      'MFA enforcement active across 100% of privileged SOC Analyst accounts.',
+      `${logs.length} security events were available in the tenant log store.`,
+      `${blockedThreats} events were recorded with BLOCKED or QUARANTINED actions.`,
+      `${riskItems.length} risk items were recorded; ${mitigatedRisks} have implemented controls.`,
+      averageLatency === null ? 'No measured API latency evidence was available.' : `Measured API checks averaged ${averageLatency} ms.`,
     ];
-    let frameworkBreakdown = [
-      { standard: 'SOC2 Type II', compliancePct: 96, status: 'PASSED', keyRule: 'CC6.1 Logical Access Controls' },
-      { standard: 'ISO 27001:2022', compliancePct: 92, status: 'PASSED', keyRule: 'A.12.6 Technical Vulnerability Management' },
-      { standard: 'PCI-DSS v4.0', compliancePct: 98, status: 'PASSED', keyRule: 'Req 6.4 Public Web App Security' },
-      { standard: 'GDPR / CCPA', compliancePct: 95, status: 'PASSED', keyRule: 'Art 32 Security of Processing Data' },
-    ];
-    let recommendedActions = [
-      'Rotate API secret keys for staging deployment microservices older than 90 days.',
-      'Enable strict Content-Security-Policy (CSP) headers on secondary public endpoints.',
-      'Schedule quarterly external penetration testing for xHunter microservice cluster.',
-    ];
+    let frameworkBreakdown = ['SOC2 Type II', 'ISO 27001:2022', 'PCI-DSS v4.0', 'GDPR / CCPA'].map((standard) => ({
+      standard,
+      compliancePct: complianceScore ?? 0,
+      status: complianceScore !== null && complianceScore >= 80 ? 'PASSED' : 'NEEDS_REVIEW',
+      keyRule: riskItems.length ? `${riskItems.length} recorded risk controls` : 'No risk evidence recorded',
+    }));
+    let recommendedActions: string[] = [];
+    if (riskItems.some((item) => !item.controlsImplemented)) recommendedActions.push('Review and implement controls for every unmitigated recorded risk item.');
+    if (blockedThreats > 0) recommendedActions.push('Review blocked and quarantined events and retain incident response evidence.');
+    if (logs.length === 0) recommendedActions.push('Connect verified SIEM or IDS telemetry before treating this report as an operational assessment.');
+    if (recommendedActions.length === 0) recommendedActions.push('Continue collecting verified telemetry and review controls on the next assessment cycle.');
 
     if (process.env.GEMINI_API_KEY) {
       try {
@@ -2994,11 +3021,11 @@ Return JSON with exact keys:
       frameworkBreakdown,
       recommendedActions,
       metrics: {
-        totalThreatsBlocked: 1428,
-        vulnerabilitiesMitigated: 37,
-        apiUptimeSla: '99.998%',
-        avgApiLatency: '22 ms',
-        activeDefenses: ['WAF CRS v3.3', 'Rate Limiter (Token Bucket)', 'IP Threat Reputation Guard', 'Strict TLS 1.3'],
+        totalThreatsBlocked: blockedThreats,
+        vulnerabilitiesMitigated: mitigatedRisks,
+        apiUptimeSla: 'Not measured',
+        avgApiLatency: averageLatency === null ? 'Not measured' : `${averageLatency} ms`,
+        activeDefenses: Array.from(new Set(logs.filter((log) => log.action === 'BLOCKED' || log.action === 'QUARANTINED').map((log) => log.service))),
       },
     });
   } catch (err: any) {
@@ -3204,11 +3231,36 @@ function recordSecurityLog(log: Omit<SecurityLogEntry, 'id' | 'timestamp'>, sess
 app.get('/api/security-logs', async (req, res) => {
   try {
     const { sessionId, db } = await getTenantDb(req);
-    const logs = db.logs || [];
+    const level = String(req.query.level || '').toUpperCase();
+    const service = String(req.query.service || '').trim().toLowerCase();
+    const search = String(req.query.search || '').trim().toLowerCase();
+    const allLogs = db.logs || [];
+    const logs = allLogs.filter((log) =>
+      (!level || level === 'ALL' || log.level === level) &&
+      (!service || service === 'all' || log.service.toLowerCase() === service) &&
+      (!search || [log.id, log.message, log.sourceIp, log.destination, log.traceId].some((value) => String(value).toLowerCase().includes(search)))
+    );
+    const metrics = allLogs.reduce((summary, log) => {
+      summary.totalIngested += 1;
+      if (log.level === 'CRITICAL') summary.criticalCount += 1;
+      if (log.level === 'ERROR') summary.errorCount += 1;
+      if (log.level === 'WARN') summary.warnCount += 1;
+      if (log.level === 'INFO') summary.infoCount += 1;
+      if (log.action === 'BLOCKED') summary.blockedCount += 1;
+      return summary;
+    }, { totalIngested: 0, criticalCount: 0, errorCount: 0, warnCount: 0, infoCount: 0, blockedCount: 0 });
     return res.json({
       sessionId,
-      totalLogs: logs.length,
+      totalLogs: allLogs.length,
       logs: logs.slice(0, 50),
+      metrics: {
+        totalIngested: metrics.totalIngested,
+        criticalCount: metrics.criticalCount,
+        errorCount: metrics.errorCount,
+        warnCount: metrics.warnCount,
+        infoCount: metrics.infoCount,
+        blockedRate: metrics.totalIngested ? Number(((metrics.blockedCount / metrics.totalIngested) * 100).toFixed(1)) : 0,
+      },
     });
   } catch (err: any) {
     return res.status(500).json({ error: err.message || 'Unable to read security logs' });
@@ -3229,6 +3281,22 @@ app.post('/api/security-logs/clear', async (req, res) => {
     });
   } catch (err: any) {
     return res.status(500).json({ error: err.message || 'Unable to clear security logs' });
+  }
+});
+
+app.put('/api/security-alerts/:id/status', async (req, res) => {
+  try {
+    const { db } = await getTenantDb(req);
+    const status = String(req.body?.status || '');
+    if (!['Investigating', 'Blocked', 'Resolved'].includes(status)) return res.status(400).json({ error: 'Invalid alert status.' });
+    const log = db.logs.find((entry) => entry.id === req.params.id);
+    if (!log) return res.status(404).json({ error: 'Alert record not found in tenant telemetry.' });
+    log.details = { ...(log.details || {}), alertStatus: status };
+    if (status === 'Blocked') log.action = 'BLOCKED';
+    saveDatabaseToDisk();
+    return res.json({ updated: true, id: log.id, status });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || 'Unable to update alert status.' });
   }
 });
 
@@ -3268,7 +3336,7 @@ interface IpChatMessage {
 
 const ipChatRooms = new Map<string, IpChatMessage[]>();
 const hasIpChatDatabase = Boolean(
-  process.env.POSTGRES_URL || process.env.POSTGRES_PRISMA_URL || process.env.POSTGRES_URL_NON_POOLING,
+  isServerlessRuntime && isPooledPostgresUrl(process.env.POSTGRES_URL),
 );
 let ipChatTableReady: Promise<void> | null = null;
 

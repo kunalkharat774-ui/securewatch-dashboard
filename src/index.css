@@ -90,9 +90,6 @@ aside,
 .border-amber-500\/20,
 .border-cyan-500\/20,
 .border-sky-500\/20,
-.border-[#1f2335],
-.border-[#232d48],
-.border-[#1a2035],
 .border-slate-700,
 .border-slate-600 {
     border-color: var(--border) !important;
