@@ -1,7 +1,6 @@
 import type express from 'express';
 
 export const config = {
-  runtime: 'nodejs20.x',
   maxDuration: 30,
 };
 
