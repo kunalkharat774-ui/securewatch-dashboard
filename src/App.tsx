@@ -11,7 +11,26 @@ import { ExtraViews } from './components/ExtraViews';
 import { BinaryBackground } from './components/BinaryBackground';
 import { CinematicLoadingScreen } from './components/CinematicLoadingScreen';
 import { LiveWebcamsView } from './components/LiveWebcamsView';
+import { ShinyButton } from './components/ui/shiny-button';
+import ParticleDrift from './components/ui/particle-drift';
 import { NavView, UrlScanResult, FileActivity } from './types';
+
+const dashboardModuleViews: NavView[] = [
+  'api-monitoring',
+  'alerts',
+  'vulnerability-scanner',
+  'risk-assessment',
+  'email-breach',
+  'password-strength',
+  'text-encrypt',
+  'steganography',
+  'ip-location',
+  'domain-info',
+  'logs',
+  'reports',
+  'users',
+  'settings',
+];
 
 export default function App() {
   const [isLoading, setIsLoading] = useState(true);
@@ -63,7 +82,7 @@ export default function App() {
 
     const fallbackLoaderTimer = window.setTimeout(() => {
       setIsLoading(false);
-    }, 3000);
+    }, 3600);
 
     return () => {
       clearInterval(interval);
@@ -97,6 +116,12 @@ export default function App() {
       <div className="app-shell dark-blue-theme flex h-screen text-[#f9fbfd] font-sans overflow-hidden select-none relative">
         {/* Live Falcon Dark Animated Telemetry & Matrix Canvas */}
         <BinaryBackground />
+        <ParticleDrift
+          speed={0.7}
+          density={0.8}
+          opacity={0.36}
+          className="securewatch-particle-drift"
+        />
 
       {/* Falcon Dark Enterprise Radial Ambient Glows */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
@@ -131,12 +156,12 @@ export default function App() {
                     <h2 className="text-xl font-bold text-white">Live 3D Cyber Attack Globe</h2>
                     <p className="text-xs text-gray-400">Real-time global threat vectors & attack stream analytics</p>
                   </div>
-                  <button
+                  <ShinyButton
                     onClick={() => setCurrentView('dashboard')}
                     className="px-3.5 py-1.5 bg-[#1a1e30] hover:bg-[#252b42] text-gray-200 text-xs rounded border border-[#1f2335] transition flex items-center gap-2 cursor-pointer"
                   >
                     <i className="fa-solid fa-gauge-high text-xs" /> Back to Dashboard
-                  </button>
+                  </ShinyButton>
                 </div>
                 <div className="flex-1 relative rounded-xl overflow-hidden border border-[#1f2335] min-h-[550px]">
                   <GlobeMap isFullScreen={true} />
@@ -150,12 +175,12 @@ export default function App() {
                     <h2 className="text-xl font-bold text-white">URL Reputation Checker</h2>
                     <p className="text-xs text-gray-400">Scan domains and URLs for phishing, malware, and blacklist status</p>
                   </div>
-                  <button
+                  <ShinyButton
                     onClick={() => setCurrentView('dashboard')}
                     className="px-3.5 py-1.5 bg-[#1a1e30] hover:bg-[#252b42] text-gray-200 text-xs rounded border border-[#1f2335] transition flex items-center gap-2 cursor-pointer"
                   >
                     <i className="fa-solid fa-gauge-high text-xs" /> Back to Dashboard
-                  </button>
+                  </ShinyButton>
                 </div>
                 <div className="max-w-4xl">
                   <UrlChecker onScanComplete={handleScanComplete} recentScans={urlScans} />
@@ -169,12 +194,12 @@ export default function App() {
                     <h2 className="text-xl font-bold text-white">File Security - Encrypt & Decrypt</h2>
                     <p className="text-xs text-gray-400">Secure client-side AES-GCM file encryption and decryption</p>
                   </div>
-                  <button
+                  <ShinyButton
                     onClick={() => setCurrentView('dashboard')}
                     className="px-3.5 py-1.5 bg-[#1a1e30] hover:bg-[#252b42] text-gray-200 text-xs rounded border border-[#1f2335] transition flex items-center gap-2 cursor-pointer"
                   >
                     <i className="fa-solid fa-gauge-high text-xs" /> Back to Dashboard
-                  </button>
+                  </ShinyButton>
                 </div>
                 <FileSecurity onFileActivity={handleFileActivity} />
                 <RecentTables urlScans={urlScans} fileActivities={fileActivities} />
@@ -186,12 +211,12 @@ export default function App() {
                     <h2 className="text-xl font-bold text-white">Live Webcams</h2>
                     <p className="text-xs text-gray-400">Global surveillance map and selectable live video feed network</p>
                   </div>
-                  <button
+                  <ShinyButton
                     onClick={() => setCurrentView('dashboard')}
                     className="px-3.5 py-1.5 bg-[#1a1e30] hover:bg-[#252b42] text-gray-200 text-xs rounded border border-[#1f2335] transition flex items-center gap-2 cursor-pointer"
                   >
                     <i className="fa-solid fa-gauge-high text-xs" /> Back to Dashboard
-                  </button>
+                  </ShinyButton>
                 </div>
                 <LiveWebcamsView />
               </div>
@@ -235,6 +260,38 @@ export default function App() {
 
                 {/* Tables Row */}
                 <RecentTables urlScans={urlScans} fileActivities={fileActivities} />
+
+                {/* All security modules remain available on the primary dashboard. */}
+                <section className="mt-8 space-y-6" aria-label="All security modules">
+                  <div className="flex items-end justify-between gap-4 border-b border-cyan-500/20 pb-4">
+                    <div>
+                      <h2 className="text-lg font-bold text-white">All Security Modules</h2>
+                      <p className="text-xs text-gray-400">Monitor, investigate, and manage every SecureWatch capability from one workspace.</p>
+                    </div>
+                    <span className="shrink-0 rounded border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-300">
+                      {dashboardModuleViews.length + 3} modules online
+                    </span>
+                  </div>
+
+                  <div className="space-y-8">
+                    <div className="rounded-xl border border-cyan-500/20 bg-[#030e1e]/50 p-4 shadow-xl">
+                      <div className="mb-4 flex items-center justify-between">
+                        <div>
+                          <h3 className="text-sm font-bold text-white">Live Webcams</h3>
+                          <p className="text-[11px] text-gray-400">Global surveillance feeds and selectable live video network</p>
+                        </div>
+                        <span className="rounded border border-red-500/30 bg-red-500/10 px-2 py-1 text-[10px] font-bold text-red-300">LIVE</span>
+                      </div>
+                      <LiveWebcamsView />
+                    </div>
+
+                    {dashboardModuleViews.map((view) => (
+                      <div key={view} className="rounded-xl border border-cyan-500/20 bg-[#030e1e]/50 p-4 shadow-xl">
+                        <ExtraViews view={view} onBackToDashboard={() => setCurrentView('dashboard')} />
+                      </div>
+                    ))}
+                  </div>
+                </section>
               </>
             )}
           </motion.div>

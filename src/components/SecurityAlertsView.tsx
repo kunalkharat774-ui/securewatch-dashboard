@@ -307,12 +307,12 @@ export const SecurityAlertsView: React.FC<SecurityAlertsViewProps> = ({
         body: JSON.stringify({ alert }),
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        setAiReport(data);
-      } else {
-        throw new Error('API request failed');
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `API request failed with HTTP ${res.status}`);
+      if (!data.rootCause || !data.mitreTechnique || !data.recommendedFirewallRule || !data.recommendedPlaybookStep) {
+        throw new Error('Investigation response was incomplete');
       }
+      setAiReport(data);
     } catch (e) {
       setAiReport(null);
       showToast(`AI investigation unavailable: ${e instanceof Error ? e.message : 'request failed'}`, 'danger');

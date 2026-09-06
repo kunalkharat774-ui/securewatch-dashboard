@@ -1,5 +1,52 @@
 import { LiveWebcam } from '../types';
 
+const USER_SUBMITTED_WEBCAM_IDS = [
+  'qgs7w2RSROE',
+  'HHp4rjhJsWI',
+  'JLvCEDGJr-s',
+  'J7ZrIDvqlic',
+  'cTi5sCsUSfc',
+  'tEtg5Kg3voQ',
+  'yfI8jKgOnsY',
+  'hHLlZhianIQ',
+  'AovvFApVnKc',
+  'Cp4RRAEgpeU',
+  'fIMbMz2P7Bs',
+  'GRsoTIIZBNM',
+  'yv2RtoIMNzA',
+  'rFZHOHl-L8A',
+  'DoUOrTJbIu4',
+  '8VvER9Xl20E',
+] as const;
+
+const USER_SUBMITTED_LIVE_WEBCAMS: LiveWebcam[] = USER_SUBMITTED_WEBCAM_IDS.map((youtubeId, index) => ({
+  id: `yt-user-${youtubeId}`,
+  callsign: `OS-USER-${String(index + 1).padStart(2, '0')}`,
+  sector: 'SEC-06 (GLOBAL NETWORK)',
+  elevation: 'Unverified',
+  sensorType: 'External YouTube Live Feed',
+  title: `User Added Live Webcam ${String(index + 1).padStart(2, '0')}`,
+  channelName: 'YouTube Live',
+  city: 'Unverified Source',
+  stateOrRegion: 'External Feed',
+  country: 'Global Network',
+  countryCode: 'GN',
+  continent: 'Global Network',
+  latitude: 34 - (index % 4) * 12,
+  longitude: -120 + index * 16,
+  category: 'User Added Feed',
+  youtubeId,
+  embedUrl: `https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=1&mute=1&playsinline=1&rel=0`,
+  resolution: 'YouTube Live',
+  fps: 30,
+  timezone: 'UTC',
+  timezoneOffsetHours: 0,
+  viewersCount: 0,
+  status: 'External Feed',
+  description: 'User-provided external YouTube live webcam feed.',
+  tags: ['User Added', 'External Feed', 'YouTube Live'],
+}));
+
 export const USER_LIVE_WEBCAMS: LiveWebcam[] = [
   // --- NORTH AMERICA ---
   {
@@ -1890,6 +1937,7 @@ export const USER_LIVE_WEBCAMS: LiveWebcam[] = [
   {
     id: 'yt-a1mcaV3Sf9U', callsign: 'OS-DEV-84', sector: 'SEC-05 (DEVELOPMENT FEEDS)', elevation: '0m ASL', sensorType: 'External YouTube Live Feed', title: 'Development Live Webcam Feed 15', channelName: 'YouTube Live', city: 'Unverified Source', stateOrRegion: 'External Feed', country: 'Cyber & DarkNet', countryCode: 'CY', continent: 'Development Network', latitude: 3.0, longitude: 75.0, category: 'Development Feed', youtubeId: 'a1mcaV3Sf9U', embedUrl: 'https://www.youtube-nocookie.com/embed/a1mcaV3Sf9U?autoplay=1&mute=1&playsinline=1&rel=0', resolution: 'YouTube Live', fps: 30, timezone: 'UTC', timezoneOffsetHours: 0, viewersCount: 0, status: 'External Feed', description: 'User-provided external YouTube live feed for development and testing purposes.', tags: ['Development', 'External Feed', 'YouTube Live']
   },
+  ...USER_SUBMITTED_LIVE_WEBCAMS,
 ];
 
 export interface CountryGroup {
@@ -1924,6 +1972,16 @@ export const COUNTRY_GROUPS: CountryGroup[] = [
     zoom: 4,
     count: USER_LIVE_WEBCAMS.filter((c) => c.countryCode === 'CY').length,
     sectorCallsign: 'SEC-05 (CY)',
+  },
+  {
+    name: 'Global Network',
+    code: 'GN',
+    flag: '🌐',
+    lat: 25.0,
+    lng: 15.0,
+    zoom: 3,
+    count: USER_LIVE_WEBCAMS.filter((c) => c.countryCode === 'GN').length,
+    sectorCallsign: 'SEC-06 (GN)',
   },
   {
     name: 'United States',

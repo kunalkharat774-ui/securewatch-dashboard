@@ -48,13 +48,13 @@ type MapStyle = 'dark' | 'google-road' | 'satellite';
 
 const MAP_TILE_CONFIG: Record<MapStyle, { url: string; subdomains: string[]; maxZoom: number }> = {
   dark: {
-    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    url: 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png',
     subdomains: ['a', 'b', 'c', 'd'],
     maxZoom: 19,
   },
   'google-road': {
-    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    subdomains: ['a', 'b', 'c'],
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+    subdomains: [],
     maxZoom: 19,
   },
   satellite: {

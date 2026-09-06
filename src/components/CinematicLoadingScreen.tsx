@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import ParticleDrift from "./ui/particle-drift";
 
 interface OsirisLoadingScreenProps {
   onComplete: () => void;
@@ -12,24 +13,21 @@ const STATUS_MESSAGES = [
   "AUTHENTICATION VERIFIED",
 ];
 
+let loadingStartedAt: number | null = null;
+
 export const OsirisLoadingScreen: React.FC<OsirisLoadingScreenProps> = ({ onComplete }) => {
   const [progress, setProgress] = useState(0);
   const [statusIndex, setStatusIndex] = useState(0);
   const [isFadingOut, setIsFadingOut] = useState(false);
-  const [currentTime, setCurrentTime] = useState<string>("");
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const onCompleteRef = useRef(onComplete);
+  const fadeTimeoutRef = useRef<number | null>(null);
+  const completeTimeoutRef = useRef<number | null>(null);
+  const hasCompletedRef = useRef(false);
 
-  // Live UTC military timestamp
   useEffect(() => {
-    const updateClock = () => {
-      const now = new Date();
-      const utc = now.toISOString().replace("T", " // ").replace("Z", " UTC");
-      setCurrentTime(utc);
-    };
-    updateClock();
-    const interval = setInterval(updateClock, 1000);
-    return () => clearInterval(interval);
-  }, []);
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
 
   // Cinematic floating stardust bokeh particles
   useEffect(() => {
@@ -93,13 +91,12 @@ export const OsirisLoadingScreen: React.FC<OsirisLoadingScreenProps> = ({ onComp
   // Main Loading Sequence Timer
   useEffect(() => {
     const durationMs = 3000;
-    const intervalMs = 25;
-    const totalSteps = durationMs / intervalMs;
-    let step = 0;
+    if (loadingStartedAt === null) loadingStartedAt = Date.now();
 
-    const timer = setInterval(() => {
-      step++;
-      const currentPct = Math.min(100, Math.round((step / totalSteps) * 100));
+    let animationFrameId = 0;
+    const updateProgress = () => {
+      if (hasCompletedRef.current) return;
+      const currentPct = Math.min(100, Math.round(((Date.now() - loadingStartedAt!) / durationMs) * 100));
       setProgress(currentPct);
 
       if (currentPct < 22) {
@@ -114,19 +111,28 @@ export const OsirisLoadingScreen: React.FC<OsirisLoadingScreenProps> = ({ onComp
         setStatusIndex(4);
       }
 
-      if (step >= totalSteps) {
-        clearInterval(timer);
-        setTimeout(() => {
+      if (currentPct >= 100) {
+        hasCompletedRef.current = true;
+        fadeTimeoutRef.current = window.setTimeout(() => {
           setIsFadingOut(true);
-          setTimeout(() => {
-            onComplete();
+          completeTimeoutRef.current = window.setTimeout(() => {
+            onCompleteRef.current();
           }, 650);
         }, 350);
+        return;
       }
-    }, intervalMs);
 
-    return () => clearInterval(timer);
-  }, [onComplete]);
+      animationFrameId = window.requestAnimationFrame(updateProgress);
+    };
+
+    updateProgress();
+
+    return () => {
+      window.cancelAnimationFrame(animationFrameId);
+      if (fadeTimeoutRef.current !== null) window.clearTimeout(fadeTimeoutRef.current);
+      if (completeTimeoutRef.current !== null) window.clearTimeout(completeTimeoutRef.current);
+    };
+  }, []);
 
   return (
     <div
@@ -135,6 +141,14 @@ export const OsirisLoadingScreen: React.FC<OsirisLoadingScreenProps> = ({ onComp
         isFadingOut ? "opacity-0 scale-105 filter blur-sm pointer-events-none" : "opacity-100 scale-100"
       }`}
     >
+      <ParticleDrift
+        speed={0.55}
+        density={0.75}
+        opacity={0.28}
+        className="pointer-events-none"
+        style={{ zIndex: 1 }}
+      />
+
       {/* ========================================================================= */}
       {/* CINEMATIC LAYER 1: AMBIENT OPTICAL FLARES & PARTICLES */}
       {/* ========================================================================= */}
@@ -304,7 +318,6 @@ export const OsirisLoadingScreen: React.FC<OsirisLoadingScreenProps> = ({ onComp
 
         {/* Center: System Classification */}
         <div className="text-slate-600 hidden md:block text-center text-[9px]">
-                     © 2026 SecureWatch Dashboard. All Rights Reserved.
         </div>
 
         {/* Right: Security Standard */}

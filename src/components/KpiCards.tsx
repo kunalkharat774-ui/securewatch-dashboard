@@ -7,42 +7,66 @@ interface KpiCardsProps {
 }
 
 export const KpiCards: React.FC<KpiCardsProps> = ({ onSelectView }) => {
-  const [totalRequests, setTotalRequests] = useState<number>(24810450);
-  const [activeThreats, setActiveThreats] = useState<number>(156);
-  const [vulnerabilities, setVulnerabilities] = useState<number>(28);
-  const [riskScore, setRiskScore] = useState<number>(72);
+  const [securityEvents, setSecurityEvents] = useState<number | null>(null);
+  const [activeThreats, setActiveThreats] = useState<number | null>(null);
+  const [vulnerabilities, setVulnerabilities] = useState<number | null>(null);
+  const [riskScore, setRiskScore] = useState<number | null>(null);
   const [activeModal, setActiveModal] = useState<'requests' | 'threats' | 'vulns' | 'risk' | null>(null);
 
-  // Live real-time tick simulation
+  // KPI values come from backend telemetry. Unknown values remain explicit instead of being simulated.
   useEffect(() => {
-    const interval = setInterval(() => {
-      setTotalRequests((prev) => prev + Math.floor(Math.random() * 8 + 3));
+    let cancelled = false;
 
-      if (Math.random() > 0.7) {
-        const threatDelta = Math.random() > 0.5 ? 1 : -1;
-        setActiveThreats((prev) => Math.max(120, Math.min(220, prev + threatDelta)));
+    const loadMetrics = async () => {
+      try {
+        const [logsResponse, threatsResponse] = await Promise.all([
+          fetch('/api/security-logs', { cache: 'no-store' }),
+          fetch('/api/threats?limit=100', { cache: 'no-store' }),
+        ]);
+        if (!logsResponse.ok || !threatsResponse.ok) throw new Error('Telemetry unavailable');
+
+        const logsPayload = await logsResponse.json() as { logs?: Array<{ level?: string; action?: string }> };
+        const threatsPayload = await threatsResponse.json() as { threats?: unknown[] };
+        if (cancelled) return;
+
+        const logs = Array.isArray(logsPayload.logs) ? logsPayload.logs : [];
+        const liveThreats = Array.isArray(threatsPayload.threats) ? threatsPayload.threats.length : 0;
+        const activeLogThreats = logs.filter((log) => {
+          const level = String(log.level || '').toUpperCase();
+          return level === 'CRITICAL' || level === 'ERROR' || level === 'WARN';
+        }).length;
+
+        setSecurityEvents(logs.length);
+        setActiveThreats(liveThreats + activeLogThreats);
+        setVulnerabilities(null);
+        setRiskScore(null);
+      } catch {
+        if (cancelled) return;
+        setSecurityEvents(null);
+        setActiveThreats(null);
+        setVulnerabilities(null);
+        setRiskScore(null);
       }
+    };
 
-      if (Math.random() > 0.85) {
-        const vulnDelta = Math.random() > 0.6 ? -1 : 1;
-        setVulnerabilities((prev) => Math.max(10, Math.min(50, prev + vulnDelta)));
-      }
-    }, 1200);
+    void loadMetrics();
+    const interval = window.setInterval(() => void loadMetrics(), 10000);
 
-    return () => clearInterval(interval);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
   }, []);
 
-  const formatMillions = (num: number) => {
-    return (num / 1000000).toFixed(3) + 'M';
-  };
+  const formatMetric = (num: number | null) => num === null ? 'N/A' : num.toLocaleString();
 
   const cards = [
     {
       id: 'requests',
-      title: 'Total Requests',
-      value: formatMillions(totalRequests),
+      title: 'Security Events',
+      value: formatMetric(securityEvents),
       badge: <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping shadow-[0_0_6px_#f59e0b]" />,
-      subtext: '12.5% live request rate',
+      subtext: 'Backend SIEM telemetry',
       subIcon: 'fa-arrow-up',
       subColor: 'text-amber-400',
       icon: 'fa-shield',
@@ -53,7 +77,7 @@ export const KpiCards: React.FC<KpiCardsProps> = ({ onSelectView }) => {
     {
       id: 'threats',
       title: 'Active Threats',
-      value: activeThreats,
+      value: formatMetric(activeThreats),
       badge: <span className="px-1 py-0.2 rounded text-[9px] bg-red-500/20 text-red-400 font-bold uppercase border border-red-500/30">LIVE</span>,
       subtext: 'Real-time detection',
       subIcon: 'fa-arrow-up',
@@ -66,20 +90,20 @@ export const KpiCards: React.FC<KpiCardsProps> = ({ onSelectView }) => {
     {
       id: 'vulns',
       title: 'Vulnerabilities',
-      value: vulnerabilities,
+      value: formatMetric(vulnerabilities),
       badge: null,
-      subtext: '3.7% patched',
+      subtext: 'Run a vulnerability scan',
       subIcon: 'fa-arrow-down',
       subColor: 'text-emerald-400',
       icon: 'fa-bug',
       iconBg: 'bg-amber-500/10 text-amber-300 border border-amber-500/20',
       borderColor: 'hover:border-amber-500/40',
-      targetView: 'vulnerabilities' as NavView,
+      targetView: 'vulnerability-scanner' as NavView,
     },
     {
       id: 'risk',
       title: 'Risk Score',
-      value: `${riskScore} /100`,
+      value: riskScore === null ? 'N/A' : `${riskScore} /100`,
       badge: null,
       subtext: 'Medium Risk Shield',
       subIcon: 'fa-circle-check',

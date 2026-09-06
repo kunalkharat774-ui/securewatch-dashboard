@@ -1,5 +1,69 @@
 @import "tailwindcss";
 @import "leaflet/dist/leaflet.css";
+@property --gradient-angle {
+    syntax: "<angle>";
+    initial-value: 0deg;
+    inherits: false;
+}
+
+.shiny-cta {
+    --shiny-cta-bg: #0b1220;
+    --shiny-cta-bg-subtle: rgba(148, 163, 184, 0.2);
+    --shiny-cta-fg: #e2e8f0;
+    --shiny-cta-highlight: #38bdf8;
+    isolation: isolate;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    outline-offset: 3px;
+    border: 1px solid transparent;
+    color: var(--shiny-cta-fg);
+    background: linear-gradient(var(--shiny-cta-bg), var(--shiny-cta-bg)) padding-box, conic-gradient(from var(--gradient-angle), transparent 5%, var(--shiny-cta-highlight) 10%, #fff 15%, var(--shiny-cta-highlight) 20%, transparent 25%) border-box;
+    box-shadow: inset 0 0 0 1px var(--shiny-cta-bg-subtle);
+    animation: shiny-gradient-angle 3s linear infinite;
+    transition: box-shadow 220ms ease, transform 220ms ease;
+}
+
+.shiny-cta::after {
+    content: "";
+    position: absolute;
+    inset: -120%;
+    z-index: -1;
+    pointer-events: none;
+    background: linear-gradient(115deg, transparent 42%, rgba(165, 243, 252, 0.32) 50%, transparent 58%);
+    transform: translateX(-25%);
+    transition: transform 500ms ease;
+}
+
+.shiny-cta>span {
+    position: relative;
+    z-index: 1;
+}
+
+.shiny-cta:is(:hover, :focus-visible) {
+    box-shadow: inset 0 0 0 1px rgba(165, 243, 252, 0.38), 0 0 22px rgba(56, 189, 248, 0.2);
+    transform: translateY(-1px);
+}
+
+.shiny-cta:is(:hover, :focus-visible)::after {
+    transform: translateX(25%);
+}
+
+.shiny-cta:active {
+    transform: translateY(0);
+}
+
+.shiny-cta:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+@keyframes shiny-gradient-angle {
+    to {
+        --gradient-angle: 360deg;
+    }
+}
+
 :root {
     --bg: #020817;
     --bg-elevated: #0f172a;
@@ -190,4 +254,59 @@ aside,
 ::-webkit-scrollbar-thumb:hover {
     background: rgba(96, 165, 250, 0.8);
     box-shadow: 0 0 12px rgba(59, 130, 246, 0.8);
+}
+
+
+/* Keep the animated matrix visible behind dashboard content without covering controls. */
+
+.app-shell {
+    background: linear-gradient(135deg, rgba(2, 8, 23, 0.62), rgba(15, 23, 42, 0.72)) !important;
+}
+
+.cyber-main-panel {
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.48), rgba(15, 23, 42, 0.34)) !important;
+}
+
+.app-shell>aside {
+    background: linear-gradient(135deg, rgba(7, 19, 29, 0.86), rgba(15, 23, 42, 0.72)) !important;
+}
+
+@property --securewatch-button-angle {
+    syntax: "<angle>";
+    initial-value: 0deg;
+    inherits: false;
+}
+
+
+/* Give every dashboard action the same readable cyber-blue button language. */
+
+.app-shell button:not(.shiny-cta) {
+    border: 1px solid transparent !important;
+    color: #dff6ff !important;
+    background: linear-gradient(rgba(8, 20, 37, 0.92), rgba(8, 20, 37, 0.92)) padding-box, conic-gradient(from var(--securewatch-button-angle), rgba(56, 189, 248, 0.18), rgba(165, 243, 252, 0.95), rgba(37, 99, 235, 0.24), rgba(56, 189, 248, 0.18)) border-box !important;
+    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.12), 0 0 10px rgba(14, 165, 233, 0.08);
+    animation: securewatch-button-shine 5s linear infinite;
+    transition: color 180ms ease, box-shadow 180ms ease, transform 180ms ease !important;
+}
+
+.app-shell button:not(.shiny-cta):hover,
+.app-shell button:not(.shiny-cta):focus-visible {
+    color: #ffffff !important;
+    box-shadow: inset 0 0 0 1px rgba(165, 243, 252, 0.35), 0 0 18px rgba(14, 165, 233, 0.24);
+    transform: translateY(-1px);
+}
+
+.app-shell button:not(.shiny-cta):active {
+    transform: translateY(0);
+}
+
+.app-shell button:not(.shiny-cta):disabled {
+    opacity: 0.52;
+    cursor: not-allowed;
+}
+
+@keyframes securewatch-button-shine {
+    to {
+        --securewatch-button-angle: 360deg;
+    }
 }

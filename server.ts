@@ -29,6 +29,17 @@ app.disable('x-powered-by');
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 
+// Vercel sends OPTIONS preflight requests before JSON PUT/DELETE calls.
+// Handle them before the API routes so browser clients do not receive 405 responses.
+app.use((req, res, next) => {
+  if (req.method !== 'OPTIONS') return next();
+  res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-User-Session-Id');
+  res.setHeader('Access-Control-Max-Age', '600');
+  return res.status(204).end();
+});
+
 function resolveRequestedPort(defaultPort: number): number {
   const args = process.argv.slice(2);
   for (let index = 0; index < args.length; index += 1) {
@@ -1844,14 +1855,16 @@ app.post('/api/analyze-alert', async (req, res) => {
       return res.status(400).json({ error: 'Alert object is required' });
     }
 
+    const sourceIp = String(alert.srcIp || alert.src || 'unknown source');
+    const targetEndpoint = String(alert.targetEndpoint || alert.target || 'protected endpoint');
+    const alertTitle = String(alert.title || 'security anomaly');
+    const attackVector = String(alert.attackVector || alert.owaspCategory || 'unclassified attack vector');
     const ai = getGeminiClient();
-    if (!ai) {
-      return res.status(503).json({ error: 'Incident analysis requires a configured GEMINI_API_KEY.' });
-    }
 
-    let rootCause = `Attacker originating from IP ${alert.src || '192.168.1.1'} executed repeated ${alert.title || 'security anomaly'} patterns targeting ${alert.target || 'endpoint'}.`;
+    // Always provide a useful local investigation when Gemini is unavailable.
+    let rootCause = `The ${attackVector} alert "${alertTitle}" indicates activity from ${sourceIp} targeting ${targetEndpoint}. Review request patterns, authentication events, and the source reputation to confirm whether this is automated abuse or an active intrusion attempt.`;
     let mitreTechnique = 'T1110 (Brute Force) / T1190 (Exploit Public-Facing Application)';
-    let recommendedFirewallRule = `iptables -A INPUT -s ${alert.src || '192.168.1.1'} -j DROP`;
+    let recommendedFirewallRule = `iptables -A INPUT -s ${sourceIp} -j DROP`;
     let recommendedPlaybookStep = '1. Revoke active JWT session tokens. 2. Enforce 2FA re-authentication. 3. Block IP address across Edge Cloudflare WAF.';
 
     if (ai) {
@@ -1870,7 +1883,7 @@ Provide a concise, expert Incident Investigation report in JSON format with keys
 Return ONLY raw valid JSON without markdown code blocks.`;
 
         const response = await ai.models.generateContent({
-          model: 'gemini-3.6-flash',
+          model: 'gemini-2.5-flash',
           contents: prompt,
         });
 

@@ -799,7 +799,7 @@
               "path": "/api/health",
               "method": "GET",
               "status": "Healthy",
-              "latencyMs": 190,
+              "latencyMs": 69,
               "uptimePct": 0,
               "errorRatePct": 0,
               "authType": "Public",
