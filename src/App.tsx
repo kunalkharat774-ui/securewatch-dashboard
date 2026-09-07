@@ -10,7 +10,6 @@ import { RecentTables } from './components/RecentTables';
 import { ExtraViews } from './components/ExtraViews';
 import { BinaryBackground } from './components/BinaryBackground';
 import { CinematicLoadingScreen } from './components/CinematicLoadingScreen';
-import { LiveWebcamsView } from './components/LiveWebcamsView';
 import { ShinyButton } from './components/ui/shiny-button';
 import ParticleDrift from './components/ui/particle-drift';
 import { NavView, UrlScanResult, FileActivity } from './types';
@@ -204,22 +203,6 @@ export default function App() {
                 <FileSecurity onFileActivity={handleFileActivity} />
                 <RecentTables urlScans={urlScans} fileActivities={fileActivities} />
               </div>
-            ) : currentView === 'live-webcams' ? (
-              <div className="flex-1 min-h-[640px]">
-                <div className="flex justify-between items-center mb-4 border-b border-[#1f2335] pb-4">
-                  <div>
-                    <h2 className="text-xl font-bold text-white">Live Webcams</h2>
-                    <p className="text-xs text-gray-400">Global surveillance map and selectable live video feed network</p>
-                  </div>
-                  <ShinyButton
-                    onClick={() => setCurrentView('dashboard')}
-                    className="px-3.5 py-1.5 bg-[#1a1e30] hover:bg-[#252b42] text-gray-200 text-xs rounded border border-[#1f2335] transition flex items-center gap-2 cursor-pointer"
-                  >
-                    <i className="fa-solid fa-gauge-high text-xs" /> Back to Dashboard
-                  </ShinyButton>
-                </div>
-                <LiveWebcamsView />
-              </div>
             ) : currentView !== 'dashboard' ? (
               /* OTHER SIDEBAR MODULE VIEWS */
               <ExtraViews view={currentView} onBackToDashboard={() => setCurrentView('dashboard')} />
@@ -238,7 +221,7 @@ export default function App() {
                   <div className="bg-[#030e1e]/50 backdrop-blur-md border border-cyan-500/20 hover:border-cyan-400/40 transition rounded-xl p-5 shadow-xl flex flex-col justify-between">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2 font-bold text-sm text-white">
-                        <span>Live 3D Threat Intelligence Map</span>
+                        <span>Live Attack &amp; Webcam 3D Globe</span>
                         <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse">
                           LIVE
                         </span>
@@ -274,17 +257,6 @@ export default function App() {
                   </div>
 
                   <div className="space-y-8">
-                    <div className="rounded-xl border border-cyan-500/20 bg-[#030e1e]/50 p-4 shadow-xl">
-                      <div className="mb-4 flex items-center justify-between">
-                        <div>
-                          <h3 className="text-sm font-bold text-white">Live Webcams</h3>
-                          <p className="text-[11px] text-gray-400">Global surveillance feeds and selectable live video network</p>
-                        </div>
-                        <span className="rounded border border-red-500/30 bg-red-500/10 px-2 py-1 text-[10px] font-bold text-red-300">LIVE</span>
-                      </div>
-                      <LiveWebcamsView />
-                    </div>
-
                     {dashboardModuleViews.map((view) => (
                       <div key={view} className="rounded-xl border border-cyan-500/20 bg-[#030e1e]/50 p-4 shadow-xl">
                         <ExtraViews view={view} onBackToDashboard={() => setCurrentView('dashboard')} />

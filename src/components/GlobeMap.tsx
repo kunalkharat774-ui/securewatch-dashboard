@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import Globe from 'globe.gl';
 import { Country, SelectedCountryStats, CountryAttack } from '../types';
 import { CountryRealMap } from './CountryRealMap';
+import { CountryWebcamPanel } from './CountryWebcamPanel';
 import satelliteBackdrop from '../assets/images/dark_ocean_wallpaper_1785397034761.jpg';
 
 export const ALL_COUNTRIES: Country[] = [
@@ -158,8 +159,8 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
   // Trigger selection of a country
   const handleSelectCountry = (country: Country) => {
     setSelectedCountry(country);
-    setPanelTab('realmap');
-    setFullRealMapOpen(true);
+    setPanelTab('attacks');
+    setFullRealMapOpen(false);
 
     const attacks = attacksForCountry(country);
     const selectedLevel: SelectedCountryStats['threatLevel'] = attacks.length > 5 ? 'CRITICAL' : attacks.length > 0 ? 'HIGH' : 'MEDIUM';
@@ -196,7 +197,7 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
         startLng: atk.sourceCountry.lng,
         endLat: atk.targetCountry.lat,
         endLng: atk.targetCountry.lng,
-        color: '#ef4444',
+        color: '#86efac',
         highlight: true,
       }));
       const focusedRings = attacks.flatMap((atk) => [
@@ -279,10 +280,11 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
       .arcEndLat((d: any) => d.endLat)
       .arcEndLng((d: any) => d.endLng)
       .arcColor((d: any) => d.color)
-      .arcDashLength(0.4)
-      .arcDashGap(0.2)
-      .arcDashAnimateTime(1400)
-      .arcStroke((d: any) => (d.highlight ? 2.8 : 1.2))
+      .arcAltitude((d: any) => (d.highlight ? 0.24 : 0.14))
+      .arcDashLength(0.22)
+      .arcDashGap(0.08)
+      .arcDashAnimateTime(900)
+      .arcStroke((d: any) => (d.highlight ? 3.2 : 1.8))
       .onArcClick((attack: any) => {
         const targetCountry = countryCatalogRef.current.find(
           (country) => country.code === attack.targetCountry.code
@@ -379,7 +381,7 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
       startLng: threat.sourceCountry.lng,
       endLat: threat.targetCountry.lat,
       endLng: threat.targetCountry.lng,
-      color: '#ef4444',
+      color: '#22c55e',
       highlight: true,
       sourceCountry: threat.sourceCountry,
       targetCountry: threat.targetCountry,
@@ -437,7 +439,7 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
       startLng: threat.sourceCountry.lng,
       endLat: threat.targetCountry.lat,
       endLng: threat.targetCountry.lng,
-      color: '#ef4444',
+      color: '#22c55e',
       highlight: true,
       sourceCountry: threat.sourceCountry,
       targetCountry: threat.targetCountry,
@@ -541,13 +543,20 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
 
       {/* Top Header Overlay */}
       <div className="absolute top-4 left-4 z-10 max-w-[52%] sm:max-w-xs pointer-events-none">
-        <h1 className="text-base sm:text-lg font-black text-red-500 uppercase tracking-[0.18em] flex items-center gap-2 drop-shadow-[0_0_18px_rgba(239,68,68,0.45)]">
+        <h1 className="text-base sm:text-lg font-black text-emerald-400 uppercase tracking-[0.12em] flex items-center gap-2 drop-shadow-[0_0_18px_rgba(34,197,94,0.45)]">
           <span className="relative flex h-3 w-3">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500" />
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-400" />
           </span>
-          Live CyberBriefing IOC Intelligence
+          Live Attack &amp; Webcam 3D Globe
         </h1>
+        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-mono text-gray-300">
+          <span className="flex items-center gap-1.5">
+            <span className="h-1.5 w-5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(74,222,128,0.9)]" />
+            LIVE NETWORK CABLE
+          </span>
+          <span className="text-emerald-300">Green nodes: click for feed + webcam</span>
+        </div>
       </div>
 
       {/* Quick Country Selection Pills Bar */}
@@ -697,6 +706,11 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
               </span>
             </div>
           </div>
+
+          <CountryWebcamPanel
+            countryCode={selectedStats.country.code}
+            countryName={selectedStats.country.name}
+          />
 
           {/* Tab Selection Navigation */}
           <div className="flex border-b border-[#1f2335] mb-3 text-xs font-semibold overflow-x-auto pb-1">

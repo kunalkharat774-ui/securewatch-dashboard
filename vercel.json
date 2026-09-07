@@ -6,7 +6,7 @@
     "functions": {
         "api/[...path].ts": {
             "maxDuration": 30,
-            "includeFiles": "server.ts"
+            "runtime": "nodejs22.x"
         }
     }
 }

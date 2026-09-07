@@ -7,7 +7,6 @@ import net from 'net';
 import http from 'http';
 import crypto from 'crypto';
 import https from 'https';
-import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
 import { sql } from '@vercel/postgres';
 import dotenv from 'dotenv';
@@ -3457,6 +3456,8 @@ async function startServer() {
     app.use(express.static(path.resolve(process.cwd(), 'dist')));
     app.get('*', (_req, res) => res.sendFile(path.resolve(process.cwd(), 'dist', 'index.html')));
   } else {
+    // Vite is a local development dependency; keep it out of the Vercel function initialization path.
+    const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({ server: { middlewareMode: true, hmr: false }, appType: 'spa' });
     app.use(vite.middlewares);
   }
