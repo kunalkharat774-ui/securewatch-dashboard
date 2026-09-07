@@ -268,6 +268,37 @@ export default function App() {
             )}
           </motion.div>
         </AnimatePresence>
+        <footer className="mt-8 border-t border-cyan-500/20 py-4 text-center text-xs text-slate-400">
+          <span>SecureWatch developed by </span>
+          <a
+            href="https://www.linkedin.com/in/kunal-kharat-44a589400/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-semibold text-cyan-300 transition-colors hover:text-cyan-200 hover:underline"
+          >
+            Kunal Kharat
+          </a>
+          <span className="mx-1.5 text-slate-600">|</span>
+          <a
+            href="https://www.linkedin.com/in/kunal-kharat-44a589400/"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Kunal Kharat on LinkedIn"
+            className="inline-flex items-center gap-1 text-cyan-300 transition-colors hover:text-cyan-200 hover:underline"
+          >
+            <i className="fa-brands fa-linkedin" aria-hidden="true" /> LinkedIn
+          </a>
+          <span className="mx-1.5 text-slate-600">|</span>
+          <a
+            href="https://github.com/kunalkharat774-ui/securewatch-dashboard"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="SecureWatch GitHub repository"
+            className="inline-flex items-center gap-1 text-cyan-300 transition-colors hover:text-cyan-200 hover:underline"
+          >
+            <i className="fa-brands fa-github" aria-hidden="true" /> GitHub
+          </a>
+        </footer>
       </main>
     </div>
   );
