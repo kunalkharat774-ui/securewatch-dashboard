@@ -288,7 +288,7 @@ export default function App() {
           <a
             href="https://www.linkedin.com/in/kunal-kharat-44a589400/"
             target="_blank"
-            rel="noopener noreferrer"
+            rel="author me noopener noreferrer"
             className="font-semibold text-cyan-300 transition-colors hover:text-cyan-200 hover:underline"
           >
             Kunal Kharat
@@ -297,7 +297,7 @@ export default function App() {
           <a
             href="https://www.linkedin.com/in/kunal-kharat-44a589400/"
             target="_blank"
-            rel="noopener noreferrer"
+            rel="me noopener noreferrer"
             aria-label="Kunal Kharat on LinkedIn"
             className="inline-flex items-center gap-1 text-cyan-300 transition-colors hover:text-cyan-200 hover:underline"
           >
@@ -307,7 +307,7 @@ export default function App() {
           <a
             href="https://github.com/kunalkharat774-ui/securewatch-dashboard"
             target="_blank"
-            rel="noopener noreferrer"
+            rel="me noopener noreferrer"
             aria-label="SecureWatch GitHub repository"
             className="inline-flex items-center gap-1 text-cyan-300 transition-colors hover:text-cyan-200 hover:underline"
           >
