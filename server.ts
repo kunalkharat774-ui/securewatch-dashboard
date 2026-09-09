@@ -1921,7 +1921,9 @@ app.post('/api/ping-endpoint', async (req, res) => {
   try {
     let { url = '/api/health', method = 'GET' } = req.body || {};
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      url = `http://localhost:3000${url.startsWith('/') ? '' : '/'}${url}`;
+      const requestHost = req.get('host') || 'localhost:3009';
+      const requestProtocol = req.protocol === 'https' ? 'https' : 'http';
+      url = `${requestProtocol}://${requestHost}${url.startsWith('/') ? '' : '/'}${url}`;
     }
 
     const parsedUrl = new URL(url);

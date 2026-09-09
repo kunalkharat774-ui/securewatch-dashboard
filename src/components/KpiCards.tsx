@@ -7,26 +7,39 @@ interface KpiCardsProps {
 }
 
 export const KpiCards: React.FC<KpiCardsProps> = ({ onSelectView }) => {
-  const [securityEvents, setSecurityEvents] = useState<number | null>(null);
-  const [activeThreats, setActiveThreats] = useState<number | null>(null);
-  const [vulnerabilities, setVulnerabilities] = useState<number | null>(null);
-  const [riskScore, setRiskScore] = useState<number | null>(null);
+  const [securityEvents, setSecurityEvents] = useState(0);
+  const [activeThreats, setActiveThreats] = useState(0);
+  const [vulnerabilities, setVulnerabilities] = useState(0);
+  const [riskScore, setRiskScore] = useState(0);
   const [activeModal, setActiveModal] = useState<'requests' | 'threats' | 'vulns' | 'risk' | null>(null);
 
-  // KPI values come from backend telemetry. Unknown values remain explicit instead of being simulated.
+  // KPI values come from backend telemetry and remain numeric while data loads.
   useEffect(() => {
     let cancelled = false;
 
     const loadMetrics = async () => {
       try {
-        const [logsResponse, threatsResponse] = await Promise.all([
+        const [logsResponse, threatsResponse, riskResponse, urlScansResponse, scannerStateResponse] = await Promise.all([
           fetch('/api/security-logs', { cache: 'no-store' }),
           fetch('/api/threats?limit=100', { cache: 'no-store' }),
+          fetch('/api/risk-items', { cache: 'no-store' }),
+          fetch('/api/url-scans', { cache: 'no-store' }),
+          fetch('/api/component-state/vulnerability-scanner', { cache: 'no-store' }),
         ]);
-        if (!logsResponse.ok || !threatsResponse.ok) throw new Error('Telemetry unavailable');
+        if (!logsResponse.ok || !threatsResponse.ok || !riskResponse.ok || !urlScansResponse.ok || !scannerStateResponse.ok) {
+          throw new Error('Telemetry unavailable');
+        }
 
         const logsPayload = await logsResponse.json() as { logs?: Array<{ level?: string; action?: string }> };
         const threatsPayload = await threatsResponse.json() as { threats?: unknown[] };
+        const riskItems = await riskResponse.json() as Array<{
+          likelihood?: number;
+          impact?: number;
+          assetCriticality?: number;
+          controlsImplemented?: boolean;
+        }>;
+        const urlScans = await urlScansResponse.json() as Array<{ reputationScore?: number }>;
+        const scannerState = await scannerStateResponse.json() as { scanResult?: { vulnerabilitiesCount?: number } } | null;
         if (cancelled) return;
 
         const logs = Array.isArray(logsPayload.logs) ? logsPayload.logs : [];
@@ -38,27 +51,48 @@ export const KpiCards: React.FC<KpiCardsProps> = ({ onSelectView }) => {
 
         setSecurityEvents(logs.length);
         setActiveThreats(liveThreats + activeLogThreats);
-        setVulnerabilities(null);
-        setRiskScore(null);
+        const validRiskItems = Array.isArray(riskItems) ? riskItems : [];
+        const unresolvedRisks = validRiskItems.filter((item) => item.controlsImplemented !== true).length;
+        const residualTotal = validRiskItems.reduce((total, item) => {
+          const inherent = Number(item.likelihood || 0) * Number(item.impact || 0) * (Number(item.assetCriticality || 0) / 3);
+          return total + (item.controlsImplemented === true ? inherent * 0.4 : inherent);
+        }, 0);
+        const calculatedRiskScore = validRiskItems.length
+          ? Math.round((residualTotal / (validRiskItems.length * 25)) * 100)
+          : 0;
+        const latestUrlScore = Array.isArray(urlScans)
+          ? Number(urlScans[0]?.reputationScore)
+          : NaN;
+        const latestScanCount = Number(scannerState?.scanResult?.vulnerabilitiesCount);
+
+        setVulnerabilities(Number.isFinite(latestScanCount) ? Math.max(0, latestScanCount) : unresolvedRisks);
+        setRiskScore(Number.isFinite(latestUrlScore)
+          ? Math.min(100, Math.max(0, Math.round(100 - latestUrlScore)))
+          : Math.min(100, Math.max(0, calculatedRiskScore)));
       } catch {
         if (cancelled) return;
-        setSecurityEvents(null);
-        setActiveThreats(null);
-        setVulnerabilities(null);
-        setRiskScore(null);
+        setSecurityEvents(0);
+        setActiveThreats(0);
+        setVulnerabilities(0);
+        setRiskScore(0);
       }
     };
 
     void loadMetrics();
     const interval = window.setInterval(() => void loadMetrics(), 10000);
+    const handleScannerUpdate = () => void loadMetrics();
+    window.addEventListener('vulnerability_scan_completed', handleScannerUpdate);
+    window.addEventListener('url_reputation_scan_completed', handleScannerUpdate);
 
     return () => {
       cancelled = true;
       window.clearInterval(interval);
+      window.removeEventListener('vulnerability_scan_completed', handleScannerUpdate);
+      window.removeEventListener('url_reputation_scan_completed', handleScannerUpdate);
     };
   }, []);
 
-  const formatMetric = (num: number | null) => num === null ? 'N/A' : num.toLocaleString();
+  const formatMetric = (num: number) => num.toLocaleString();
 
   const cards = [
     {
@@ -103,7 +137,7 @@ export const KpiCards: React.FC<KpiCardsProps> = ({ onSelectView }) => {
     {
       id: 'risk',
       title: 'Risk Score',
-      value: riskScore === null ? 'N/A' : `${riskScore} /100`,
+      value: `${riskScore} /100`,
       badge: null,
       subtext: 'Medium Risk Shield',
       subIcon: 'fa-circle-check',

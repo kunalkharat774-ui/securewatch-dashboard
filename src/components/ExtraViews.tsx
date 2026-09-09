@@ -261,7 +261,21 @@ export const ExtraViews: React.FC<ExtraViewsProps> = ({ view, onBackToDashboard 
     }, 1600);
   };
 
-  // Military-Grade Password Generator
+  const secureRandomInt = (max: number) => {
+    if (max <= 0) return 0;
+    const cryptoApi = globalThis.crypto;
+    if (!cryptoApi?.getRandomValues) return Math.floor(Math.random() * max);
+
+    const range = 0x100000000;
+    const limit = range - (range % max);
+    const buffer = new Uint32Array(1);
+    do {
+      cryptoApi.getRandomValues(buffer);
+    } while (buffer[0] >= limit);
+    return buffer[0] % max;
+  };
+
+  // Generate passwords with Web Crypto and an unbiased Fisher-Yates shuffle.
   const generatePassword = () => {
     const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
     const lowercase = 'abcdefghijklmnopqrstuvwxyz';
@@ -271,29 +285,33 @@ export const ExtraViews: React.FC<ExtraViewsProps> = ({ view, onBackToDashboard 
 
     let res = '';
     // Ensure at least 1 of each category
-    res += uppercase.charAt(Math.floor(Math.random() * uppercase.length));
-    res += lowercase.charAt(Math.floor(Math.random() * lowercase.length));
-    res += numbers.charAt(Math.floor(Math.random() * numbers.length));
-    res += symbols.charAt(Math.floor(Math.random() * symbols.length));
+    res += uppercase.charAt(secureRandomInt(uppercase.length));
+    res += lowercase.charAt(secureRandomInt(lowercase.length));
+    res += numbers.charAt(secureRandomInt(numbers.length));
+    res += symbols.charAt(secureRandomInt(symbols.length));
 
     for (let i = 0; i < 14; i++) {
-      res += all.charAt(Math.floor(Math.random() * all.length));
+      res += all.charAt(secureRandomInt(all.length));
     }
 
-    // Shuffle characters
-    res = res.split('').sort(() => Math.random() - 0.5).join('');
+    const characters = res.split('');
+    for (let index = characters.length - 1; index > 0; index--) {
+      const swapIndex = secureRandomInt(index + 1);
+      [characters[index], characters[swapIndex]] = [characters[swapIndex], characters[index]];
+    }
+    res = characters.join('');
 
     setGeneratedPass(res);
     setTestPassword(res);
   };
 
-  // Real-Time Password Strength Evaluation Engine (WEAK, STRONG, MILITARY-GRADE)
+  // Estimate strength from entropy, dictionary patterns, repetition, and character diversity.
   const evaluatePasswordStrength = (pass: string) => {
     if (!pass) {
       return {
         score: 0,
         rating: 'WEAK' as const,
-        crackTime: 'N/A',
+        crackTime: 'Instant',
         badgeBg: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
         progressBg: 'bg-gray-600',
         feedback: 'Enter a password to evaluate strength',
@@ -307,26 +325,25 @@ export const ExtraViews: React.FC<ExtraViewsProps> = ({ view, onBackToDashboard 
     const hasNumber = /[0-9]/.test(pass);
     const hasSymbol = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pass);
 
-    const commonWeak = ['password', '123456', '12345678', 'qwerty', 'admin', 'welcome', '123456789', 'password123', 'iloveyou', 'p@ssw0rd', 'secure'];
-    const isCommon = commonWeak.some((w) => pass.toLowerCase().includes(w));
+    const normalized = pass.toLowerCase();
+    const commonWeak = ['password', '123456', '12345678', 'qwerty', 'admin', 'welcome', 'letmein', 'iloveyou', 'p@ssw0rd', 'secure'];
+    const isCommon = commonWeak.some((word) => normalized.includes(word));
+    const hasSequence = /(?:abc|bcd|cde|123|234|345|456|567|678|789|987|876|765|654|543|432|321)/i.test(pass);
+    const hasRepeatedRun = /(.)\1{2,}/.test(pass);
+    const poolSize = (hasUpper ? 26 : 0) + (hasLower ? 26 : 0) + (hasNumber ? 10 : 0) + (hasSymbol ? 32 : 0);
+    const entropyBits = Math.max(0, Math.round(length * Math.log2(Math.max(poolSize, 1)) - (isCommon ? 35 : 0) - (hasSequence ? 12 : 0) - (hasRepeatedRun ? 10 : 0)));
+    const score = Math.min(100, Math.max(0, Math.round((entropyBits / 128) * 100)));
 
-    let score = 0;
-
-    // Length criteria
-    if (length >= 16) score += 40;
-    else if (length >= 12) score += 30;
-    else if (length >= 8) score += 18;
-    else score += length * 2;
-
-    // Diversity criteria
-    if (hasUpper) score += 15;
-    if (hasLower) score += 15;
-    if (hasNumber) score += 15;
-    if (hasSymbol) score += 15;
-
-    if (isCommon) score = Math.min(score, 25);
-
-    score = Math.min(100, Math.max(0, score));
+    const crackSeconds = Math.pow(2, Math.min(entropyBits, 62)) / 10_000_000_000;
+    const formatCrackTime = () => {
+      if (crackSeconds < 1) return 'Instant';
+      if (crackSeconds < 60) return `${Math.round(crackSeconds)} seconds`;
+      if (crackSeconds < 3600) return `${Math.round(crackSeconds / 60)} minutes`;
+      if (crackSeconds < 86400) return `${Math.round(crackSeconds / 3600)} hours`;
+      if (crackSeconds < 31536000) return `${Math.round(crackSeconds / 86400)} days`;
+      if (crackSeconds < 31536000 * 1000) return `${Math.round(crackSeconds / 31536000).toLocaleString()} years`;
+      return '1,000+ years';
+    };
 
     let rating: 'WEAK' | 'STRONG' | 'MILITARY-GRADE' = 'WEAK';
     let crackTime = 'Instant';
@@ -334,27 +351,26 @@ export const ExtraViews: React.FC<ExtraViewsProps> = ({ view, onBackToDashboard 
     let progressBg = 'bg-red-500';
     let feedback = 'WEAK: Lacks length or character diversity. Easily cracked by dictionary brute-force.';
 
-    if (isCommon || length < 8 || score < 50) {
+    if (isCommon || length < 8 || entropyBits < 40) {
       rating = 'WEAK';
-      if (length < 6) crackTime = 'Instant';
-      else if (length < 8) crackTime = '3 seconds';
-      else crackTime = '14 minutes';
+      crackTime = formatCrackTime();
       badgeBg = 'bg-red-500/20 text-red-400 border-red-500/40';
       progressBg = 'bg-red-500';
-      feedback = 'WEAK: Easily cracked by automated brute-force attacks. Add uppercase, numbers & special symbols.';
-    } else if (score >= 50 && score < 85) {
+      feedback = isCommon
+        ? 'WEAK: Contains a commonly guessed password pattern. Use a unique passphrase or generate a new password.'
+        : 'WEAK: Increase length and character diversity to resist automated brute-force attacks.';
+    } else if (entropyBits < 80) {
       rating = 'STRONG';
-      if (length < 12) crackTime = '3 Years';
-      else crackTime = '12,000 Years';
+      crackTime = formatCrackTime();
       badgeBg = 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40';
       progressBg = 'bg-emerald-500';
-      feedback = 'STRONG: Meets enterprise security guidelines. Highly resistant to standard GPU cluster cracking.';
+      feedback = 'STRONG: Good character diversity and length. A longer unique passphrase would provide more protection.';
     } else {
       rating = 'MILITARY-GRADE';
-      crackTime = '84 Billion Years (Quantum-Resistant)';
+      crackTime = formatCrackTime();
       badgeBg = 'bg-purple-500/20 text-purple-300 border-purple-500/50 shadow-[0_0_15px_rgba(159,134,255,0.3)] animate-pulse';
       progressBg = 'bg-gradient-to-r from-[#3b28cc] via-[#9f86ff] to-emerald-400';
-      feedback = 'MILITARY-GRADE: Exceeds NSA & AES-256 quantum entropy requirements. Virtually uncrackable!';
+      feedback = 'MILITARY-GRADE: High estimated entropy and no common patterns detected.';
     }
 
     return {

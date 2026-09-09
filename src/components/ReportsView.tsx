@@ -167,6 +167,113 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ onBackToDashboard }) =
     showToast(`Deleted report ${id} from archive`, 'info');
   };
 
+  const renderGeneratorModal = () => (
+    <AnimatePresence>
+      {isGeneratorModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 print:hidden">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-[#0d111c] border border-[#1f2335] w-full max-w-xl rounded-xl p-6 shadow-2xl space-y-5"
+          >
+            <div className="flex justify-between items-center border-b border-[#1f2335] pb-3">
+              <h3 className="font-bold text-sm text-white flex items-center gap-2">
+                <i className="fa-solid fa-wand-magic-sparkles text-purple-400" /> Securewatch AI Security Report Generator
+              </h3>
+              <button
+                onClick={() => setIsGeneratorModalOpen(false)}
+                className="text-gray-400 hover:text-white cursor-pointer text-sm"
+              >
+                <i className="fa-solid fa-xmark" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCompileReport} className="space-y-4 text-xs">
+              <div className="space-y-1">
+                <label className="text-gray-300 font-semibold block">Report Type / Template Title</label>
+                <input
+                  type="text"
+                  required
+                  value={reportTypeInput}
+                  onChange={(e) => setReportTypeInput(e.target.value)}
+                  className="w-full px-3.5 py-2 bg-[#080a10] border border-[#1f2335] text-white rounded-lg outline-none focus:border-purple-500"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-gray-300 font-semibold block">Target Infrastructure Scope</label>
+                <input
+                  type="text"
+                  required
+                  value={targetScopeInput}
+                  onChange={(e) => setTargetScopeInput(e.target.value)}
+                  className="w-full px-3.5 py-2 bg-[#080a10] border border-[#1f2335] text-white rounded-lg outline-none focus:border-purple-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-gray-300 font-semibold block">Audit Timeframe</label>
+                  <select
+                    value={timeframeInput}
+                    onChange={(e) => setTimeframeInput(e.target.value)}
+                    className="w-full px-3 py-2 bg-[#080a10] border border-[#1f2335] text-white rounded-lg outline-none focus:border-purple-500 font-mono"
+                  >
+                    <option value="Last 24 Hours">Last 24 Hours</option>
+                    <option value="Last 7 Days">Last 7 Days</option>
+                    <option value="Last 30 Days">Last 30 Days</option>
+                    <option value="Q2 2026 Audit">Q2 2026 Audit</option>
+                    <option value="Year-To-Date (YTD)">Year-To-Date (YTD)</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-gray-300 font-semibold block">Classification Level</label>
+                  <select
+                    value={classificationInput}
+                    onChange={(e) => setClassificationInput(e.target.value)}
+                    className="w-full px-3 py-2 bg-[#080a10] border border-[#1f2335] text-white rounded-lg outline-none focus:border-purple-500 font-mono"
+                  >
+                    <option value="STRICTLY CONFIDENTIAL">STRICTLY CONFIDENTIAL</option>
+                    <option value="INTERNAL SECURITY USE">INTERNAL SECURITY USE</option>
+                    <option value="BOARD EXECUTIVE SUMMARY">BOARD EXECUTIVE SUMMARY</option>
+                    <option value="RESTRICTED SOC">RESTRICTED SOC</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="p-3 bg-[#111524] rounded-lg border border-[#1f2335] text-gray-400 text-[11px] space-y-1">
+                <p className="font-semibold text-purple-300 flex items-center gap-1">
+                  <i className="fa-solid fa-robot" /> AI Analysis Mode Enabled
+                </p>
+                <p>Live telemetry will be analyzed to compile executive summaries and key findings.</p>
+              </div>
+
+              <div className="pt-3 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsGeneratorModalOpen(false)}
+                  className="px-4 py-2 bg-[#111524] hover:bg-[#1a1e30] text-gray-300 rounded-lg cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isGenerating}
+                  className="px-5 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg cursor-pointer shadow-lg flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  <i className={`fa-solid ${isGenerating ? 'fa-spinner animate-spin' : 'fa-wand-magic-sparkles'}`} />
+                  {isGenerating ? 'Compiling Report...' : 'Compile & Generate Live'}
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+
   if (!activeReport && reportArchive.length === 0) {
     return (
       <div className="space-y-6">
@@ -204,6 +311,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ onBackToDashboard }) =
             The report archive is empty. Generate a live compliance report to populate the security register and audit timeline.
           </p>
         </div>
+        {renderGeneratorModal()}
       </div>
     );
   }
@@ -550,112 +658,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ onBackToDashboard }) =
       </div>
 
       {/* REPORT GENERATOR WIZARD MODAL */}
-      <AnimatePresence>
-        {isGeneratorModalOpen && (
-          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 print:hidden">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-[#0d111c] border border-[#1f2335] w-full max-w-xl rounded-xl p-6 shadow-2xl space-y-5"
-            >
-              <div className="flex justify-between items-center border-b border-[#1f2335] pb-3">
-                <h3 className="font-bold text-sm text-white flex items-center gap-2">
-                  <i className="fa-solid fa-wand-magic-sparkles text-purple-400" /> Securewatch AI Security Report Generator
-                </h3>
-                <button
-                  onClick={() => setIsGeneratorModalOpen(false)}
-                  className="text-gray-400 hover:text-white cursor-pointer text-sm"
-                >
-                  <i className="fa-solid fa-xmark" />
-                </button>
-              </div>
-
-              <form onSubmit={handleCompileReport} className="space-y-4 text-xs">
-                <div className="space-y-1">
-                  <label className="text-gray-300 font-semibold block">Report Type / Template Title</label>
-                  <input
-                    type="text"
-                    required
-                    value={reportTypeInput}
-                    onChange={(e) => setReportTypeInput(e.target.value)}
-                    className="w-full px-3.5 py-2 bg-[#080a10] border border-[#1f2335] text-white rounded-lg outline-none focus:border-purple-500"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-gray-300 font-semibold block">Target Infrastructure Scope</label>
-                  <input
-                    type="text"
-                    required
-                    value={targetScopeInput}
-                    onChange={(e) => setTargetScopeInput(e.target.value)}
-                    className="w-full px-3.5 py-2 bg-[#080a10] border border-[#1f2335] text-white rounded-lg outline-none focus:border-purple-500"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-gray-300 font-semibold block">Audit Timeframe</label>
-                    <select
-                      value={timeframeInput}
-                      onChange={(e) => setTimeframeInput(e.target.value)}
-                      className="w-full px-3 py-2 bg-[#080a10] border border-[#1f2335] text-white rounded-lg outline-none focus:border-purple-500 font-mono"
-                    >
-                      <option value="Last 24 Hours">Last 24 Hours</option>
-                      <option value="Last 7 Days">Last 7 Days</option>
-                      <option value="Last 30 Days">Last 30 Days</option>
-                      <option value="Q2 2026 Audit">Q2 2026 Audit</option>
-                      <option value="Year-To-Date (YTD)">Year-To-Date (YTD)</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-gray-300 font-semibold block">Classification Level</label>
-                    <select
-                      value={classificationInput}
-                      onChange={(e) => setClassificationInput(e.target.value)}
-                      className="w-full px-3 py-2 bg-[#080a10] border border-[#1f2335] text-white rounded-lg outline-none focus:border-purple-500 font-mono"
-                    >
-                      <option value="STRICTLY CONFIDENTIAL">STRICTLY CONFIDENTIAL</option>
-                      <option value="INTERNAL SECURITY USE">INTERNAL SECURITY USE</option>
-                      <option value="BOARD EXECUTIVE SUMMARY">BOARD EXECUTIVE SUMMARY</option>
-                      <option value="RESTRICTED SOC">RESTRICTED SOC</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="p-3 bg-[#111524] rounded-lg border border-[#1f2335] text-gray-400 text-[11px] space-y-1">
-                  <p className="font-semibold text-purple-300 flex items-center gap-1">
-                    <i className="fa-solid fa-robot" /> AI Analysis Mode Enabled
-                  </p>
-                  <p>
-                    Gemini AI will analyze real vulnerability scans, active WAF filters, API SLAs, and SIEM security logs to compile executive summaries and key findings.
-                  </p>
-                </div>
-
-                <div className="pt-3 flex justify-end gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setIsGeneratorModalOpen(false)}
-                    className="px-4 py-2 bg-[#111524] hover:bg-[#1a1e30] text-gray-300 rounded-lg cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isGenerating}
-                    className="px-5 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg cursor-pointer shadow-lg flex items-center gap-1.5 disabled:opacity-50"
-                  >
-                    <i className={`fa-solid ${isGenerating ? 'fa-spinner animate-spin' : 'fa-wand-magic-sparkles'}`} />
-                    {isGenerating ? 'Compiling Report...' : 'Compile & Generate Live'}
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      {renderGeneratorModal()}
     </div>
   );
 };

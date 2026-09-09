@@ -128,6 +128,7 @@ export interface SecurityAlert {
 export type NavView = 
   | 'dashboard'
   | 'live-map'
+  | 'live-webcams'
   | 'api-monitoring'
   | 'alerts'
   | 'vulnerability-scanner'

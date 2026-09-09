@@ -4,11 +4,11 @@ import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { KpiCards } from './components/KpiCards';
 import { GlobeMap } from './components/GlobeMap';
+import { LiveWebcamsView } from './components/LiveWebcamsView';
 import { UrlChecker } from './components/UrlChecker';
 import { FileSecurity } from './components/FileSecurity';
 import { RecentTables } from './components/RecentTables';
 import { ExtraViews } from './components/ExtraViews';
-import { BinaryBackground } from './components/BinaryBackground';
 import { CinematicLoadingScreen } from './components/CinematicLoadingScreen';
 import { ShinyButton } from './components/ui/shiny-button';
 import ParticleDrift from './components/ui/particle-drift';
@@ -91,6 +91,7 @@ export default function App() {
 
   const handleScanComplete = (newResult: UrlScanResult) => {
     setUrlScans((prev) => [newResult, ...prev]);
+    window.dispatchEvent(new CustomEvent('url_reputation_scan_completed'));
     void fetch('/api/url-scans', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -113,8 +114,6 @@ export default function App() {
 
   return (
       <div className="app-shell dark-blue-theme flex h-screen text-[#f9fbfd] font-sans overflow-hidden select-none relative">
-        {/* Live Falcon Dark Animated Telemetry & Matrix Canvas */}
-        <BinaryBackground />
         <ParticleDrift
           speed={0.7}
           density={0.8}
@@ -165,6 +164,22 @@ export default function App() {
                 <div className="flex-1 relative rounded-xl overflow-hidden border border-[#1f2335] min-h-[550px]">
                   <GlobeMap isFullScreen={true} />
                 </div>
+              </div>
+            ) : currentView === 'live-webcams' ? (
+              <div className="flex-1 flex flex-col">
+                <div className="flex justify-between items-center mb-4 border-b border-[#1f2335] pb-4">
+                  <div>
+                    <h2 className="text-xl font-bold text-white">Live Webcams</h2>
+                    <p className="text-xs text-gray-400">Global camera feeds and monitored visual telemetry</p>
+                  </div>
+                  <ShinyButton
+                    onClick={() => setCurrentView('dashboard')}
+                    className="px-3.5 py-1.5 bg-[#1a1e30] hover:bg-[#252b42] text-gray-200 text-xs rounded border border-[#1f2335] transition flex items-center gap-2 cursor-pointer"
+                  >
+                    <i className="fa-solid fa-gauge-high text-xs" /> Back to Dashboard
+                  </ShinyButton>
+                </div>
+                <LiveWebcamsView />
               </div>
             ) : currentView === 'url-reputation' ? (
               /* VIEW 1: DEDICATED URL REPUTATION CHECKER */
@@ -221,7 +236,7 @@ export default function App() {
                   <div className="bg-[#030e1e]/50 backdrop-blur-md border border-cyan-500/20 hover:border-cyan-400/40 transition rounded-xl p-5 shadow-xl flex flex-col justify-between">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2 font-bold text-sm text-white">
-                        <span>Live Attack &amp; Webcam 3D Globe</span>
+                        <span>Live Attack 3D Globe</span>
                         <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse">
                           LIVE
                         </span>

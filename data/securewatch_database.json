@@ -799,7 +799,7 @@
               "path": "/api/health",
               "method": "GET",
               "status": "Healthy",
-              "latencyMs": 310,
+              "latencyMs": 21,
               "uptimePct": 0,
               "errorRatePct": 0,
               "authType": "Public",
@@ -863,7 +863,7 @@
               "path": "/api/health",
               "method": "GET",
               "status": "Healthy",
-              "latencyMs": 501,
+              "latencyMs": 30,
               "uptimePct": 0,
               "errorRatePct": 0,
               "authType": "Public",
@@ -1197,6 +1197,73 @@
               "method": "GET",
               "status": "Healthy",
               "latencyMs": 31,
+              "uptimePct": 0,
+              "errorRatePct": 0,
+              "authType": "Public",
+              "rateLimit": "Not reported",
+              "lastTested": "Just now"
+            }
+          ]
+        }
+      }
+    },
+    "reports": [],
+    "riskItems": []
+  },
+  "usr_session_jqqh2n164_mtsfoov2": {
+    "users": [],
+    "logs": [],
+    "urlScans": [],
+    "fileScans": [],
+    "settings": {
+      "__componentState": {
+        "api-monitoring": {
+          "endpoints": [
+            {
+              "id": "health",
+              "name": "SecureWatch Backend Health",
+              "path": "/api/health",
+              "method": "GET",
+              "status": "Healthy",
+              "latencyMs": 33,
+              "uptimePct": 0,
+              "errorRatePct": 0,
+              "authType": "Public",
+              "rateLimit": "Not reported",
+              "lastTested": "Just now"
+            }
+          ]
+        }
+      }
+    },
+    "reports": [],
+    "riskItems": []
+  },
+  "usr_session_jbiru6vfh_mtsj37g4": {
+    "users": [],
+    "logs": [],
+    "urlScans": [],
+    "fileScans": [],
+    "settings": {},
+    "reports": [],
+    "riskItems": []
+  },
+  "usr_session_65efb9ldb_mtu7eu3s": {
+    "users": [],
+    "logs": [],
+    "urlScans": [],
+    "fileScans": [],
+    "settings": {
+      "__componentState": {
+        "api-monitoring": {
+          "endpoints": [
+            {
+              "id": "health",
+              "name": "SecureWatch Backend Health",
+              "path": "/api/health",
+              "method": "GET",
+              "status": "Healthy",
+              "latencyMs": 150,
               "uptimePct": 0,
               "errorRatePct": 0,
               "authType": "Public",

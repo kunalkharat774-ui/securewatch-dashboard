@@ -5,9 +5,13 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#07131d" />
-    <meta name="description" content="SecureWatch is a real-time cybersecurity dashboard for threat monitoring, URL reputation checks, vulnerability scanning, security logs, and global attack intelligence." />
-    <meta name="keywords" content="cybersecurity dashboard, threat monitoring, URL reputation checker, vulnerability scanner, security operations, cyber threat intelligence" />
-    <meta name="author" content="SecureWatch" />
+    <meta name="description" content="SecureWatch is a real-time web application and API security dashboard for SIEM threat monitoring, URL reputation, API telemetry, AES-256 GCM encryption, and cyber risk analysis." />
+    <meta name="keywords" content="SecureWatch, web application security dashboard, API security dashboard, SIEM incident streaming, URL reputation engine, API gateway monitoring, AES-256 GCM encryption, LSB steganography, password entropy assessor, cyber threat intelligence"
+    />
+    <meta name="author" content="Kunal Kharat, Security Administrator" />
+    <meta name="application-name" content="SecureWatch" />
+    <meta name="geo.region" content="IN-MH" />
+    <meta name="geo.placename" content="Nashik, Maharashtra, India" />
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <link rel="canonical" href="https://securewatch-dashboard.vercel.app/" />
     <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
@@ -15,8 +19,8 @@
     <link rel="apple-touch-icon" href="/securewatch-logo.avif" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="SecureWatch" />
-    <meta property="og:title" content="SecureWatch | Cybersecurity Threat Monitoring Dashboard" />
-    <meta property="og:description" content="Monitor cyber threats, inspect URLs, scan vulnerabilities, and review security intelligence in real time." />
+    <meta property="og:title" content="SecureWatch - Real-Time Web Application &amp; API Security Dashboard" />
+    <meta property="og:description" content="Real-time security operations dashboard for cyber threat monitoring, API telemetry, URL reputation, cryptography, and risk analysis." />
     <meta property="og:url" content="https://securewatch-dashboard.vercel.app/" />
     <meta property="og:image" content="https://securewatch-dashboard.vercel.app/securewatch-logo.avif" />
     <meta property="og:image:secure_url" content="https://securewatch-dashboard.vercel.app/securewatch-logo.avif" />
@@ -26,47 +30,84 @@
     <meta property="og:image:alt" content="SecureWatch cybersecurity dashboard logo" />
     <meta property="og:locale" content="en_US" />
     <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="SecureWatch | Cybersecurity Threat Monitoring Dashboard" />
-    <meta name="twitter:description" content="Real-time threat monitoring, URL reputation, vulnerability scanning, and security intelligence." />
+    <meta name="twitter:title" content="SecureWatch - Real-Time Web Application &amp; API Security Dashboard" />
+    <meta name="twitter:description" content="Real-time security operations dashboard for cyber threat monitoring, API telemetry, URL reputation, cryptography, and risk analysis." />
     <meta name="twitter:image" content="https://securewatch-dashboard.vercel.app/securewatch-logo.avif" />
     <meta name="twitter:image:alt" content="SecureWatch cybersecurity dashboard logo" />
     <script type="application/ld+json">
         {
             "@context": "https://schema.org",
-            "@type": "WebApplication",
-            "name": "SecureWatch",
-            "url": "https://securewatch-dashboard.vercel.app/",
-            "image": "https://securewatch-dashboard.vercel.app/securewatch-logo.avif",
-            "codeRepository": "https://github.com/kunalkharat774-ui/securewatch-dashboard",
-            "description": "Real-time cybersecurity dashboard for threat monitoring, URL reputation checks, vulnerability scanning, security logs, and global attack intelligence.",
-            "applicationCategory": "SecurityApplication",
-            "operatingSystem": "Web",
-            "browserRequirements": "Requires JavaScript",
-            "featureList": [
-                "Live cyber threat monitoring",
-                "URL reputation and phishing checks",
-                "Vulnerability scanning",
-                "Security alerts and logs",
-                "Global attack intelligence map",
-                "File security tools"
-            ],
-            "publisher": {
-                "@type": "Organization",
-                "name": "SecureWatch",
-                "url": "https://securewatch-dashboard.vercel.app/"
-            },
-            "creator": {
+            "@graph": [{
+                "@type": "WebApplication",
+                "@id": "https://securewatch-dashboard.vercel.app/#application",
+                "name": "SecureWatch - Real-Time Web Application & API Security Dashboard",
+                "alternateName": "SecureWatch",
+                "url": "https://securewatch-dashboard.vercel.app/",
+                "image": "https://securewatch-dashboard.vercel.app/securewatch-logo.avif",
+                "codeRepository": "https://github.com/kunalkharat774-ui/securewatch-dashboard",
+                "description": "A full-stack, real-time security operations dashboard designed to monitor cyber threats, analyze API telemetry, and perform client-side cryptographic operations.",
+                "applicationCategory": "SecurityApplication",
+                "applicationSubCategory": "Web Application and API Security",
+                "operatingSystem": "Web",
+                "browserRequirements": "Requires JavaScript",
+                "featureList": [
+                    "SIEM incident streaming and global threat map",
+                    "URL reputation engine for phishing and malware domains",
+                    "API gateway health and threat monitoring",
+                    "Client-side AES-256 GCM file encryption and SHA-256 integrity verification",
+                    "LSB steganography and image analysis",
+                    "Password entropy assessment and vulnerability analysis"
+                ],
+                "softwareVersion": "2.6",
+                "author": {
+                    "@id": "https://securewatch-dashboard.vercel.app/#developer"
+                },
+                "publisher": {
+                    "@id": "https://securewatch-dashboard.vercel.app/#institution"
+                },
+                "isPartOf": {
+                    "@id": "https://securewatch-dashboard.vercel.app/#project"
+                }
+            }, {
+                "@type": "CreativeWork",
+                "@id": "https://securewatch-dashboard.vercel.app/#project",
+                "name": "SecureWatch - Real-Time Web Application & API Security Dashboard",
+                "headline": "SecureWatch - Real-Time Web Application & API Security Dashboard",
+                "description": "SecureWatch provides real-time visibility into application health, attack vectors, API telemetry, and client-side security operations.",
+                "author": {
+                    "@id": "https://securewatch-dashboard.vercel.app/#developer"
+                },
+                "publisher": {
+                    "@id": "https://securewatch-dashboard.vercel.app/#institution"
+                },
+                "keywords": "cybersecurity, web application security, API security, SIEM, URL reputation, cryptography, steganography"
+            }, {
                 "@type": "Person",
+                "@id": "https://securewatch-dashboard.vercel.app/#developer",
                 "name": "Kunal Kharat",
+                "jobTitle": "Security Administrator",
                 "url": "https://www.linkedin.com/in/kunal-kharat-44a589400/",
                 "sameAs": [
                     "https://www.linkedin.com/in/kunal-kharat-44a589400/",
                     "https://github.com/kunalkharat774-ui/securewatch-dashboard"
-                ]
-            }
+                ],
+                "worksFor": {
+                    "@id": "https://securewatch-dashboard.vercel.app/#institution"
+                }
+            }, {
+                "@type": "EducationalOrganization",
+                "@id": "https://securewatch-dashboard.vercel.app/#institution",
+                "name": "Sandip Polytechnic, Sandip Foundation",
+                "address": {
+                    "@type": "PostalAddress",
+                    "addressLocality": "Nashik",
+                    "addressRegion": "Maharashtra",
+                    "addressCountry": "IN"
+                }
+            }]
         }
     </script>
-    <title>SecureWatch | Cybersecurity Threat Monitoring Dashboard</title>
+    <title>SecureWatch - Real-Time Web Application &amp; API Security Dashboard</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -78,16 +119,19 @@
     <div id="root"></div>
     <noscript>
       <main>
-        <h1>SecureWatch Cybersecurity Dashboard</h1>
-        <p>SecureWatch provides real-time cyber threat monitoring and security intelligence for web applications and APIs.</p>
+                <h1>SecureWatch - Real-Time Web Application &amp; API Security Dashboard</h1>
+                <p>SecureWatch is a full-stack, real-time security operations dashboard developed by Kunal Kharat, Security Administrator, at Sandip Polytechnic, Sandip Foundation, Nashik, India.</p>
+                <p>It provides real-time visibility into application health and attack vectors, with SIEM incident streaming, API telemetry, URL reputation, client-side cryptography, steganography, and password security analysis.</p>
         <h2>Security tools and intelligence</h2>
         <ul>
-          <li>Live global cyber attack and threat monitoring</li>
-          <li>URL reputation checks for phishing, malware, and blacklist risks</li>
-          <li>Vulnerability scanning and risk assessment</li>
-          <li>Security alerts, logs, reports, and API monitoring</li>
-          <li>File security, text encryption, steganography, and IP intelligence tools</li>
+                    <li>SIEM incident streaming and a global cyber threat map using Supabase Realtime</li>
+                    <li>URL reputation engine for phishing and malware domain detection with dynamic risk scoring</li>
+                    <li>API gateway health and threat monitoring for latency, payload anomalies, and rate limits</li>
+                    <li>Client-side AES-256 GCM encryption with Web Crypto API and SHA-256 integrity verification</li>
+                    <li>LSB steganography, image analysis, and real-time password entropy assessment</li>
         </ul>
+                <h2>Technology stack</h2>
+                <p>Next.js, React, Tailwind CSS, Web Crypto API, and Supabase PostgreSQL, Auth, Realtime Database, and Row Level Security.</p>
         <p>JavaScript is required to use the interactive SecureWatch dashboard.</p>
         <p>Developed by <a href="https://www.linkedin.com/in/kunal-kharat-44a589400/">Kunal Kharat on LinkedIn</a>. View the <a href="https://github.com/kunalkharat774-ui/securewatch-dashboard">SecureWatch GitHub repository</a>.</p>
       </main>

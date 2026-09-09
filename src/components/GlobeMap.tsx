@@ -1,9 +1,9 @@
-import React, { useEffect, useRef, useState, useMemo } from 'react';
+import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
+import * as THREE from 'three';
 import { createPortal } from 'react-dom';
 import Globe from 'globe.gl';
 import { Country, SelectedCountryStats, CountryAttack } from '../types';
 import { CountryRealMap } from './CountryRealMap';
-import { CountryWebcamPanel } from './CountryWebcamPanel';
 import satelliteBackdrop from '../assets/images/dark_ocean_wallpaper_1785397034761.jpg';
 
 export const ALL_COUNTRIES: Country[] = [
@@ -85,7 +85,32 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
   const [searchCountry, setSearchCountry] = useState<string>('');
 
   const [threats, setThreats] = useState<any[]>([]);
+  const threatsRef = useRef<any[]>([]);
   const [feedError, setFeedError] = useState<string | null>(null);
+  const [webglAvailable, setWebglAvailable] = useState<boolean>(true);
+  const lastClickRef = useRef<number>(0);
+  const autoRotateTimerRef = useRef<number | null>(null);
+
+  const focusOnLocation = useCallback((lat: number, lng: number, altitude = 1.6, duration = 1200) => {
+    const world = worldRef.current;
+    if (!world || typeof world.pointOfView !== 'function') return;
+    world.pointOfView({ lat, lng, altitude }, duration);
+  }, []);
+
+  const resetGlobeView = useCallback(() => {
+    setSelectedCountry(null);
+    setSelectedStats(null);
+    setPanelActive(false);
+    if (worldRef.current) {
+      const controls = worldRef.current.controls?.();
+      if (controls) {
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = 0.45;
+        controls.enableDamping = true;
+      }
+      focusOnLocation(20, 0, 2.2, 1100);
+    }
+  }, [focusOnLocation]);
 
   const countryCatalog = useMemo(() => {
     const countries = new Map<string, Country>(ALL_COUNTRIES.map((country) => [country.code, country]));
@@ -114,6 +139,7 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || 'CyberBriefing feed unavailable');
         if (!cancelled) {
+          threatsRef.current = data.threats || [];
           setThreats(data.threats || []);
           setFeedError(null);
         }
@@ -128,7 +154,7 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
   }, []);
 
   const attacksForCountry = (country: Country): CountryAttack[] => {
-    const matched = threats.filter((threat) => {
+    const matched = threatsRef.current.filter((threat) => {
       const sourceCode = threat.sourceCountry?.code;
       const targetCode = threat.targetCountry?.code;
       return Boolean(sourceCode && targetCode && (sourceCode === country.code || targetCode === country.code));
@@ -160,7 +186,8 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
   const handleSelectCountry = (country: Country) => {
     setSelectedCountry(country);
     setPanelTab('attacks');
-    setFullRealMapOpen(false);
+    setFullRealMapOpen(true);
+    focusOnLocation(country.lat, country.lng, 1.1, 1400);
 
     const attacks = attacksForCountry(country);
     const selectedLevel: SelectedCountryStats['threatLevel'] = attacks.length > 5 ? 'CRITICAL' : attacks.length > 0 ? 'HIGH' : 'MEDIUM';
@@ -253,38 +280,40 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
 
   // Main 3D Globe initialization
   useEffect(() => {
-    if (!containerRef.current) return;
+    const canvasTest = document.createElement('canvas');
+    const glContext = canvasTest.getContext('webgl') || canvasTest.getContext('experimental-webgl');
+    setWebglAvailable(Boolean(glContext));
+
+    if (!containerRef.current || !glContext) {
+      return;
+    }
 
     containerRef.current.innerHTML = '';
 
     const initialWidth = containerRef.current.clientWidth || 800;
     const initialHeight = containerRef.current.clientHeight || 500;
 
-    let arcsData: any[] = [];
-    let ringsData: any[] = [];
-
-    // Safely resolve Globe factory across bundlers
     const GlobeFn = (Globe as any).default || Globe;
     const world = GlobeFn()(containerRef.current)
       .width(initialWidth)
       .height(initialHeight)
-      .backgroundColor('#030712')
+      .backgroundColor('#020817')
       .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg')
       .bumpImageUrl('https://unpkg.com/three-globe/example/img/earth-topology.png')
       .showGraticules(true)
       .showAtmosphere(true)
-      .atmosphereColor('#38bdf8')
-      .atmosphereAltitude(0.19)
+      .atmosphereColor('#7dd3fc')
+      .atmosphereAltitude(0.18)
       .arcStartLat((d: any) => d.startLat)
       .arcStartLng((d: any) => d.startLng)
       .arcEndLat((d: any) => d.endLat)
       .arcEndLng((d: any) => d.endLng)
       .arcColor((d: any) => d.color)
-      .arcAltitude((d: any) => (d.highlight ? 0.24 : 0.14))
-      .arcDashLength(0.22)
+      .arcAltitude((d: any) => (d.highlight ? 0.22 : 0.12))
+      .arcDashLength(0.18)
       .arcDashGap(0.08)
       .arcDashAnimateTime(900)
-      .arcStroke((d: any) => (d.highlight ? 3.2 : 1.8))
+      .arcStroke((d: any) => (d.highlight ? 3.2 : 1.5))
       .onArcClick((attack: any) => {
         const targetCountry = countryCatalogRef.current.find(
           (country) => country.code === attack.targetCountry.code
@@ -302,11 +331,24 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
       .pointLng((d: any) => d.lng)
       .pointColor(() => '#22c55e')
       .pointAltitude(0.02)
-      .pointRadius(0.45)
+      .pointRadius(0.48)
       .onPointClick((country: Country) => {
         handleSelectCountry(country);
       })
+      .labelsData([])
+      .labelText((d: any) => d.name)
+      .labelSize(0.8)
+      .labelDotRadius(0.2)
       .onGlobeClick(({ lat, lng }: { lat: number; lng: number }) => {
+        const timestamp = Date.now();
+        const isDoubleClick = timestamp - lastClickRef.current < 280;
+        lastClickRef.current = timestamp;
+
+        if (isDoubleClick) {
+          focusOnLocation(lat, lng, 0.9, 1000);
+          return;
+        }
+
         let closest: Country = countryCatalogRef.current[0];
         let minDistance = Infinity;
 
@@ -329,29 +371,49 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
         if (closest) {
           handleSelectCountry(closest);
         }
-      })
-      .pointsData(countryCatalogRef.current)
-      .pointLat((d: any) => d.lat)
-      .pointLng((d: any) => d.lng)
-      .pointColor(() => '#22c55e')
-      .pointAltitude(0.02)
-      .pointRadius(0.45)
-      .onPointClick((country: Country) => {
-        handleSelectCountry(country);
       });
 
     worldRef.current = world;
 
-    if (world.controls) {
-      const controls = world.controls();
-      controls.autoRotate = true;
-      controls.autoRotateSpeed = 0.5;
-      controls.enableRotate = true;
-      controls.enablePan = false;
-      controls.enableZoom = false;
-    }
+    const controls = world.controls();
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+    controls.enablePan = false;
+    controls.enableRotate = true;
+    controls.enableZoom = false;
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 0.45;
+    controls.minDistance = 120;
+    controls.maxDistance = 460;
+    controls.rotateSpeed = 0.85;
+    controls.mouseButtons = {
+      LEFT: THREE.MOUSE.ROTATE,
+    };
 
-    // ResizeObserver for perfectly responsive 3D canvas sizing
+    const pauseAutoRotate = () => {
+      if (!controls) return;
+      controls.autoRotate = false;
+      if (autoRotateTimerRef.current) {
+        window.clearTimeout(autoRotateTimerRef.current);
+      }
+      autoRotateTimerRef.current = window.setTimeout(() => {
+        controls.autoRotate = true;
+      }, 2200);
+    };
+
+    const handlePointerActivity = () => pauseAutoRotate();
+    const handleResize = () => {
+      if (containerRef.current && world) {
+        const w = containerRef.current.clientWidth;
+        const h = containerRef.current.clientHeight;
+        world.width(w).height(h);
+      }
+    };
+
+    const globeContainer = containerRef.current;
+    globeContainer?.addEventListener('pointerdown', handlePointerActivity);
+    globeContainer?.addEventListener('pointermove', handlePointerActivity);
+
     const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const { width: w, height: h } = entry.contentRect;
@@ -365,17 +427,10 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
       resizeObserver.observe(containerRef.current);
     }
 
-    // Initial camera position adjustment
     if (world.pointOfView) {
       world.pointOfView({ lat: 20, lng: 0, altitude: 2.2 });
     }
 
-    // Check Point supplies source and destination coordinates for each live event.
-    ringsData = threats.map((threat) => ({
-      lat: threat.sourceCountry.lat,
-      lng: threat.sourceCountry.lng,
-      color: '#ef4444',
-    }));
     const liveArcs = threats.filter((threat) => threat.sourceCountry && threat.targetCountry).map((threat) => ({
       startLat: threat.sourceCountry.lat,
       startLng: threat.sourceCountry.lng,
@@ -388,6 +443,11 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
       indicator: threat.indicator,
       pulseName: threat.pulseName,
     }));
+    const ringsData = threats.filter((threat) => threat.sourceCountry && threat.targetCountry).flatMap((threat) => [
+      { lat: threat.sourceCountry.lat, lng: threat.sourceCountry.lng, color: '#ef4444' },
+      { lat: threat.targetCountry.lat, lng: threat.targetCountry.lng, color: '#f59e0b' },
+    ]);
+
     world.arcsData(liveArcs);
     world.ringsData(ringsData);
     if (!selectedCountry) {
@@ -402,19 +462,16 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
       );
     }
 
-    const handleResize = () => {
-      if (containerRef.current && world) {
-        const w = containerRef.current.clientWidth;
-        const h = containerRef.current.clientHeight;
-        world.width(w).height(h);
-      }
-    };
-
     window.addEventListener('resize', handleResize);
 
     return () => {
       resizeObserver.disconnect();
       window.removeEventListener('resize', handleResize);
+      globeContainer?.removeEventListener('pointerdown', handlePointerActivity);
+      globeContainer?.removeEventListener('pointermove', handlePointerActivity);
+      if (autoRotateTimerRef.current) {
+        window.clearTimeout(autoRotateTimerRef.current);
+      }
       if (worldRef.current?._destructor) {
         worldRef.current._destructor();
       }
@@ -423,7 +480,7 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
         containerRef.current.innerHTML = '';
       }
     };
-  }, [isFullScreen]);
+  }, [focusOnLocation, isFullScreen]);
 
   useEffect(() => {
     const world = worldRef.current;
@@ -484,6 +541,56 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
     }
   }, [countryCatalog, threats, selectedCountry]);
 
+  useEffect(() => {
+    if (selectedStats) setFullRealMapOpen(true);
+  }, [selectedStats]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const isTypingField = ['INPUT', 'TEXTAREA', 'SELECT'].includes(target?.tagName ?? '');
+      if (isTypingField) return;
+
+      const world = worldRef.current;
+      if (!world || !world.controls) return;
+
+      const controls = world.controls();
+      switch (event.key) {
+        case 'ArrowLeft':
+          event.preventDefault();
+          controls.rotateLeft(0.08);
+          break;
+        case 'ArrowRight':
+          event.preventDefault();
+          controls.rotateLeft(-0.08);
+          break;
+        case 'ArrowUp':
+          event.preventDefault();
+          controls.rotateUp(0.08);
+          break;
+        case 'ArrowDown':
+          event.preventDefault();
+          controls.rotateUp(-0.08);
+          break;
+        case 'Home':
+          event.preventDefault();
+          resetGlobeView();
+          break;
+        case 'Escape':
+          event.preventDefault();
+          setPanelActive(false);
+          setSelectedCountry(null);
+          setSelectedStats(null);
+          break;
+        default:
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [resetGlobeView]);
+
   // Filter attacks for current country panel view
   const displayAttacks = useMemo(() => {
     if (!selectedStats) return [];
@@ -496,6 +603,25 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
     return selectedStats.activeAttacks;
   }, [selectedStats, attackFilter]);
 
+  if (!webglAvailable) {
+    return (
+      <div
+        className={`live-map-shell relative w-full overflow-hidden select-none ${
+          isFullScreen ? 'h-screen bg-[#030712]' : 'h-[400px] sm:h-[480px] md:h-[550px] rounded-xl bg-[#030712] border border-[#1f2335]'
+        }`}
+        role="img"
+        aria-label="WebGL is unavailable, so the globe is not displayed."
+      >
+        <div className="absolute inset-0 flex items-center justify-center bg-[#030712] text-center px-6">
+          <div className="rounded-xl border border-[#1f2335] bg-[#0d111c]/80 px-5 py-4 text-xs text-gray-300 shadow-xl">
+            <div className="mb-2 text-sm font-bold text-white">3D Globe unavailable</div>
+            <div>WebGL is not available in this browser, so the globe view is disabled without affecting the rest of the dashboard.</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className={`live-map-shell relative w-full overflow-hidden select-none ${
@@ -503,6 +629,9 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
           ? 'h-screen bg-[#030712]'
           : 'h-[400px] sm:h-[480px] md:h-[550px] rounded-xl bg-[#030712] border border-[#1f2335]'
       }`}
+      role="application"
+      aria-label="Interactive 3D intelligence globe"
+      tabIndex={0}
     >
       <div className="map-scanlines" />
       <div
@@ -548,14 +677,14 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
             <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-400" />
           </span>
-          Live Attack &amp; Webcam 3D Globe
+          Live Attack 3D Globe
         </h1>
         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-mono text-gray-300">
           <span className="flex items-center gap-1.5">
             <span className="h-1.5 w-5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(74,222,128,0.9)]" />
             LIVE NETWORK CABLE
           </span>
-          <span className="text-emerald-300">Green nodes: click for feed + webcam</span>
+          <span className="text-emerald-300">Green nodes: click for attack details</span>
         </div>
       </div>
 
@@ -706,11 +835,6 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
               </span>
             </div>
           </div>
-
-          <CountryWebcamPanel
-            countryCode={selectedStats.country.code}
-            countryName={selectedStats.country.name}
-          />
 
           {/* Tab Selection Navigation */}
           <div className="flex border-b border-[#1f2335] mb-3 text-xs font-semibold overflow-x-auto pb-1">
