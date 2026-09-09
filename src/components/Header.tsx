@@ -133,7 +133,7 @@ export const Header: React.FC = () => {
               transition={{ duration: 0.5 }}
               className="animated-gradient-text font-extrabold tracking-wide drop-shadow-[0_0_16px_rgba(245,158,11,0.6)]"
             >
-              SecureWatch - Real-Time Web Application &amp; API Security Dashboard
+              Web Application &amp; API Security Dashboard
             </motion.span>
           </h1>
           <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-bold bg-gradient-to-r from-orange-500/15 to-sky-500/15 text-orange-200 border border-orange-400/30 font-mono glass-glow-sm tracking-wider">
