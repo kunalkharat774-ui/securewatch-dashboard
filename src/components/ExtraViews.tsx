@@ -14,6 +14,7 @@ import { SecurityLogsView } from './SecurityLogsView';
 import { ReportsView } from './ReportsView';
 import { SecurityUsersView } from './SecurityUsersView';
 import { SettingsView } from './SettingsView';
+import { PasswordSecurityLab } from './PasswordSecurityLab';
 
 interface ExtraViewsProps {
   view: NavView;
@@ -612,6 +613,8 @@ export const ExtraViews: React.FC<ExtraViewsProps> = ({ view, onBackToDashboard 
           </div>
         );
       })()}
+
+      {view === 'password-strength' && <PasswordSecurityLab />}
 
       {/* 7.5 TEXT ENCRYPTION TOOL */}
       {view === 'text-encrypt' && <TextEncryptView />}

@@ -1343,5 +1343,34 @@
     },
     "reports": [],
     "riskItems": []
+  },
+  "usr_session_tl86ljq9c_mu140tpd": {
+    "users": [],
+    "logs": [],
+    "urlScans": [],
+    "fileScans": [],
+    "settings": {
+      "__componentState": {
+        "api-monitoring": {
+          "endpoints": [
+            {
+              "id": "health",
+              "name": "SecureWatch Backend Health",
+              "path": "/api/health",
+              "method": "GET",
+              "status": "Healthy",
+              "latencyMs": 195,
+              "uptimePct": 0,
+              "errorRatePct": 0,
+              "authType": "Public",
+              "rateLimit": "Not reported",
+              "lastTested": "Just now"
+            }
+          ]
+        }
+      }
+    },
+    "reports": [],
+    "riskItems": []
   }
 }
