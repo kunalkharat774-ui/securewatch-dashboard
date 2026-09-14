@@ -127,7 +127,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return await handleUrlReputation(req, res);
     }
 
-    const { default: app } = await import('../server.ts');
+    const { default: app } = await import('../server');
     return await app(req, res);
   } catch (error: unknown) {
     console.error('Vercel API request failed:', error);

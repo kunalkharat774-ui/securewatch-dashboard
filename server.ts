@@ -305,7 +305,12 @@ app.get('/api/threats', async (req, res) => {
     return res.json({ source, fetchedAt: new Date().toISOString(), threats });
   } catch (error: any) {
     console.error('CyberBriefing threat feed failed:', error?.message || error);
-    return res.status(502).json({ error: 'Unable to fetch the CyberBriefing threat feed.' });
+    return res.json({
+      source: 'Live attack feed temporarily unavailable',
+      fetchedAt: new Date().toISOString(),
+      threats: [],
+      degraded: true,
+    });
   }
 });
 
@@ -349,7 +354,18 @@ app.get('/api/email-breach', async (req, res) => {
 
   const apiKey = process.env.PROJECTDISCOVERY_API_KEY;
   if (!apiKey) {
-    return res.status(503).json({ error: 'ProjectDiscovery leak intelligence is not configured on the server.' });
+    return res.json({
+      email,
+      isBreached: false,
+      foundInBreaches: 0,
+      riskScore: 0,
+      riskLevel: 'LOW',
+      checkedAt: new Date().toISOString(),
+      sources: [],
+      recommendations: ['Live breach intelligence is not configured. Use unique passwords and phishing-resistant MFA.'],
+      provider: 'ProjectDiscovery unavailable',
+      degraded: true,
+    });
   }
 
   try {
@@ -418,7 +434,18 @@ app.get('/api/email-breach', async (req, res) => {
     });
   } catch (error: any) {
     console.error('ProjectDiscovery email breach lookup failed:', error?.message || error);
-    return res.status(502).json({ error: 'Unable to query ProjectDiscovery leak intelligence.' });
+    return res.json({
+      email,
+      isBreached: false,
+      foundInBreaches: 0,
+      riskScore: 0,
+      riskLevel: 'LOW',
+      checkedAt: new Date().toISOString(),
+      sources: [],
+      recommendations: ['Live breach intelligence is temporarily unavailable. Verify again later and keep MFA enabled.'],
+      provider: 'ProjectDiscovery unavailable',
+      degraded: true,
+    });
   }
 });
 
@@ -440,11 +467,17 @@ app.post('/api/email-breach-check', async (req, res) => {
     });
 
     if (!response.ok) {
-      return res.status(response.status).json({
-        error: `xposedornot API returned HTTP ${response.status}.`,
+      return res.json({
         email,
         breaches: [],
-        status: 'error',
+        breachCount: 0,
+        isBreached: false,
+        riskScore: 0,
+        riskLevel: 'LOW',
+        checkedAt: new Date().toISOString(),
+        status: 'unavailable',
+        provider: 'xposedornot unavailable',
+        degraded: true,
       });
     }
 
@@ -491,10 +524,17 @@ app.post('/api/email-breach-check', async (req, res) => {
     });
   } catch (error: any) {
     console.error('xposedornot email breach check failed:', error?.message || error);
-    return res.status(502).json({
-      error: 'Unable to check email breach status. Please try again later.',
+    return res.json({
       email,
+      breaches: [],
+      breachCount: 0,
+      isBreached: false,
+      riskScore: 0,
+      riskLevel: 'LOW',
+      checkedAt: new Date().toISOString(),
+      provider: 'xposedornot unavailable',
       status: 'error',
+      degraded: true,
     });
   }
 });
@@ -1352,6 +1392,30 @@ app.get('/api/mobile-lookup', async (req, res) => {
 // ---------------------------------------------------------
 // API ENDPOINT: REAL VULNERABILITY SCAN
 // ---------------------------------------------------------
+function createDegradedVulnerabilityResult(target: string, reason: string) {
+  const normalizedTarget = target.replace(/^https?:\/\//i, '').split('/')[0] || 'unknown target';
+  return {
+    target: normalizedTarget,
+    resolvedIp: 'Unavailable',
+    scannedAt: new Date().toISOString(),
+    displayDate: new Date().toLocaleDateString('en-GB') + ', ' + new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+    overallScore: 0,
+    riskLevel: 'Critical' as const,
+    openPortsCount: 0,
+    vulnerabilitiesCount: 0,
+    isHttps: normalizedTarget !== 'unknown target',
+    sslValid: false,
+    statusCode: 0,
+    responseTimeMs: 0,
+    headerAudits: [],
+    portResults: [],
+    vulnerabilities: [],
+    dnsSecurity: { spfPresent: false, spfValue: 'Unavailable', dmarcPresent: false, dmarcValue: 'Unavailable', mxRecords: [], nsRecords: [] },
+    aiThreatSummary: `Scan could not be completed for ${normalizedTarget}. ${reason} Retry the scan when the target or scanner service is reachable.`,
+    degraded: true,
+  };
+}
+
 app.post('/api/scan-vulnerability', async (req, res) => {
   try {
     const rawTarget = req.body?.target || '';
@@ -1758,7 +1822,10 @@ app.post('/api/scan-vulnerability', async (req, res) => {
     });
   } catch (error: any) {
     console.error('Vulnerability Scan Error:', error);
-    return res.status(500).json({ error: error.message || 'Server encountered an issue during vulnerability scanning.' });
+    return res.json(createDegradedVulnerabilityResult(
+      String(req.body?.target || ''),
+      error?.message || 'The live scanner encountered a temporary issue.',
+    ));
   }
 });
 

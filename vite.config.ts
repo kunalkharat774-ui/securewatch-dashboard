@@ -25,13 +25,6 @@ export default defineConfig(() => {
       hmr: false,
       // Disable file watching to stop unnecessary reloads in this environment.
       watch: null,
-      proxy: {
-        '/api': {
-          target: 'http://127.0.0.1:3009',
-          changeOrigin: true,
-          secure: false,
-        },
-      },
     },
   };
 });
