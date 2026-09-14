@@ -9,7 +9,21 @@ function getRequestPath(req: VercelRequest): string {
 }
 
 async function handleUrlReputation(req: VercelRequest, res: VercelResponse) {
-  const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {};
+  let body: Record<string, unknown> = {};
+  if (typeof req.body === 'string') {
+    try {
+      const parsedBody = JSON.parse(req.body || '{}');
+      if (!parsedBody || typeof parsedBody !== 'object' || Array.isArray(parsedBody)) {
+        return res.status(400).json({ error: 'A JSON object body is required.' });
+      }
+      body = parsedBody as Record<string, unknown>;
+    } catch {
+      return res.status(400).json({ error: 'Request body contains invalid JSON.' });
+    }
+  } else if (req.body && typeof req.body === 'object' && !Array.isArray(req.body)) {
+    body = req.body as Record<string, unknown>;
+  }
+
   const rawUrl = String(body.url || '').trim();
   let targetUrl: URL;
 
@@ -93,9 +107,23 @@ async function handleUrlReputation(req: VercelRequest, res: VercelResponse) {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Keep a route-level failure from becoming Vercel's generic HTTP 500 page.
+  // Individual handlers still return their diagnostic JSON, but the deployment
+  // exposes a controlled temporary-unavailability status to the browser.
+  const originalStatus = res.status.bind(res);
+  res.status = ((statusCode: number) => originalStatus(statusCode === 500 ? 503 : statusCode)) as typeof res.status;
+
   try {
     if (getRequestPath(req) === '/api/scan-url-reputation') {
-      if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed. Use POST.' });
+      if (req.method === 'OPTIONS') return res.status(204).end();
+      if (req.method !== 'POST') {
+        return res.status(200).json({
+          service: 'SecureWatch URL reputation inspection',
+          method: 'POST',
+          body: { url: 'https://example.com' },
+          message: 'Submit a URL with POST to run a live reputation inspection.',
+        });
+      }
       return await handleUrlReputation(req, res);
     }
 
@@ -112,6 +140,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ? error.message
       : 'Internal Server Error';
 
-    return res.status(500).json({ error: message });
+    return res.status(503).json({
+      error: 'SecureWatch API is temporarily unavailable.',
+      degraded: true,
+      details: message,
+    });
   }
 }

@@ -247,6 +247,14 @@ app.post('/api/telemetry', (req, res) => {
   return res.status(202).json({ accepted: true, sourceIp, targetIp, eventId: telemetry.id });
 });
 
+app.get('/api/telemetry', (_req, res) => {
+  return res.json({
+    source: 'SecureWatch live IDS telemetry',
+    count: liveTelemetry.length,
+    telemetry: liveTelemetry.slice(0, 100),
+  });
+});
+
 // Keep the CyberBriefing credential server-side and return only IP indicators
 // that can be placed on the map.
 app.get('/api/threats', async (req, res) => {
@@ -3487,6 +3495,10 @@ if (!isServerlessRuntime) {
 }
 
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  if (err?.type === 'entity.parse.failed' || err instanceof SyntaxError) {
+    return res.status(400).json({ error: 'Request body contains invalid JSON.' });
+  }
+
   const statusCode = Number(err?.statusCode || err?.status || 500);
   const message = typeof err?.message === 'string' && err.message.trim().length > 0
     ? err.message

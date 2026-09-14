@@ -12,6 +12,7 @@ import { ExtraViews } from './components/ExtraViews';
 import { CinematicLoadingScreen } from './components/CinematicLoadingScreen';
 import { ShinyButton } from './components/ui/shiny-button';
 import ParticleDrift from './components/ui/particle-drift';
+import { BinaryBackground } from './components/BinaryBackground';
 import { NavView, UrlScanResult, FileActivity } from './types';
 
 const dashboardModuleViews: NavView[] = [
@@ -114,6 +115,7 @@ export default function App() {
 
   return (
       <div className="app-shell dark-blue-theme flex h-screen text-[#f9fbfd] font-sans overflow-hidden select-none relative">
+        <BinaryBackground />
         <ParticleDrift
           speed={0.7}
           density={0.8}

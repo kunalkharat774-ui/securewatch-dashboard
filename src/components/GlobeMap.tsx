@@ -70,6 +70,12 @@ interface GlobeMapProps {
   isFullScreen?: boolean;
 }
 
+type GlobePoint = Country & {
+  pointColor?: string;
+  pointRadius?: number;
+  isTelemetry?: boolean;
+};
+
 export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<any>(null);
@@ -128,6 +134,42 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
     });
     return Array.from(countries.values());
   }, [threats]);
+
+  const globePoints = useMemo<GlobePoint[]>(() => {
+    const points: GlobePoint[] = countryCatalog.map((country) => ({ ...country }));
+
+    threats.forEach((threat, threatIndex) => {
+      const anchors = [threat.sourceCountry, threat.targetCountry].filter(
+        (country: Country | undefined): country is Country => Boolean(country)
+      );
+
+      anchors.forEach((anchor, anchorIndex) => {
+        for (let pointIndex = 0; pointIndex < 10; pointIndex += 1) {
+          const angle = ((pointIndex * 137.5) + threatIndex * 23 + anchorIndex * 47) * (Math.PI / 180);
+          const spread = 0.8 + (pointIndex % 4) * 0.55;
+          points.push({
+            ...anchor,
+            name: `Telemetry ${threatIndex + 1}-${anchorIndex + 1}-${pointIndex + 1}`,
+            code: `TELEMETRY-${threatIndex}-${anchorIndex}-${pointIndex}`,
+            lat: Math.max(-89, Math.min(89, anchor.lat + Math.sin(angle) * spread)),
+            lng: anchor.lng + Math.cos(angle) * spread * 1.8,
+            pointColor: anchorIndex === 0 ? '#49a7ff' : '#ff5d6c',
+            pointRadius: pointIndex % 3 === 0 ? 0.42 : 0.25,
+            isTelemetry: true,
+          });
+        }
+      });
+    });
+
+    return points;
+  }, [countryCatalog, threats]);
+
+  const globeLabels = useMemo(() => {
+    const activeCodes = new Set(
+      threats.flatMap((threat) => [threat.sourceCountry?.code, threat.targetCountry?.code]).filter(Boolean)
+    );
+    return countryCatalog.filter((country) => activeCodes.has(country.code));
+  }, [countryCatalog, threats]);
 
   countryCatalogRef.current = countryCatalog;
 
@@ -297,23 +339,23 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
     const world = GlobeFn()(containerRef.current)
       .width(initialWidth)
       .height(initialHeight)
-      .backgroundColor('#020817')
+      .backgroundColor('#02060b')
       .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg')
       .bumpImageUrl('https://unpkg.com/three-globe/example/img/earth-topology.png')
-      .showGraticules(true)
+      .showGraticules(false)
       .showAtmosphere(true)
-      .atmosphereColor('#7dd3fc')
-      .atmosphereAltitude(0.18)
+      .atmosphereColor('#4fc8ff')
+      .atmosphereAltitude(0.22)
       .arcStartLat((d: any) => d.startLat)
       .arcStartLng((d: any) => d.startLng)
       .arcEndLat((d: any) => d.endLat)
       .arcEndLng((d: any) => d.endLng)
       .arcColor((d: any) => d.color)
-      .arcAltitude((d: any) => (d.highlight ? 0.22 : 0.12))
-      .arcDashLength(0.18)
-      .arcDashGap(0.08)
-      .arcDashAnimateTime(900)
-      .arcStroke((d: any) => (d.highlight ? 3.2 : 1.5))
+      .arcAltitude((d: any) => (d.highlight ? 0.16 : 0.1))
+      .arcDashLength(0.24)
+      .arcDashGap(0.1)
+      .arcDashAnimateTime(1200)
+      .arcStroke((d: any) => (d.highlight ? 1.7 : 1))
       .onArcClick((attack: any) => {
         const targetCountry = countryCatalogRef.current.find(
           (country) => country.code === attack.targetCountry.code
@@ -323,22 +365,29 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
       .ringLat((d: any) => d.lat)
       .ringLng((d: any) => d.lng)
       .ringColor((d: any) => d.color)
-      .ringMaxRadius(8)
-      .ringPropagationSpeed(3.8)
-      .ringRepeatPeriod(600)
-      .pointsData(countryCatalogRef.current)
+      .ringMaxRadius(4.5)
+      .ringPropagationSpeed(2.6)
+      .ringRepeatPeriod(900)
+      .pointsData(globePoints)
       .pointLat((d: any) => d.lat)
       .pointLng((d: any) => d.lng)
-      .pointColor(() => '#22c55e')
-      .pointAltitude(0.02)
-      .pointRadius(0.48)
-      .onPointClick((country: Country) => {
-        handleSelectCountry(country);
+      .pointColor((point: GlobePoint) => {
+        if (point.pointColor) return point.pointColor;
+        const isTarget = threatsRef.current.some((threat) => threat.targetCountry?.code === point.code);
+        return isTarget ? '#ff453a' : '#ffd166';
       })
-      .labelsData([])
+      .pointAltitude(0.025)
+      .pointRadius((point: GlobePoint) => point.pointRadius ?? 0.32)
+      .onPointClick((point: GlobePoint) => {
+        if (!point.isTelemetry) handleSelectCountry(point);
+      })
+      .labelsData(globeLabels)
       .labelText((d: any) => d.name)
+      .labelColor(() => '#d7f4ff')
       .labelSize(0.8)
       .labelDotRadius(0.2)
+      .labelAltitude(0.055)
+      .labelResolution(3)
       .onGlobeClick(({ lat, lng }: { lat: number; lng: number }) => {
         const timestamp = Date.now();
         const isDoubleClick = timestamp - lastClickRef.current < 280;
@@ -375,17 +424,27 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
 
     worldRef.current = world;
 
+    const globeMaterial = world.globeMaterial?.();
+    if (globeMaterial) {
+      globeMaterial.color = new THREE.Color('#ffffff');
+      globeMaterial.emissive = new THREE.Color('#020a16');
+      globeMaterial.emissiveIntensity = 0.18;
+      globeMaterial.shininess = 18;
+      globeMaterial.needsUpdate = true;
+    }
+
     const controls = world.controls();
     controls.enableDamping = true;
     controls.dampingFactor = 0.08;
     controls.enablePan = false;
     controls.enableRotate = true;
-    controls.enableZoom = false;
+    controls.enableZoom = true;
     controls.autoRotate = true;
-    controls.autoRotateSpeed = 0.45;
-    controls.minDistance = 120;
-    controls.maxDistance = 460;
-    controls.rotateSpeed = 0.85;
+    controls.autoRotateSpeed = 0.2;
+    controls.minDistance = 145;
+    controls.maxDistance = 420;
+    controls.zoomSpeed = 0.7;
+    controls.rotateSpeed = 0.7;
     controls.mouseButtons = {
       LEFT: THREE.MOUSE.ROTATE,
     };
@@ -428,7 +487,7 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
     }
 
     if (world.pointOfView) {
-      world.pointOfView({ lat: 20, lng: 0, altitude: 2.2 });
+      world.pointOfView({ lat: 20, lng: 0, altitude: isFullScreen ? 2.35 : 3.25 });
     }
 
     const liveArcs = threats.filter((threat) => threat.sourceCountry && threat.targetCountry).map((threat) => ({
@@ -436,7 +495,9 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
       startLng: threat.sourceCountry.lng,
       endLat: threat.targetCountry.lat,
       endLng: threat.targetCountry.lng,
-      color: '#22c55e',
+      color: (threat.tags || []).some((tag: string) => /ransom|malware|botnet|ddos|exploit/i.test(tag))
+        ? '#ff453a'
+        : '#ffd166',
       highlight: true,
       sourceCountry: threat.sourceCountry,
       targetCountry: threat.targetCountry,
@@ -444,8 +505,8 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
       pulseName: threat.pulseName,
     }));
     const ringsData = threats.filter((threat) => threat.sourceCountry && threat.targetCountry).flatMap((threat) => [
-      { lat: threat.sourceCountry.lat, lng: threat.sourceCountry.lng, color: '#ef4444' },
-      { lat: threat.targetCountry.lat, lng: threat.targetCountry.lng, color: '#f59e0b' },
+      { lat: threat.sourceCountry.lat, lng: threat.sourceCountry.lng, color: '#ff453a' },
+      { lat: threat.targetCountry.lat, lng: threat.targetCountry.lng, color: '#ffd166' },
     ]);
 
     world.arcsData(liveArcs);
@@ -496,7 +557,9 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
       startLng: threat.sourceCountry.lng,
       endLat: threat.targetCountry.lat,
       endLng: threat.targetCountry.lng,
-      color: '#22c55e',
+      color: (threat.tags || []).some((tag: string) => /ransom|malware|botnet|ddos|exploit/i.test(tag))
+        ? '#ff453a'
+        : '#ffd166',
       highlight: true,
       sourceCountry: threat.sourceCountry,
       targetCountry: threat.targetCountry,
@@ -504,13 +567,14 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
       pulseName: threat.pulseName,
     }));
     const rings = validThreats.flatMap((threat) => [
-      { lat: threat.sourceCountry.lat, lng: threat.sourceCountry.lng, color: '#ef4444' },
-      { lat: threat.targetCountry.lat, lng: threat.targetCountry.lng, color: '#f59e0b' },
+      { lat: threat.sourceCountry.lat, lng: threat.sourceCountry.lng, color: '#ff453a' },
+      { lat: threat.targetCountry.lat, lng: threat.targetCountry.lng, color: '#ffd166' },
     ]);
 
     world.arcsData(liveArcs);
     world.ringsData(rings);
-    world.pointsData(countryCatalog);
+    world.pointsData(globePoints);
+    world.labelsData(globeLabels);
     if (selectedCountry && countryCatalog.some((country) => country.code === selectedCountry.code)) {
       const selectedAttacks = attacksForCountry(selectedCountry);
       setSelectedStats((current) => current ? {
@@ -640,7 +704,7 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
         aria-hidden="true"
       />
 
-      {/* 3D Globe Render Canvas */}
+      {/* Full-screen 3D Globe Render Canvas */}
       <div ref={containerRef} className="absolute inset-0 w-full h-full z-1" />
 
       <div className="absolute left-4 bottom-14 z-10 hidden min-w-[230px] max-w-[320px] sm:block">
@@ -684,7 +748,7 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
             <span className="h-1.5 w-5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(74,222,128,0.9)]" />
             LIVE NETWORK CABLE
           </span>
-          <span className="text-emerald-300">Green nodes: click for attack details</span>
+          <span className="text-amber-300">Amber nodes: click for attack details</span>
         </div>
       </div>
 
