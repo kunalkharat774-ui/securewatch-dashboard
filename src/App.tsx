@@ -7,6 +7,7 @@ import { GlobeMap } from './components/GlobeMap';
 import { LiveWebcamsView } from './components/LiveWebcamsView';
 import { UrlChecker } from './components/UrlChecker';
 import { FileSecurity } from './components/FileSecurity';
+import { LinuxCommandQuizView } from './components/LinuxCommandQuizView';
 import { RecentTables } from './components/RecentTables';
 import { ExtraViews } from './components/ExtraViews';
 import { CinematicLoadingScreen } from './components/CinematicLoadingScreen';
@@ -219,6 +220,22 @@ export default function App() {
                 </div>
                 <FileSecurity onFileActivity={handleFileActivity} />
                 <RecentTables urlScans={urlScans} fileActivities={fileActivities} />
+              </div>
+            ) : currentView === 'linux-command-quiz' ? (
+              <div className="space-y-6">
+                <div className="flex justify-between items-center border-b border-[#1f2335] pb-4">
+                  <div>
+                    <h2 className="text-xl font-bold text-white">Linux Command MCQ Assessment</h2>
+                    <p className="text-xs text-gray-400">Complete 200 Linux command questions with a maximum of 50 per day</p>
+                  </div>
+                  <ShinyButton
+                    onClick={() => setCurrentView('dashboard')}
+                    className="px-3.5 py-1.5 bg-[#1a1e30] hover:bg-[#252b42] text-gray-200 text-xs rounded border border-[#1f2335] transition flex items-center gap-2 cursor-pointer"
+                  >
+                    <i className="fa-solid fa-gauge-high text-xs" /> Back to Dashboard
+                  </ShinyButton>
+                </div>
+                <LinuxCommandQuizView />
               </div>
             ) : currentView !== 'dashboard' ? (
               /* OTHER SIDEBAR MODULE VIEWS */

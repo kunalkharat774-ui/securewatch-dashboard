@@ -141,6 +141,7 @@ export type NavView =
   | 'domain-info'
   | 'url-reputation'
   | 'file-security'
+  | 'linux-command-quiz'
   | 'logs'
   | 'reports'
   | 'users'

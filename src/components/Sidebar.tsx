@@ -38,6 +38,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onSelectView, ale
     { id: 'domain-info', label: 'Domain Information', icon: 'fa-globe', badge: { text: 'NEW', type: 'green' } },
     { id: 'url-reputation', label: 'URL Reputation', icon: 'fa-link', badge: { text: 'NEW', type: 'green' } },
     { id: 'file-security', label: 'File Security', icon: 'fa-file-shield', badge: { text: 'NEW', type: 'green' } },
+    { id: 'linux-command-quiz', label: 'Linux Command MCQ', icon: 'fa-terminal', badge: { text: '200', type: 'green' } },
     { id: 'logs', label: 'Security Logs', icon: 'fa-file-lines' },
     { id: 'reports', label: 'Reports', icon: 'fa-chart-pie' },
     { id: 'users', label: 'User Management', icon: 'fa-users' },
