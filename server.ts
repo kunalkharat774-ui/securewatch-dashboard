@@ -3536,6 +3536,10 @@ async function startServer() {
     // Vite is a local development dependency; keep it out of the Vercel function initialization path.
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({ server: { middlewareMode: true, hmr: false }, appType: 'spa' });
+    app.use((req, res, next) => {
+      if (!req.path.startsWith('/api/')) return next();
+      res.status(404).json({ error: 'Endpoint not found', path: req.path, method: req.method });
+    });
     app.use(vite.middlewares);
   }
 
