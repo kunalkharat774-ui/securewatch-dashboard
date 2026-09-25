@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { ProfileView } from './ProfileView';
 
 export interface SecurityUser {
   id: string;
@@ -53,7 +54,7 @@ export const SecurityUsersView: React.FC<SecurityUsersViewProps> = () => {
 
   // Authorized Security Gate Password Protection
   const [masterPasscode, setMasterPasscode] = useState<string>(() => {
-    return localStorage.getItem('user_mgmt_master_passcode') || 'kunal@123as$';
+    return localStorage.getItem('user_mgmt_master_passcode') || '';
   });
   const [isAuthorized, setIsAuthorized] = useState<boolean>(() => {
     return sessionStorage.getItem('user_mgmt_authorized') === 'true';
@@ -615,8 +616,16 @@ export const SecurityUsersView: React.FC<SecurityUsersViewProps> = () => {
             </div>
           </div>
 
-      {/* REAL STATS SUMMARY BAR */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <ProfileView
+            username="securewatch"
+            isUnlocked={true}
+            onOpenLoginModal={() => showToast('Authentication required to unlock hidden content.', 'info')}
+            onOpenLightbox={(post) => showToast(`Previewing post ${post.id}`, 'info')}
+            onOpenStories={(stories) => showToast(`${stories.length} stories ready to open`, 'info')}
+          />
+
+          {/* REAL STATS SUMMARY BAR */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-[#0d111c] border border-[#1f2335] rounded-xl p-4 flex items-center justify-between">
           <div>
             <span className="text-[11px] text-gray-400 font-medium block">Total Security Users</span>

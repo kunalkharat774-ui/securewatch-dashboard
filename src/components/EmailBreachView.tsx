@@ -21,6 +21,7 @@ export interface BreachQueryResult {
   sources: BreachDetail[];
   recommendations: string[];
   provider?: string;
+  degraded?: boolean;
 }
 
 interface EmailBreachViewProps {
@@ -116,6 +117,8 @@ export const EmailBreachView: React.FC<EmailBreachViewProps> = ({ onBackToDashbo
         checkedAt: Number.isNaN(checkedAt.getTime()) ? 'Time unavailable' : checkedAt.toLocaleTimeString(),
         sources: data.sources,
         recommendations,
+        provider: typeof data.provider === 'string' ? data.provider : undefined,
+        degraded: data.degraded === true,
       });
 
       triggerToast(`Live breach search complete for ${cleanEmail}`);
@@ -306,6 +309,12 @@ export const EmailBreachView: React.FC<EmailBreachViewProps> = ({ onBackToDashbo
           {/* Result Banner */}
           {!checkingEmail && breachResult && (
             <div className="space-y-6">
+              {breachResult.degraded && (
+                <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 text-xs text-amber-300 flex items-center gap-2">
+                  <i className="fa-solid fa-triangle-exclamation" />
+                  {breachResult.provider || 'Primary breach provider'} returned a degraded result. Treat a clean result as unverified and try again later.
+                </div>
+              )}
               {breachResult.isBreached ? (
                 /* LEAK DETECTED BANNER */
                 <div className="p-5 bg-red-500/10 border border-red-500/30 rounded-xl space-y-4 shadow-[0_0_20px_rgba(239,68,68,0.1)]">
@@ -376,8 +385,8 @@ export const EmailBreachView: React.FC<EmailBreachViewProps> = ({ onBackToDashbo
                       </div>
                     </div>
 
-                    <span className="px-3 py-1 rounded-md text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
-                      100 / 100 SAFE
+                    <span className={`px-3 py-1 rounded-md text-xs font-bold border ${breachResult.degraded ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'}`}>
+                      {breachResult.degraded ? 'UNVERIFIED' : '100 / 100 SAFE'}
                     </span>
                   </div>
 

@@ -7,14 +7,12 @@ import { IpLocationView } from './IpLocationView';
 import { DomainInfoView } from './DomainInfoView';
 import { EmailBreachView } from './EmailBreachView';
 import { VulnerabilityScannerView } from './VulnerabilityScannerView';
-import { RiskAssessmentView } from './RiskAssessmentView';
 import { SecurityAlertsView } from './SecurityAlertsView';
 import { ApiMonitoringView } from './ApiMonitoringView';
 import { SecurityLogsView } from './SecurityLogsView';
 import { ReportsView } from './ReportsView';
 import { SecurityUsersView } from './SecurityUsersView';
 import { SettingsView } from './SettingsView';
-import { PasswordSecurityLab } from './PasswordSecurityLab';
 
 interface ExtraViewsProps {
   view: NavView;
@@ -52,15 +50,10 @@ export const ExtraViews: React.FC<ExtraViewsProps> = ({ view, onBackToDashboard 
   const [remediationTasks, setRemediationTasks] = useState<Record<string, boolean>>({});
 
   // Password Analyzer State
-  const [testPassword, setTestPassword] = useState('P@ssw0rd2025!MilitryGrade99');
+  const [testPassword, setTestPassword] = useState('');
   const [generatedPass, setGeneratedPass] = useState('');
   const [showPassword, setShowPassword] = useState(true);
   const [copiedToast, setCopiedToast] = useState(false);
-
-  // Risk Assessment Calculator State
-  const [assetValue, setAssetValue] = useState(8);
-  const [threatLikelihood, setThreatLikelihood] = useState(7);
-  const [vulnerabilityImpact, setVulnerabilityImpact] = useState(8);
 
   // Security Logs State
   const [logFilter, setLogFilter] = useState('ALL');
@@ -76,7 +69,7 @@ export const ExtraViews: React.FC<ExtraViewsProps> = ({ view, onBackToDashboard 
   const [wafEnabled, setWafEnabled] = useState(true);
   const [autoBlock, setAutoBlock] = useState(true);
   const [emailAlerts, setEmailAlerts] = useState(true);
-  const [apiKey, setApiKey] = useState('sw_live_992184a8bc0192e8112');
+  const [apiKey, setApiKey] = useState('');
 
   // Handle Ping Endpoint
   const handlePing = () => {
@@ -391,9 +384,6 @@ export const ExtraViews: React.FC<ExtraViewsProps> = ({ view, onBackToDashboard 
     };
   };
 
-  // Calculate Risk
-  const calculatedRiskScore = Math.min(100, Math.round((assetValue * threatLikelihood * vulnerabilityImpact) / 10));
-
   return (
     <div className="space-y-6">
       {/* Top Navigation Bar */}
@@ -423,11 +413,6 @@ export const ExtraViews: React.FC<ExtraViewsProps> = ({ view, onBackToDashboard 
       {/* 3. VULNERABILITY SCANNER */}
       {view === 'vulnerability-scanner' && (
         <VulnerabilityScannerView onBackToDashboard={onBackToDashboard} />
-      )}
-
-      {/* 4. RISK ASSESSMENT */}
-      {view === 'risk-assessment' && (
-        <RiskAssessmentView onBackToDashboard={onBackToDashboard} />
       )}
 
       {/* 6. EMAIL BREACH CHECKER */}
@@ -613,8 +598,6 @@ export const ExtraViews: React.FC<ExtraViewsProps> = ({ view, onBackToDashboard 
           </div>
         );
       })()}
-
-      {view === 'password-strength' && <PasswordSecurityLab />}
 
       {/* 7.5 TEXT ENCRYPTION TOOL */}
       {view === 'text-encrypt' && <TextEncryptView />}

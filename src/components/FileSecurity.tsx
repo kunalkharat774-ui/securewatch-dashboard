@@ -155,7 +155,11 @@ export const FileSecurity: React.FC<FileSecurityProps> = ({ onFileActivity }) =>
 
   // Handle Real Encrypt
   const handleEncrypt = async () => {
-    const file = encryptFile || new File(['Sample Confidential Securewatch Audit Payload\nClassification: RESTRICTED'], 'Securewatch_Security_Audit.pdf', { type: 'application/pdf' });
+    if (!encryptFile) {
+      showToast('Select a real file before encrypting', 'error');
+      return;
+    }
+    const file = encryptFile;
 
     if (!encPassword) {
       showToast('Please set a encryption password', 'error');

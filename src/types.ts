@@ -125,6 +125,34 @@ export interface SecurityAlert {
   status: 'Active' | 'Investigating' | 'Resolved';
 }
 
+export interface Post {
+  id: string;
+  thumbnail: string;
+  likes?: number;
+  comments?: number;
+}
+
+export interface Story {
+  id: string;
+  image: string;
+  title?: string;
+}
+
+export interface ProfileData {
+  username: string;
+  full_name?: string;
+  biography?: string;
+  category?: string;
+  profile_pic: string;
+  is_verified: boolean;
+  is_private: boolean;
+  followers?: number;
+  following?: number;
+  post_count?: number;
+  posts?: Post[];
+  stories?: Story[];
+}
+
 export type NavView = 
   | 'dashboard'
   | 'live-map'
@@ -132,16 +160,13 @@ export type NavView =
   | 'api-monitoring'
   | 'alerts'
   | 'vulnerability-scanner'
-  | 'risk-assessment'
   | 'email-breach'
-  | 'password-strength'
   | 'text-encrypt'
   | 'steganography'
   | 'ip-location'
   | 'domain-info'
   | 'url-reputation'
   | 'file-security'
-  | 'linux-command-quiz'
   | 'logs'
   | 'reports'
   | 'users'

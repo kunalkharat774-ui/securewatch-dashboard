@@ -460,3 +460,40 @@ aside,
         --securewatch-button-angle: 360deg;
     }
 }
+
+
+/* Golden and black identity for the cinematic loading screen. */
+
+#cinematic-securewatch-loading-screen {
+    background: radial-gradient(circle at center, #3a2505 0%, #080604 48%, #010101 100%) !important;
+    color: #fff7d6;
+}
+
+#cinematic-securewatch-loading-screen [class*="via-[#38bdf8]"],
+#cinematic-securewatch-loading-screen [class*="via-[#facc15]"] {
+    --tw-gradient-via: rgba(234, 179, 8, 0.78) !important;
+}
+
+#cinematic-securewatch-loading-screen [class*="bg-amber-500"],
+#cinematic-securewatch-loading-screen [class*="bg-cyan-500"],
+#cinematic-securewatch-loading-screen [class*="bg-[#eab308]"],
+#cinematic-securewatch-loading-screen [class*="bg-[#facc15]"],
+#cinematic-securewatch-loading-screen [class*="bg-[#38bdf8]"] {
+    background-color: #eab308 !important;
+}
+
+#cinematic-securewatch-loading-screen [class*="text-amber-400"],
+#cinematic-securewatch-loading-screen [class*="text-[#cca854]"],
+#cinematic-securewatch-loading-screen [class*="text-cyan-400"] {
+    color: #facc15 !important;
+}
+
+#cinematic-securewatch-loading-screen [class*="border-[#eab308]"],
+#cinematic-securewatch-loading-screen [class*="border-slate-700"] {
+    border-color: rgba(234, 179, 8, 0.48) !important;
+}
+
+#cinematic-securewatch-loading-screen [class*="shadow-[0_0_25px_rgba(234,179,8"],
+#cinematic-securewatch-loading-screen [class*="shadow-[0_0_12px_rgba(234,179,8"] {
+    box-shadow: 0 0 25px rgba(234, 179, 8, 0.55), inset 0 0 12px rgba(250, 204, 21, 0.28) !important;
+}

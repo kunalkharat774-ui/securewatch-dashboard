@@ -137,12 +137,13 @@ function readCheckpointAttacks(limit: number): Promise<CheckpointAttack[]> {
         const frames = buffer.split(/\r?\n\r?\n/);
         buffer = frames.pop() || '';
         for (const frame of frames) {
-          if (!frame.split(/\r?\n/).some((line) => /^event:\s*attack\s*$/i.test(line.trim()))) continue;
           const dataLine = frame.split(/\r?\n/).find((line) => line.trimStart().startsWith('data:'));
           if (!dataLine) continue;
           try {
             const event = JSON.parse(dataLine.slice(dataLine.indexOf(':') + 1).trim()) as CheckpointAttack;
-            events.push(event);
+            if (event.s_co && event.d_co && Number.isFinite(event.s_la) && Number.isFinite(event.s_lo) && Number.isFinite(event.d_la) && Number.isFinite(event.d_lo)) {
+              events.push(event);
+            }
             if (!settleTimer) settleTimer = setTimeout(finish, 1500);
           } catch {
             // Ignore malformed SSE frames and continue collecting valid attacks.
@@ -166,7 +167,7 @@ function readCheckpointAttacks(limit: number): Promise<CheckpointAttack[]> {
       });
     });
 
-    request.setTimeout(30000, () => request.destroy(new Error('Check Point live feed timed out')));
+    request.setTimeout(8000, () => request.destroy(new Error('Check Point live feed timed out')));
     request.on('error', (error) => {
       if (!settled) {
         settled = true;
@@ -194,7 +195,6 @@ function connectCheckpointFeed() {
       const frames = buffer.split(/\r?\n\r?\n/);
       buffer = frames.pop() || '';
       for (const frame of frames) {
-        if (!frame.split(/\r?\n/).some((line) => /^event:\s*attack\s*$/i.test(line.trim()))) continue;
         const dataLine = frame.split(/\r?\n/).find((line) => line.trimStart().startsWith('data:'));
         if (!dataLine) continue;
         try {
@@ -353,19 +353,52 @@ app.get('/api/email-breach', async (req, res) => {
   }
 
   const apiKey = process.env.PROJECTDISCOVERY_API_KEY;
-  if (!apiKey) {
-    return res.json({
-      email,
-      isBreached: false,
-      foundInBreaches: 0,
-      riskScore: 0,
-      riskLevel: 'LOW',
-      checkedAt: new Date().toISOString(),
-      sources: [],
-      recommendations: ['Live breach intelligence is not configured. Use unique passwords and phishing-resistant MFA.'],
-      provider: 'ProjectDiscovery unavailable',
-      degraded: true,
+
+  const queryXposedOrNot = async () => {
+    const response = await fetch(`https://api.xposedornot.com/v1/check-email/${encodeURIComponent(email)}`, {
+      headers: { Accept: 'application/json', 'User-Agent': 'SecureWatch/2.0 email-breach-checker' },
+      signal: AbortSignal.timeout(8000),
     });
+    if (!response.ok) throw new Error(`XposedOrNot returned HTTP ${response.status}`);
+    const payload = await response.json() as { breaches?: string[] };
+    const breaches = Array.isArray(payload.breaches) ? payload.breaches : [];
+    const sources: BreachDetail[] = breaches.map((name) => ({
+      name: String(name),
+      domain: 'XposedOrNot breach index',
+      date: 'Date unavailable',
+      pwnCount: 'Indexed breach',
+      severity: 'HIGH',
+      leakedData: ['Email address'],
+      description: `XposedOrNot reported this email in the ${String(name)} breach index.`,
+    }));
+    const riskScore = Math.min(100, sources.length * 15);
+    return {
+      email,
+      isBreached: sources.length > 0,
+      foundInBreaches: sources.length,
+      riskScore,
+      riskLevel: riskScore >= 70 ? 'CRITICAL' : riskScore >= 40 ? 'HIGH' : sources.length ? 'MEDIUM' : 'LOW',
+      checkedAt: new Date().toISOString(),
+      sources,
+      recommendations: sources.length
+        ? ['Immediately change the password for affected accounts.', 'Enable phishing-resistant MFA and revoke active sessions.']
+        : ['No matching record was returned by the live breach provider.', 'Continue using unique passwords and phishing-resistant MFA.'],
+      provider: 'XposedOrNot fallback',
+      degraded: true,
+    };
+  };
+
+  if (!apiKey) {
+    try {
+      return res.json(await queryXposedOrNot());
+    } catch (error: any) {
+      return res.json({
+        email, isBreached: false, foundInBreaches: 0, riskScore: 0, riskLevel: 'LOW',
+        checkedAt: new Date().toISOString(), sources: [],
+        recommendations: ['Live breach intelligence is unavailable. Use unique passwords and phishing-resistant MFA.'],
+        provider: 'Breach providers unavailable', degraded: true,
+      });
+    }
   }
 
   try {
@@ -434,18 +467,16 @@ app.get('/api/email-breach', async (req, res) => {
     });
   } catch (error: any) {
     console.error('ProjectDiscovery email breach lookup failed:', error?.message || error);
-    return res.json({
-      email,
-      isBreached: false,
-      foundInBreaches: 0,
-      riskScore: 0,
-      riskLevel: 'LOW',
-      checkedAt: new Date().toISOString(),
-      sources: [],
-      recommendations: ['Live breach intelligence is temporarily unavailable. Verify again later and keep MFA enabled.'],
-      provider: 'ProjectDiscovery unavailable',
-      degraded: true,
-    });
+    try {
+      return res.json(await queryXposedOrNot());
+    } catch (fallbackError: any) {
+      return res.json({
+        email, isBreached: false, foundInBreaches: 0, riskScore: 0, riskLevel: 'LOW',
+        checkedAt: new Date().toISOString(), sources: [],
+        recommendations: ['Live breach intelligence is temporarily unavailable. Verify again later and keep MFA enabled.'],
+        provider: 'Breach providers unavailable', degraded: true,
+      });
+    }
   }
 });
 
@@ -1822,7 +1853,7 @@ app.post('/api/scan-vulnerability', async (req, res) => {
     });
   } catch (error: any) {
     console.error('Vulnerability Scan Error:', error);
-    return res.json(createDegradedVulnerabilityResult(
+    return res.status(503).json(createDegradedVulnerabilityResult(
       String(req.body?.target || ''),
       error?.message || 'The live scanner encountered a temporary issue.',
     ));

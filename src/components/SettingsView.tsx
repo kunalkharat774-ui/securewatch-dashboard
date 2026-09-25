@@ -63,7 +63,7 @@ export const DEFAULT_SYSTEM_SETTINGS: SystemSettings = {
   maxFileUploadSizeMb: 50,
 
   requireMasterPasscode: true,
-  masterPasscode: 'SECURE2026',
+  masterPasscode: '',
   enforceMfaNewUsers: true,
   sessionTimeoutMinutes: 30,
 
@@ -72,7 +72,7 @@ export const DEFAULT_SYSTEM_SETTINGS: SystemSettings = {
   audioNotifications: true,
   toastPosition: 'top-right',
 
-  apiKey: 'sw_live_992184a8bc0192e8112',
+  apiKey: '',
   webhookUrl: 'https://api.securewatch.io/v1/webhooks/alerts',
 };
 

@@ -134,19 +134,6 @@ export const KpiCards: React.FC<KpiCardsProps> = ({ onSelectView }) => {
       borderColor: 'hover:border-amber-500/40',
       targetView: 'vulnerability-scanner' as NavView,
     },
-    {
-      id: 'risk',
-      title: 'Risk Score',
-      value: `${riskScore} /100`,
-      badge: null,
-      subtext: 'Medium Risk Shield',
-      subIcon: 'fa-circle-check',
-      subColor: 'text-amber-400',
-      icon: 'fa-shield-halved',
-      iconBg: 'bg-amber-500/15 text-amber-400 border border-amber-500/30',
-      borderColor: 'hover:border-amber-500/50',
-      targetView: 'risk-assessment' as NavView,
-    },
   ];
 
   return (

@@ -9,17 +9,37 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ currentView, onSelectView, alertCount }) => {
+  const [backendStatus, setBackendStatus] = useState<'Checking' | 'Online' | 'Offline'>('Checking');
+  const [backendLatency, setBackendLatency] = useState<number | null>(null);
   const [cpu, setCpu] = useState(24);
   const [memory, setMemory] = useState(48);
+  const [disk, setDisk] = useState(31);
   const [network, setNetwork] = useState(62);
 
   useEffect(() => {
-    const timer = setInterval(() => {
+    const checkBackend = async () => {
+      const startedAt = performance.now();
+      try {
+        const response = await fetch('/api/health', { cache: 'no-store' });
+        setBackendStatus(response.ok ? 'Online' : 'Offline');
+        setBackendLatency(Math.round(performance.now() - startedAt));
+      } catch {
+        setBackendStatus('Offline');
+        setBackendLatency(null);
+      }
+    };
+    void checkBackend();
+    const healthTimer = setInterval(() => void checkBackend(), 5000);
+    const demoTimer = setInterval(() => {
       setCpu(Math.floor(18 + Math.random() * 15));
       setMemory(Math.floor(42 + Math.random() * 10));
+      setDisk(Math.floor(28 + Math.random() * 9));
       setNetwork(Math.floor(55 + Math.random() * 25));
     }, 2500);
-    return () => clearInterval(timer);
+    return () => {
+      clearInterval(healthTimer);
+      clearInterval(demoTimer);
+    };
   }, []);
 
   const navItems: { id: NavView; label: string; icon: string; badge?: { text: string; type: 'live' | 'new' | 'count' | 'green' } }[] = [
@@ -29,16 +49,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onSelectView, ale
     { id: 'api-monitoring', label: 'API Monitoring', icon: 'fa-network-wired' },
     { id: 'alerts', label: 'Security Alerts', icon: 'fa-bell', badge: { text: `${alertCount}`, type: 'count' } },
     { id: 'vulnerability-scanner', label: 'Vulnerability Scanner', icon: 'fa-bug' },
-    { id: 'risk-assessment', label: 'Risk Assessment', icon: 'fa-clipboard-check' },
     { id: 'email-breach', label: 'Email Breach Checker', icon: 'fa-envelope', badge: { text: 'NEW', type: 'new' } },
-    { id: 'password-strength', label: 'Password Strength', icon: 'fa-key', badge: { text: 'NEW', type: 'new' } },
     { id: 'text-encrypt', label: 'Text Encryption', icon: 'fa-lock', badge: { text: 'CRYPTO', type: 'new' } },
     { id: 'steganography', label: 'Steganography', icon: 'fa-file-image', badge: { text: 'LSB', type: 'new' } },
     { id: 'ip-location', label: 'IP Location Lookup', icon: 'fa-location-dot', badge: { text: 'MAP', type: 'green' } },
     { id: 'domain-info', label: 'Domain Information', icon: 'fa-globe', badge: { text: 'NEW', type: 'green' } },
     { id: 'url-reputation', label: 'URL Reputation', icon: 'fa-link', badge: { text: 'NEW', type: 'green' } },
     { id: 'file-security', label: 'File Security', icon: 'fa-file-shield', badge: { text: 'NEW', type: 'green' } },
-    { id: 'linux-command-quiz', label: 'Linux Command MCQ', icon: 'fa-terminal', badge: { text: '200', type: 'green' } },
     { id: 'logs', label: 'Security Logs', icon: 'fa-file-lines' },
     { id: 'reports', label: 'Reports', icon: 'fa-chart-pie' },
     { id: 'users', label: 'User Management', icon: 'fa-users' },
@@ -113,7 +130,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onSelectView, ale
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.8)]" />
             System Status
           </span>
-          <span className="text-orange-300 text-[11px] font-medium font-mono">Protected</span>
+          <span className={`text-[11px] font-medium font-mono ${backendStatus === 'Online' ? 'text-emerald-300' : backendStatus === 'Offline' ? 'text-red-300' : 'text-amber-300'}`}>
+            {backendStatus}
+          </span>
         </div>
 
         <div className="space-y-2.5 text-[11px]">
@@ -140,10 +159,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onSelectView, ale
           <div>
             <div className="flex justify-between text-gray-300 mb-1">
               <span>Disk Usage</span>
-              <span className="text-white font-mono">31%</span>
+              <span className="text-white font-mono">{disk}%</span>
             </div>
             <div className="h-1 bg-[#050505] rounded-full overflow-hidden">
-              <div className="h-full bg-amber-500 rounded-full" style={{ width: '31%' }} />
+              <div className="h-full bg-amber-500 rounded-full transition-all duration-500" style={{ width: `${disk}%` }} />
             </div>
           </div>
 
