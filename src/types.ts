@@ -171,4 +171,3 @@ export type NavView =
   | 'reports'
   | 'users'
   | 'settings';
-

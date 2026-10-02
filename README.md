@@ -9,6 +9,7 @@ PHISHGUARD_API_KEY=your_phishguard_api_key
 ```
 
 The backend sends every entered URL to `https://phishguard.in/api/analyze-url` and displays the returned Safe, Suspicious, or Malicious result. Never commit `.env.local` or the API key.
+
 # SecureWatch - Web Application & API Security Dashboard
 
 ## Deploy On Vercel

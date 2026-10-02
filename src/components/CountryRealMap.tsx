@@ -240,6 +240,10 @@ export const CountryRealMap: React.FC<CountryRealMapProps> = ({
     // These are rendered from COUNTRY_CITIES and do NOT depend on
     // attacks.length.
     cities.current.forEach((city) => {
+      if (city.threatLevel === 'NONE') {
+        return;
+      }
+
       const colors = getMarkerColors(city.threatLevel);
       const hasAttack = Boolean(city.attack);
 

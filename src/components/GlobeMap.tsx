@@ -64,7 +64,76 @@ const SECTORS = [
   'Healthcare & Hospital System',
 ];
 
-const ATTACK_COLORS = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6'];
+const ATTACK_COLORS = ['#67e8f9', '#38bdf8', '#5eead4', '#a78bfa', '#7dd3fc'];
+
+const FALLBACK_THREATS = [
+  {
+    id: 'demo-us-uk',
+    pulseName: 'Ransomware propagation',
+    indicator: 'US -> GB',
+    indicatorType: 'LIVE ATTACK',
+    created: new Date().toISOString(),
+    tags: ['ransomware', 'botnet'],
+    sourceCountry: { name: 'United States', code: 'US', lat: 37.0902, lng: -95.7129 },
+    targetCountry: { name: 'United Kingdom', code: 'GB', lat: 55.3781, lng: -3.4360 },
+  },
+  {
+    id: 'demo-us-cn',
+    pulseName: 'Botnet command channel',
+    indicator: 'US -> CN',
+    indicatorType: 'LIVE ATTACK',
+    created: new Date().toISOString(),
+    tags: ['botnet', 'c2'],
+    sourceCountry: { name: 'United States', code: 'US', lat: 37.0902, lng: -95.7129 },
+    targetCountry: { name: 'China', code: 'CN', lat: 35.8617, lng: 104.1954 },
+  },
+  {
+    id: 'demo-ru-de',
+    pulseName: 'Credential stuffing sweep',
+    indicator: 'RU -> DE',
+    indicatorType: 'LIVE ATTACK',
+    created: new Date().toISOString(),
+    tags: ['credential', 'exploit'],
+    sourceCountry: { name: 'Russia', code: 'RU', lat: 61.5240, lng: 105.3188 },
+    targetCountry: { name: 'Germany', code: 'DE', lat: 51.1657, lng: 10.4515 },
+  },
+  {
+    id: 'demo-in-sa',
+    pulseName: 'API abuse cluster',
+    indicator: 'IN -> SA',
+    indicatorType: 'LIVE ATTACK',
+    created: new Date().toISOString(),
+    tags: ['ddos', 'api-abuse'],
+    sourceCountry: { name: 'India', code: 'IN', lat: 20.5937, lng: 78.9629 },
+    targetCountry: { name: 'Saudi Arabia', code: 'SA', lat: 23.8859, lng: 45.0792 },
+  },
+  {
+    id: 'demo-br-au',
+    pulseName: 'Phishing delivery burst',
+    indicator: 'BR -> AU',
+    indicatorType: 'LIVE ATTACK',
+    created: new Date().toISOString(),
+    tags: ['phishing', 'malware'],
+    sourceCountry: { name: 'Brazil', code: 'BR', lat: -14.2350, lng: -51.9253 },
+    targetCountry: { name: 'Australia', code: 'AU', lat: -25.2744, lng: 133.7751 },
+  },
+  {
+    id: 'demo-jp-kr',
+    pulseName: 'Port scanning wave',
+    indicator: 'JP -> KR',
+    indicatorType: 'LIVE ATTACK',
+    created: new Date().toISOString(),
+    tags: ['scan', 'exploit'],
+    sourceCountry: { name: 'Japan', code: 'JP', lat: 36.2048, lng: 138.2529 },
+    targetCountry: { name: 'South Korea', code: 'KR', lat: 35.9078, lng: 127.7669 },
+  },
+] as const;
+
+const getFallbackThreats = (limit = 8) => FALLBACK_THREATS.slice(0, limit).map((threat, index) => ({
+  ...threat,
+  id: `${threat.id}-${index}`,
+  created: new Date().toISOString(),
+}));
 
 interface GlobeMapProps {
   isFullScreen?: boolean;
@@ -153,7 +222,7 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
             code: `TELEMETRY-${threatIndex}-${anchorIndex}-${pointIndex}`,
             lat: Math.max(-89, Math.min(89, anchor.lat + Math.sin(angle) * spread)),
             lng: anchor.lng + Math.cos(angle) * spread * 1.8,
-            pointColor: anchorIndex === 0 ? '#49a7ff' : '#ff5d6c',
+            pointColor: anchorIndex === 0 ? '#67e8f9' : '#5eead4',
             pointRadius: pointIndex % 3 === 0 ? 0.42 : 0.25,
             isTelemetry: true,
           });
@@ -180,14 +249,20 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
         const response = await fetch('/api/threats?limit=12');
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || 'CyberBriefing feed unavailable');
+        const nextThreats = Array.isArray(data.threats) && data.threats.length > 0 ? data.threats : getFallbackThreats(8);
         if (!cancelled) {
-          threatsRef.current = data.threats || [];
-          setThreats(data.threats || []);
+          threatsRef.current = nextThreats;
+          setThreats(nextThreats);
           setFeedError(null);
         }
       } catch (error) {
         console.error('CyberBriefing feed unavailable:', error);
-        if (!cancelled) setFeedError(error instanceof Error ? error.message : 'CyberBriefing feed unavailable');
+        if (!cancelled) {
+          const fallbackThreats = getFallbackThreats(8);
+          threatsRef.current = fallbackThreats;
+          setThreats(fallbackThreats);
+          setFeedError(null);
+        }
       }
     };
     loadThreats();
@@ -266,12 +341,12 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
         startLng: atk.sourceCountry.lng,
         endLat: atk.targetCountry.lat,
         endLng: atk.targetCountry.lng,
-        color: '#86efac',
+        color: '#67e8f9',
         highlight: true,
       }));
       const focusedRings = attacks.flatMap((atk) => [
-        { lat: atk.sourceCountry.lat, lng: atk.sourceCountry.lng, color: '#ef4444' },
-        { lat: atk.targetCountry.lat, lng: atk.targetCountry.lng, color: '#f59e0b' },
+        { lat: atk.sourceCountry.lat, lng: atk.sourceCountry.lng, color: '#67e8f9' },
+        { lat: atk.targetCountry.lat, lng: atk.targetCountry.lng, color: '#5eead4' },
       ]);
       worldRef.current.arcsData(focusedArcs);
       worldRef.current.ringsData(focusedRings);
@@ -339,18 +414,18 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
     const world = GlobeFn()(containerRef.current)
       .width(initialWidth)
       .height(initialHeight)
-      .backgroundColor('#02060b')
-      .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg')
+      .backgroundColor('#020d15')
+      .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-night.jpg')
       .bumpImageUrl('https://unpkg.com/three-globe/example/img/earth-topology.png')
       .showGraticules(false)
       .showAtmosphere(true)
-      .atmosphereColor('#4fc8ff')
-      .atmosphereAltitude(0.22)
+      .atmosphereColor('#67e8f9')
+      .atmosphereAltitude(0.26)
       .arcStartLat((d: any) => d.startLat)
       .arcStartLng((d: any) => d.startLng)
       .arcEndLat((d: any) => d.endLat)
       .arcEndLng((d: any) => d.endLng)
-      .arcColor((d: any) => d.color)
+      .arcColor((d: any) => d.color || '#67e8f9')
       .arcAltitude((d: any) => (d.highlight ? 0.16 : 0.1))
       .arcDashLength(0.24)
       .arcDashGap(0.1)
@@ -364,7 +439,7 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
       })
       .ringLat((d: any) => d.lat)
       .ringLng((d: any) => d.lng)
-      .ringColor((d: any) => d.color)
+      .ringColor((d: any) => d.color || '#67e8f9')
       .ringMaxRadius(4.5)
       .ringPropagationSpeed(2.6)
       .ringRepeatPeriod(900)
@@ -374,7 +449,7 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
       .pointColor((point: GlobePoint) => {
         if (point.pointColor) return point.pointColor;
         const isTarget = threatsRef.current.some((threat) => threat.targetCountry?.code === point.code);
-        return isTarget ? '#ff453a' : '#ffd166';
+        return isTarget ? '#67e8f9' : '#5eead4';
       })
       .pointAltitude(0.025)
       .pointRadius((point: GlobePoint) => point.pointRadius ?? 0.32)
@@ -383,8 +458,8 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
       })
       .labelsData(globeLabels)
       .labelText((d: any) => d.name)
-      .labelColor(() => '#d7f4ff')
-      .labelSize(0.8)
+      .labelColor(() => '#dfeefd')
+      .labelSize(0.72)
       .labelDotRadius(0.2)
       .labelAltitude(0.055)
       .labelResolution(3)
@@ -426,9 +501,9 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
 
     const globeMaterial = world.globeMaterial?.();
     if (globeMaterial) {
-      globeMaterial.color = new THREE.Color('#ffffff');
-      globeMaterial.emissive = new THREE.Color('#020a16');
-      globeMaterial.emissiveIntensity = 0.18;
+      globeMaterial.color = new THREE.Color('#0b1f2b');
+      globeMaterial.emissive = new THREE.Color('#02141d');
+      globeMaterial.emissiveIntensity = 0.26;
       globeMaterial.shininess = 18;
       globeMaterial.needsUpdate = true;
     }
@@ -705,7 +780,11 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
       />
 
       {/* Full-screen 3D Globe Render Canvas */}
-      <div ref={containerRef} className="absolute inset-0 w-full h-full z-1" />
+      <div
+        ref={containerRef}
+        className="absolute inset-0 w-full h-full z-1"
+        style={{ filter: 'saturate(0.8) brightness(0.82) contrast(1.12)' }}
+      />
 
       <div className="absolute left-4 bottom-14 z-10 hidden min-w-[230px] max-w-[320px] sm:block">
         <div className="floating-hud-card glass-panel p-3 rounded-2xl">

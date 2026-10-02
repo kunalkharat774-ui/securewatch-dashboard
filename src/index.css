@@ -256,12 +256,77 @@ aside,
     box-shadow: 0 18px 40px rgba(2, 8, 23, 0.35);
 }
 
+.globe-view-layer,
+.satellite-view-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    transform-origin: center center;
+    transform-style: preserve-3d;
+    backface-visibility: hidden;
+    transition: transform 900ms cubic-bezier(0.2, 0.75, 0.2, 1), opacity 700ms ease, filter 900ms ease;
+}
+
+.globe-view-layer.is-active,
+.satellite-view-layer.is-active {
+    opacity: 1;
+    transform: perspective(1400px) rotateX(0deg) scaleY(1);
+    filter: brightness(1);
+    pointer-events: auto;
+}
+
+.globe-view-layer.is-folded {
+    opacity: 0;
+    transform: perspective(1400px) rotateX(-78deg) scaleY(0.12);
+    filter: brightness(1.8);
+    pointer-events: none;
+}
+
+.satellite-view-layer.is-folded {
+    opacity: 0;
+    transform: perspective(1400px) rotateX(78deg) scaleY(0.12);
+    filter: brightness(1.8);
+    pointer-events: none;
+}
+
+.globe-view-layer canvas {
+    display: block;
+}
+
+.webcam-workspace .leaflet-container {
+    background: #030a13;
+}
+
+.webcam-workspace .leaflet-tile {
+    filter: brightness(0.62) saturate(0.74) contrast(1.14);
+}
+
+.webcam-workspace .leaflet-control-zoom a,
+.webcam-workspace .leaflet-control-attribution {
+    border-color: rgba(103, 232, 249, 0.24) !important;
+    background: rgba(3, 10, 19, 0.88) !important;
+    color: #cbd5e1 !important;
+    backdrop-filter: blur(10px);
+}
+
+.webcam-workspace .leaflet-control-attribution a {
+    color: #67e8f9 !important;
+}
+
+.webcam-workspace .webcam-map-tooltip {
+    border: 1px solid rgba(103, 232, 249, 0.35);
+    border-radius: 4px;
+    background: rgba(3, 10, 19, 0.94);
+    color: #e2e8f0;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.4);
+}
+
 .satellite-map-backdrop {
     position: absolute;
     inset: -8%;
     z-index: 0;
     overflow: hidden;
-    opacity: 0.62;
+    opacity: 0.82;
     background-color: #01050a;
     background-size: cover;
     background-position: center;
@@ -323,8 +388,11 @@ aside,
 @media (prefers-reduced-motion: reduce) {
     .satellite-map-backdrop,
     .satellite-map-backdrop::before,
-    .satellite-map-backdrop::after {
+    .satellite-map-backdrop::after,
+    .globe-view-layer,
+    .satellite-view-layer {
         animation: none;
+        transition-duration: 1ms;
     }
 }
 
@@ -461,39 +529,47 @@ aside,
     }
 }
 
-
-/* Golden and black identity for the cinematic loading screen. */
-
-#cinematic-securewatch-loading-screen {
-    background: radial-gradient(circle at center, #3a2505 0%, #080604 48%, #010101 100%) !important;
-    color: #fff7d6;
+.robot-eye-pupil {
+    transform: translate(-50%, -50%);
+    animation: robot-eye-look 2.8s ease-in-out infinite;
+    will-change: translate;
 }
 
-#cinematic-securewatch-loading-screen [class*="via-[#38bdf8]"],
-#cinematic-securewatch-loading-screen [class*="via-[#facc15]"] {
-    --tw-gradient-via: rgba(234, 179, 8, 0.78) !important;
+.robot-eye-lid {
+    transform: scaleY(0);
+    transform-origin: top;
+    animation: robot-eye-blink 4.6s ease-in-out infinite;
 }
 
-#cinematic-securewatch-loading-screen [class*="bg-amber-500"],
-#cinematic-securewatch-loading-screen [class*="bg-cyan-500"],
-#cinematic-securewatch-loading-screen [class*="bg-[#eab308]"],
-#cinematic-securewatch-loading-screen [class*="bg-[#facc15]"],
-#cinematic-securewatch-loading-screen [class*="bg-[#38bdf8]"] {
-    background-color: #eab308 !important;
+.robot-eye-blink:nth-child(2) .robot-eye-lid {
+    animation-delay: 0.12s;
 }
 
-#cinematic-securewatch-loading-screen [class*="text-amber-400"],
-#cinematic-securewatch-loading-screen [class*="text-[#cca854]"],
-#cinematic-securewatch-loading-screen [class*="text-cyan-400"] {
-    color: #facc15 !important;
+@keyframes robot-eye-look {
+    0%, 12%, 100% {
+        translate: -8px 0;
+    }
+    38%, 58% {
+        translate: 8px 0;
+    }
+    82% {
+        translate: 0 0;
+    }
 }
 
-#cinematic-securewatch-loading-screen [class*="border-[#eab308]"],
-#cinematic-securewatch-loading-screen [class*="border-slate-700"] {
-    border-color: rgba(234, 179, 8, 0.48) !important;
+@keyframes robot-eye-blink {
+    0%, 43%, 47%, 100% {
+        transform: scaleY(0);
+    }
+    45% {
+        transform: scaleY(1);
+    }
 }
 
-#cinematic-securewatch-loading-screen [class*="shadow-[0_0_25px_rgba(234,179,8"],
-#cinematic-securewatch-loading-screen [class*="shadow-[0_0_12px_rgba(234,179,8"] {
-    box-shadow: 0 0 25px rgba(234, 179, 8, 0.55), inset 0 0 12px rgba(250, 204, 21, 0.28) !important;
+@media (prefers-reduced-motion: reduce) {
+    .robot-eye-pupil,
+    .robot-eye-lid {
+        animation: none;
+        translate: 0 0;
+    }
 }

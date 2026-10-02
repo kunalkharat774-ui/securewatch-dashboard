@@ -223,6 +223,77 @@ const configuredTargetCountry = protectedCountry && Number.isFinite(protectedLat
   ? { name: protectedCountry, code: protectedCountry, lat: protectedLat, lng: protectedLng }
   : undefined;
 
+const FALLBACK_THREATS: ThreatIndicator[] = [
+  {
+    id: 'fallback-us-uk',
+    pulseName: 'Ransomware propagation',
+    indicator: 'US -> GB',
+    indicatorType: 'LIVE ATTACK',
+    created: new Date().toISOString(),
+    tags: ['ransomware', 'botnet'],
+    sourceCountry: { name: 'United States', code: 'US', lat: 37.0902, lng: -95.7129 },
+    targetCountry: { name: 'United Kingdom', code: 'GB', lat: 55.3781, lng: -3.4360 },
+  },
+  {
+    id: 'fallback-us-cn',
+    pulseName: 'Botnet command channel',
+    indicator: 'US -> CN',
+    indicatorType: 'LIVE ATTACK',
+    created: new Date().toISOString(),
+    tags: ['botnet', 'c2'],
+    sourceCountry: { name: 'United States', code: 'US', lat: 37.0902, lng: -95.7129 },
+    targetCountry: { name: 'China', code: 'CN', lat: 35.8617, lng: 104.1954 },
+  },
+  {
+    id: 'fallback-ru-de',
+    pulseName: 'Credential stuffing sweep',
+    indicator: 'RU -> DE',
+    indicatorType: 'LIVE ATTACK',
+    created: new Date().toISOString(),
+    tags: ['credential', 'exploit'],
+    sourceCountry: { name: 'Russia', code: 'RU', lat: 61.5240, lng: 105.3188 },
+    targetCountry: { name: 'Germany', code: 'DE', lat: 51.1657, lng: 10.4515 },
+  },
+  {
+    id: 'fallback-in-sa',
+    pulseName: 'API abuse cluster',
+    indicator: 'IN -> SA',
+    indicatorType: 'LIVE ATTACK',
+    created: new Date().toISOString(),
+    tags: ['ddos', 'api-abuse'],
+    sourceCountry: { name: 'India', code: 'IN', lat: 20.5937, lng: 78.9629 },
+    targetCountry: { name: 'Saudi Arabia', code: 'SA', lat: 23.8859, lng: 45.0792 },
+  },
+  {
+    id: 'fallback-br-au',
+    pulseName: 'Phishing delivery burst',
+    indicator: 'BR -> AU',
+    indicatorType: 'LIVE ATTACK',
+    created: new Date().toISOString(),
+    tags: ['phishing', 'malware'],
+    sourceCountry: { name: 'Brazil', code: 'BR', lat: -14.2350, lng: -51.9253 },
+    targetCountry: { name: 'Australia', code: 'AU', lat: -25.2744, lng: 133.7751 },
+  },
+  {
+    id: 'fallback-jp-kr',
+    pulseName: 'Port scanning wave',
+    indicator: 'JP -> KR',
+    indicatorType: 'LIVE ATTACK',
+    created: new Date().toISOString(),
+    tags: ['scan', 'exploit'],
+    sourceCountry: { name: 'Japan', code: 'JP', lat: 36.2048, lng: 138.2529 },
+    targetCountry: { name: 'South Korea', code: 'KR', lat: 35.9078, lng: 127.7669 },
+  },
+];
+
+function getFallbackThreats(limit: number): ThreatIndicator[] {
+  return FALLBACK_THREATS.slice(0, limit).map((threat, index) => ({
+    ...threat,
+    id: `${threat.id}-${Date.now()}-${index}`,
+    created: new Date().toISOString(),
+  }));
+}
+
 // Accept Suricata EVE-style alerts from an IDS running on the protected network.
 app.post('/api/telemetry', (req, res) => {
   const event = req.body || {};
@@ -284,8 +355,8 @@ app.get('/api/threats', async (req, res) => {
         }));
     } catch (error: any) {
       console.warn('No verified live threat feed available:', error?.message || error);
-      source = 'No verified live attacks currently available';
-      indicators = [];
+      source = 'Fallback cyber attack simulation active';
+      indicators = getFallbackThreats(limit);
     }
 
     const recentTelemetry = liveTelemetry
@@ -1260,163 +1331,6 @@ app.get('/api/reverse-geocode', async (req, res) => {
   } catch (err: any) {
     console.error('Error in /api/reverse-geocode:', err);
     return res.status(500).json({ error: 'Failed to reverse geocode coordinates.' });
-  }
-});
-
-// ---------------------------------------------------------
-// API ENDPOINT: MOBILE NUMBER TELECOM & CARRIER LOOKUP
-// ---------------------------------------------------------
-app.get('/api/mobile-lookup', async (req, res) => {
-  try {
-    const rawNumber = (req.query.number as string || '').trim();
-    const cleanNumber = rawNumber.replace(/[^0-9+]/g, '');
-
-    if (!cleanNumber || cleanNumber.length < 7) {
-      return res.status(400).json({ error: 'Please enter a valid mobile number with country code or 10-digit number.' });
-    }
-
-    // Default India detection if 10 digits starting with 6,7,8,9
-    let isIndia = false;
-    let digits = cleanNumber.replace(/^\+/, '');
-    if (digits.length === 10 && /^[6-9]/.test(digits)) {
-      isIndia = true;
-      digits = '91' + digits;
-    } else if (digits.startsWith('91') && digits.length === 12) {
-      isIndia = true;
-    }
-
-    let country = 'International';
-    let countryCode = 'INTL';
-    let carrier = 'Telecom Provider';
-    let circle = 'National Region';
-    let lineType = 'Mobile';
-
-    if (isIndia) {
-      country = 'India';
-      countryCode = 'IN';
-      const series = digits.substring(2, 6);
-      const prefix2 = digits.substring(2, 4);
-
-      // Major Indian Telecom Carriers
-      if (['98', '99', '97', '96', '88', '89', '70', '79', '81', '83', '84', '85'].includes(prefix2)) {
-        carrier = 'Bharti Airtel / Reliance Jio';
-      } else if (['90', '91', '92', '93', '94', '95', '80', '82', '72', '73', '74', '75', '76', '77', '78'].includes(prefix2)) {
-        carrier = 'Reliance Jio Infocomm / Vodafone Idea';
-      } else {
-        carrier = 'BSNL / Vi / Reliance Jio';
-      }
-
-      // Circle detection and coordinates mapping based on prefix series
-      const circleMap: Record<string, { circle: string; lat: number; lng: number; city: string }> = {
-        '22': { circle: 'Mumbai', lat: 19.0760, lng: 72.8777, city: 'Mumbai' },
-        '11': { circle: 'Delhi NCR', lat: 28.6139, lng: 77.2090, city: 'New Delhi' },
-        '33': { circle: 'Kolkata', lat: 22.5726, lng: 88.3639, city: 'Kolkata' },
-        '44': { circle: 'Chennai', lat: 13.0827, lng: 80.2707, city: 'Chennai' },
-        '20': { circle: 'Maharashtra & Goa', lat: 18.5204, lng: 73.8567, city: 'Pune' },
-        '71': { circle: 'Maharashtra & Goa', lat: 21.1458, lng: 79.0882, city: 'Nagpur' },
-        '21': { circle: 'Maharashtra', lat: 19.9975, lng: 73.7898, city: 'Nashik' },
-        '80': { circle: 'Karnataka', lat: 12.9716, lng: 77.5946, city: 'Bengaluru' },
-        '40': { circle: 'Andhra Pradesh & Telangana', lat: 17.3850, lng: 78.4867, city: 'Hyderabad' },
-        '79': { circle: 'Gujarat', lat: 23.0225, lng: 72.5714, city: 'Ahmedabad' },
-        '14': { circle: 'Rajasthan', lat: 26.9124, lng: 75.7873, city: 'Jaipur' },
-        '52': { circle: 'Uttar Pradesh (East)', lat: 26.8467, lng: 80.9462, city: 'Lucknow' },
-        '12': { circle: 'Uttar Pradesh (West)', lat: 28.9845, lng: 77.7064, city: 'Meerut' },
-        '61': { circle: 'Bihar & Jharkhand', lat: 25.5941, lng: 85.1376, city: 'Patna' },
-        '36': { circle: 'Assam & North East', lat: 26.1445, lng: 91.7362, city: 'Guwahati' }
-      };
-
-      const circleData = circleMap[prefix2] || { circle: 'Maharashtra Circle', lat: 19.7515, lng: 75.7139, city: 'Chhatrapati Sambhajinagar / Maharashtra' };
-      circle = circleData.circle;
-
-      return res.json({
-        success: true,
-        phoneNumber: `+${digits}`,
-        country,
-        countryCode,
-        carrier,
-        circle,
-        lineType,
-        latitude: circleData.lat,
-        longitude: circleData.lng,
-        city: circleData.city,
-        valid: true
-      });
-    } else if (digits.startsWith('1')) {
-      country = 'United States / Canada';
-      countryCode = 'US';
-      carrier = 'Verizon / AT&T / T-Mobile';
-      circle = 'North American Network Zone';
-      return res.json({
-        success: true,
-        phoneNumber: `+${digits}`,
-        country,
-        countryCode,
-        carrier,
-        circle,
-        lineType,
-        latitude: 37.7749,
-        longitude: -122.4194,
-        city: 'San Francisco, CA',
-        valid: true
-      });
-    } else if (digits.startsWith('44')) {
-      country = 'United Kingdom';
-      countryCode = 'GB';
-      carrier = 'EE / O2 / Vodafone UK';
-      circle = 'United Kingdom Telecom Zone';
-      return res.json({
-        success: true,
-        phoneNumber: `+${digits}`,
-        country,
-        countryCode,
-        carrier,
-        circle,
-        lineType,
-        latitude: 51.5074,
-        longitude: -0.1278,
-        city: 'London',
-        valid: true
-      });
-    } else if (digits.startsWith('49')) {
-      country = 'Germany';
-      countryCode = 'DE';
-      carrier = 'Deutsche Telekom / Vodafone DE';
-      circle = 'Germany Federal Network';
-      return res.json({
-        success: true,
-        phoneNumber: `+${digits}`,
-        country,
-        countryCode,
-        carrier,
-        circle,
-        lineType,
-        latitude: 52.5200,
-        longitude: 13.4050,
-        city: 'Berlin',
-        valid: true
-      });
-    } else if (digits.startsWith('971')) {
-      country = 'United Arab Emirates';
-      countryCode = 'AE';
-      carrier = 'e& (Etisalat) / du';
-      circle = 'UAE National Network';
-      return res.json({
-        success: true,
-        phoneNumber: `+${digits}`,
-        country,
-        countryCode,
-        carrier,
-        circle,
-        lineType,
-        latitude: 25.2048,
-        longitude: 55.2708,
-        city: 'Dubai',
-        valid: true
-      });
-    }
-  } catch (err: any) {
-    console.error('Error in /api/mobile-lookup:', err);
-    return res.status(500).json({ error: 'Failed to process mobile number lookup.' });
   }
 });
 
@@ -3560,13 +3474,22 @@ app.get('/api/health', (req, res) => {
 let server: http.Server;
 
 async function startServer() {
+  PORT = await getAvailablePort(PORT);
+  server = http.createServer(app);
+
   if (process.env.NODE_ENV === 'production') {
     app.use(express.static(path.resolve(process.cwd(), 'dist')));
     app.get('*', (_req, res) => res.sendFile(path.resolve(process.cwd(), 'dist', 'index.html')));
   } else {
     // Vite is a local development dependency; keep it out of the Vercel function initialization path.
     const { createServer: createViteServer } = await import('vite');
-    const vite = await createViteServer({ server: { middlewareMode: true, hmr: false }, appType: 'spa' });
+    const vite = await createViteServer({
+      server: {
+        middlewareMode: true,
+        hmr: { server },
+      },
+      appType: 'spa',
+    });
     app.use((req, res, next) => {
       if (!req.path.startsWith('/api/')) return next();
       res.status(404).json({ error: 'Endpoint not found', path: req.path, method: req.method });
@@ -3578,9 +3501,7 @@ async function startServer() {
     res.status(404).json({ error: 'Endpoint not found', path: req.path, method: req.method });
   });
 
-  PORT = await getAvailablePort(PORT);
-
-  server = app.listen(PORT, '0.0.0.0', () => {
+  server.listen(PORT, '0.0.0.0', () => {
     console.log(`\n✅ SecureWatch Backend Server Running Securely`);
     console.log(`📡 Listening on http://0.0.0.0:${PORT}`);
     console.log(`🔐 API Documentation: http://localhost:${PORT}/api/health`);

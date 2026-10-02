@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 export const config = {
   maxDuration: 30,
+  runtime: 'nodejs',
 };
 
 function getRequestPath(req: VercelRequest): string {
@@ -107,15 +108,32 @@ async function handleUrlReputation(req: VercelRequest, res: VercelResponse) {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Keep a route-level failure from becoming Vercel's generic HTTP 500 page.
-  // Individual handlers still return their diagnostic JSON, but the deployment
-  // exposes a controlled temporary-unavailability status to the browser.
+  const requestPath = getRequestPath(req);
   const originalStatus = res.status.bind(res);
-  res.status = ((statusCode: number) => originalStatus(statusCode === 500 ? 503 : statusCode)) as typeof res.status;
+
+  res.status = ((statusCode: number) => {
+    const normalizedStatus = statusCode === 500 ? 503 : statusCode;
+    res.statusCode = normalizedStatus;
+    return originalStatus(normalizedStatus);
+  }) as typeof res.status;
 
   try {
-    if (getRequestPath(req) === '/api/scan-url-reputation') {
-      if (req.method === 'OPTIONS') return res.status(204).end();
+    if (req.method === 'OPTIONS') {
+      if (requestPath.startsWith('/api/')) {
+        res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-User-Session-Id');
+        res.setHeader('Access-Control-Max-Age', '600');
+        return res.status(204).end();
+      }
+      return res.status(204).end();
+    }
+
+    if (req.method === 'HEAD') {
+      return res.status(200).end();
+    }
+
+    if (requestPath === '/api/scan-url-reputation') {
       if (req.method !== 'POST') {
         return res.status(200).json({
           service: 'SecureWatch URL reputation inspection',
@@ -127,7 +145,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return await handleUrlReputation(req, res);
     }
 
+    if (requestPath === '/api/health') {
+      return res.status(200).json({
+        status: 'OK',
+        service: 'SecureWatch Backend API',
+        timestamp: new Date().toISOString(),
+        environment: process.env.VERCEL_ENV || process.env.NODE_ENV || 'production',
+      });
+    }
+
+    if (!requestPath.startsWith('/api/')) {
+      return res.status(404).json({
+        error: 'Route not found.',
+        path: requestPath,
+      });
+    }
+
     const { default: app } = await import('../server');
+    if (typeof app !== 'function') {
+      throw new Error('The SecureWatch Express app could not be loaded in the Vercel runtime.');
+    }
     return await app(req, res);
   } catch (error: unknown) {
     console.error('Vercel API request failed:', error);
@@ -144,6 +181,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       error: 'SecureWatch API is temporarily unavailable.',
       degraded: true,
       details: message,
+      path: requestPath,
     });
   }
 }

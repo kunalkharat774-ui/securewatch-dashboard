@@ -4,7 +4,7 @@ import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { KpiCards } from './components/KpiCards';
 import { GlobeMap } from './components/GlobeMap';
-import { LiveWebcamsView } from './components/LiveWebcamsView';
+import LiveWebcamsView from './components/LiveWebcam';
 import { UrlChecker } from './components/UrlChecker';
 import { FileSecurity } from './components/FileSecurity';
 import { RecentTables } from './components/RecentTables';
@@ -80,7 +80,7 @@ export default function App() {
 
     const fallbackLoaderTimer = window.setTimeout(() => {
       setIsLoading(false);
-    }, 3600);
+    }, 5000);
 
     return () => {
       clearInterval(interval);
@@ -178,20 +178,22 @@ export default function App() {
                 </div>
               </div>
             ) : currentView === 'live-webcams' ? (
-              <div className="flex-1 flex flex-col">
-                <div className="flex justify-between items-center mb-4 border-b border-[#1f2335] pb-4">
+              <div className="flex flex-1 flex-col">
+                <div className="mb-4 flex items-center justify-between border-b border-[#1f2335] pb-4">
                   <div>
                     <h2 className="text-xl font-bold text-white">Live Webcams</h2>
-                    <p className="text-xs text-gray-400">Global camera feeds and monitored visual telemetry</p>
+                    <p className="text-xs text-gray-400">Explore global camera feeds on an interactive 3D globe</p>
                   </div>
                   <ShinyButton
                     onClick={() => setCurrentView('dashboard')}
-                    className="px-3.5 py-1.5 bg-[#1a1e30] hover:bg-[#252b42] text-gray-200 text-xs rounded border border-[#1f2335] transition flex items-center gap-2 cursor-pointer"
+                    className="flex cursor-pointer items-center gap-2 rounded border border-[#1f2335] bg-[#1a1e30] px-3.5 py-1.5 text-xs text-gray-200 transition hover:bg-[#252b42]"
                   >
                     <i className="fa-solid fa-gauge-high text-xs" /> Back to Dashboard
                   </ShinyButton>
                 </div>
-                <LiveWebcamsView />
+                <div className="relative min-h-[640px] flex-1 overflow-hidden rounded-xl border border-cyan-500/20">
+                  <LiveWebcamsView />
+                </div>
               </div>
             ) : currentView === 'url-reputation' ? (
               /* VIEW 1: DEDICATED URL REPUTATION CHECKER */
@@ -255,7 +257,6 @@ export default function App() {
                       </div>
                     </div>
 
-                    {/* Embedded CyberBriefing IOC globe */}
                     <div className="mb-4 rounded-lg overflow-hidden border border-[#1a2035]">
                       <GlobeMap />
                     </div>

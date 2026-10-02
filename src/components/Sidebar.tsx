@@ -180,4 +180,3 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onSelectView, ale
     </aside>
   );
 };
-
