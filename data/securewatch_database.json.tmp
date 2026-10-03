@@ -799,7 +799,7 @@
               "path": "/api/health",
               "method": "GET",
               "status": "Healthy",
-              "latencyMs": 13,
+              "latencyMs": 102,
               "uptimePct": 0,
               "errorRatePct": 0,
               "authType": "Public",
@@ -2070,7 +2070,7 @@
               "path": "/api/health",
               "method": "GET",
               "status": "Healthy",
-              "latencyMs": 84,
+              "latencyMs": 29,
               "uptimePct": 0,
               "errorRatePct": 0,
               "authType": "Public",
@@ -2396,7 +2396,7 @@
               "path": "/api/health",
               "method": "GET",
               "status": "Healthy",
-              "latencyMs": 28,
+              "latencyMs": 169,
               "uptimePct": 0,
               "errorRatePct": 0,
               "authType": "Public",
@@ -2433,6 +2433,843 @@
               "lastTested": "Just now"
             }
           ]
+        }
+      }
+    },
+    "reports": [],
+    "riskItems": []
+  },
+  "usr_session_kpwb16ogy_mur27se6": {
+    "users": [],
+    "logs": [],
+    "urlScans": [],
+    "fileScans": [],
+    "settings": {
+      "__componentState": {
+        "api-monitoring": {
+          "endpoints": [
+            {
+              "id": "health",
+              "name": "SecureWatch Backend Health",
+              "path": "/api/health",
+              "method": "GET",
+              "status": "Healthy",
+              "latencyMs": 1322,
+              "uptimePct": 0,
+              "errorRatePct": 0,
+              "authType": "Public",
+              "rateLimit": "Not reported",
+              "lastTested": "Just now"
+            }
+          ]
+        }
+      }
+    },
+    "reports": [],
+    "riskItems": []
+  },
+  "usr_session_eka812g13_murwu6oo": {
+    "users": [],
+    "logs": [],
+    "urlScans": [],
+    "fileScans": [],
+    "settings": {
+      "__componentState": {
+        "api-monitoring": {
+          "endpoints": [
+            {
+              "id": "health",
+              "name": "SecureWatch Backend Health",
+              "path": "/api/health",
+              "method": "GET",
+              "status": "Healthy",
+              "latencyMs": 25,
+              "uptimePct": 0,
+              "errorRatePct": 0,
+              "authType": "Public",
+              "rateLimit": "Not reported",
+              "lastTested": "Just now"
+            }
+          ]
+        }
+      }
+    },
+    "reports": [],
+    "riskItems": []
+  },
+  "usr_session_gu7y03svd_murxycsv": {
+    "users": [],
+    "logs": [],
+    "urlScans": [
+      {
+        "id": "live-inspection-1791004811437",
+        "url": "https://google.com/",
+        "domain": "google.com",
+        "blacklistStatus": "Not checked: external threat-intelligence provider is not configured",
+        "ipAddress": "142.250.67.14",
+        "phishing": "Clean",
+        "category": "No obvious risk indicators detected",
+        "malware": "Clean",
+        "reputationScore": 92,
+        "spam": "Clean",
+        "lastScanned": "3 Oct 2026, 10:50",
+        "threatLevel": "Low",
+        "overallResult": "Safe",
+        "sslIssuer": "Google Trust Services",
+        "sslValid": true,
+        "serverLocation": "Live DNS/TLS inspection",
+        "httpStatus": 301,
+        "responseTimeMs": 448,
+        "redirectUrl": "https://www.google.com/",
+        "screenshot_url": "https://api.urlmeta.org/?url=https%3A%2F%2Fgoogle.com%2F",
+        "enginesDetected": [
+          {
+            "name": "SSL Certificate",
+            "result": "Clean"
+          }
+        ],
+        "recommendation": "No obvious risk indicators were found by the live inspection. This is not a guarantee of safety. External reputation feed is temporarily unavailable; this result is based on live DNS, TLS, and HTTP checks only.",
+        "provider": "SecureWatch live inspection (IsMalicious unavailable)"
+      }
+    ],
+    "fileScans": [],
+    "settings": {
+      "__componentState": {
+        "api-monitoring": {
+          "endpoints": [
+            {
+              "id": "health",
+              "name": "SecureWatch Backend Health",
+              "path": "/api/health",
+              "method": "GET",
+              "status": "Healthy",
+              "latencyMs": 8,
+              "uptimePct": 0,
+              "errorRatePct": 0,
+              "authType": "Public",
+              "rateLimit": "Not reported",
+              "lastTested": "Just now"
+            }
+          ]
+        },
+        "vulnerability-scanner": {
+          "scanResult": {
+            "target": "google.com",
+            "resolvedIp": "142.250.67.14",
+            "resolvedAddresses": [
+              "142.250.67.14",
+              "2404:6800:4009:82b::200e"
+            ],
+            "scannedAt": "2026-10-03T05:18:36.655Z",
+            "displayDate": "03 Oct 2026, 10:48 AM",
+            "scanStatus": "completed",
+            "scanScope": "Non-invasive DNS, HTTP/TLS configuration, and standard TCP port checks",
+            "checksPerformed": [
+              "Public DNS A/AAAA, MX, NS, apex TXT, and _dmarc TXT lookups",
+              "HTTP and HTTPS root response status and security headers",
+              "HTTPS certificate trust and expiry check",
+              "TCP connection checks for 14 standard ports"
+            ],
+            "limitations": [
+              "No exploit payloads, authentication bypasses, web crawling, or full CVE/database scan are performed.",
+              "Only the displayed standard ports are checked; a timeout is reported as Filtered, not Closed.",
+              "Security-header checks verify observed presence/basic validity, not the full strength or effectiveness of each policy.",
+              "Cloud hosting egress policies may prevent accurate TCP port results.",
+              "ProjectDiscovery findings are included only when its server-side API key and matching scan data are available."
+            ],
+            "overallScore": 60,
+            "riskLevel": "High",
+            "openPortsCount": 4,
+            "vulnerabilitiesCount": 3,
+            "isHttps": true,
+            "sslValid": true,
+            "sslIssuer": "Google Trust Services",
+            "sslValidTo": "Dec  3 19:21:52 2026 GMT",
+            "statusCode": 301,
+            "responseTimeMs": 479,
+            "headerAudits": [
+              {
+                "name": "Strict-Transport-Security (HSTS)",
+                "status": "Fail",
+                "currentValue": "Missing",
+                "recommended": "max-age=31536000; includeSubDomains; preload",
+                "vulnerabilityMsg": "Missing HSTS exposes users to SSL Strip & MITM downgrade attacks."
+              },
+              {
+                "name": "Content-Security-Policy (CSP)",
+                "status": "Fail",
+                "currentValue": "Missing",
+                "recommended": "default-src 'self'; script-src 'self' 'nonce-...'",
+                "vulnerabilityMsg": "Missing CSP allows malicious Cross-Site Scripting (XSS) and data exfiltration."
+              },
+              {
+                "name": "X-Frame-Options",
+                "status": "Pass",
+                "currentValue": "SAMEORIGIN",
+                "recommended": "DENY or SAMEORIGIN, or CSP frame-ancestors",
+                "vulnerabilityMsg": "Missing X-Frame-Options enables Clickjacking frame embedding attacks."
+              },
+              {
+                "name": "X-Content-Type-Options",
+                "status": "Fail",
+                "currentValue": "Missing",
+                "recommended": "nosniff",
+                "vulnerabilityMsg": "Missing nosniff allows browsers to MIME-sniff non-executable files into executable scripts."
+              },
+              {
+                "name": "Referrer-Policy",
+                "status": "Warning",
+                "currentValue": "Missing",
+                "recommended": "strict-origin-when-cross-origin",
+                "vulnerabilityMsg": "Missing Referrer-Policy may leak sensitive internal URLs to third-party domains."
+              },
+              {
+                "name": "Permissions-Policy",
+                "status": "Warning",
+                "currentValue": "Missing",
+                "recommended": "camera=(), microphone=(), geolocation=()",
+                "vulnerabilityMsg": "Unrestricted browser capabilities (camera, geolocation, mic)."
+              },
+              {
+                "name": "Server Header Disclosure",
+                "status": "Pass",
+                "currentValue": "gws",
+                "recommended": "Remove unnecessary software/version details from Server and X-Powered-By",
+                "vulnerabilityMsg": "Exposing backend server versions assists attackers in targeting specific CVE exploits."
+              }
+            ],
+            "portResults": [
+              {
+                "port": 80,
+                "service": "HTTP (Web)",
+                "protocol": "TCP",
+                "status": "Open",
+                "latencyMs": 17,
+                "risk": "Review (TCP connection accepted; service unverified)"
+              },
+              {
+                "port": 443,
+                "service": "HTTPS (TLS Web)",
+                "protocol": "TCP",
+                "status": "Open",
+                "latencyMs": 17,
+                "risk": "Review (TCP connection accepted; service unverified)"
+              },
+              {
+                "port": 21,
+                "service": "FTP",
+                "protocol": "TCP",
+                "status": "Open",
+                "latencyMs": 15,
+                "risk": "High (potential cleartext service port; protocol unverified)"
+              },
+              {
+                "port": 22,
+                "service": "SSH",
+                "protocol": "TCP",
+                "status": "Filtered",
+                "latencyMs": 1212,
+                "risk": "No response before timeout; filtering or network egress may affect result"
+              },
+              {
+                "port": 25,
+                "service": "SMTP (Mail)",
+                "protocol": "TCP",
+                "status": "Open",
+                "latencyMs": 15,
+                "risk": "Review (TCP connection accepted; service unverified)"
+              },
+              {
+                "port": 53,
+                "service": "DNS",
+                "protocol": "TCP/UDP",
+                "status": "Filtered",
+                "latencyMs": 1211,
+                "risk": "No response before timeout; filtering or network egress may affect result"
+              },
+              {
+                "port": 110,
+                "service": "POP3",
+                "protocol": "TCP",
+                "status": "Filtered",
+                "latencyMs": 1211,
+                "risk": "No response before timeout; filtering or network egress may affect result"
+              },
+              {
+                "port": 143,
+                "service": "IMAP",
+                "protocol": "TCP",
+                "status": "Filtered",
+                "latencyMs": 1211,
+                "risk": "No response before timeout; filtering or network egress may affect result"
+              },
+              {
+                "port": 3306,
+                "service": "MySQL Database",
+                "protocol": "TCP",
+                "status": "Filtered",
+                "latencyMs": 1211,
+                "risk": "No response before timeout; filtering or network egress may affect result"
+              },
+              {
+                "port": 5432,
+                "service": "PostgreSQL Database",
+                "protocol": "TCP",
+                "status": "Filtered",
+                "latencyMs": 1211,
+                "risk": "No response before timeout; filtering or network egress may affect result"
+              },
+              {
+                "port": 6379,
+                "service": "Redis Cache",
+                "protocol": "TCP",
+                "status": "Filtered",
+                "latencyMs": 1211,
+                "risk": "No response before timeout; filtering or network egress may affect result"
+              },
+              {
+                "port": 8080,
+                "service": "HTTP-Alt / Proxy",
+                "protocol": "TCP",
+                "status": "Filtered",
+                "latencyMs": 1211,
+                "risk": "No response before timeout; filtering or network egress may affect result"
+              },
+              {
+                "port": 8443,
+                "service": "HTTPS-Alt / Admin",
+                "protocol": "TCP",
+                "status": "Filtered",
+                "latencyMs": 1211,
+                "risk": "No response before timeout; filtering or network egress may affect result"
+              },
+              {
+                "port": 27017,
+                "service": "MongoDB",
+                "protocol": "TCP",
+                "status": "Filtered",
+                "latencyMs": 1211,
+                "risk": "No response before timeout; filtering or network egress may affect result"
+              }
+            ],
+            "vulnerabilities": [
+              {
+                "id": "vuln-hsts",
+                "reference": "OWASP A05:2021",
+                "title": "Missing HTTP Strict Transport Security (HSTS)",
+                "severity": "Medium",
+                "owaspCategory": "A05:2021 Security Misconfiguration",
+                "affectedAsset": "google.com:443",
+                "description": "The HTTPS response did not include HSTS, so browsers are not instructed to require HTTPS on future visits.",
+                "exploitVector": "An attacker on a public Wi-Fi network can intercept HTTP requests before redirection and downgrade the user to unencrypted HTTP.",
+                "remediation": "Enable HSTS header with minimum max-age of 31536000 seconds (1 year) and includeSubDomains directive.",
+                "fixCode": "# Nginx Configuration\nadd_header Strict-Transport-Security \"max-age=31536000; includeSubDomains; preload\" always;\n\n# Apache Configuration\nHeader always set Strict-Transport-Security \"max-age=31536000; includeSubDomains; preload\""
+              },
+              {
+                "id": "vuln-csp",
+                "reference": "OWASP A03:2021",
+                "title": "Missing Content Security Policy (CSP)",
+                "severity": "High",
+                "owaspCategory": "A03:2021 Injection (XSS)",
+                "affectedAsset": "google.com",
+                "description": "No Content Security Policy header was observed. This is a defense-in-depth gap and does not prove that an XSS flaw exists.",
+                "exploitVector": "If a separate script-injection flaw exists, an absent CSP may increase its impact.",
+                "remediation": "Implement a strict Content Security Policy restricting script execution to authorized domains and trusted nonces.",
+                "fixCode": "# Nginx CSP Header\nadd_header Content-Security-Policy \"default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;\" always;"
+              },
+              {
+                "id": "vuln-spf",
+                "reference": "CWE-290",
+                "title": "Email Spoofing Risk: SPF Record Missing",
+                "severity": "Medium",
+                "owaspCategory": "A07:2021 Identification and Authentication Failures",
+                "affectedAsset": "DNS TXT google.com",
+                "description": "The domain has mail exchangers but no SPF TXT record was found at its DNS apex.",
+                "exploitVector": "Receiving mail systems may have less information to distinguish authorized senders from forged messages.",
+                "remediation": "Publish an SPF policy listing authorized senders and ending with an appropriate enforcement qualifier."
+              }
+            ],
+            "dnsSecurity": {
+              "spfPresent": false,
+              "spfValue": "Missing",
+              "dmarcPresent": true,
+              "dmarcValue": "v=DMARC1; p=reject; rua=mailto:mailauth-reports@google.com",
+              "mailEnabled": true,
+              "mxRecords": [
+                "smtp.google.com (prio 10)"
+              ],
+              "nsRecords": [
+                "ns3.google.com",
+                "ns2.google.com",
+                "ns1.google.com",
+                "ns4.google.com"
+              ]
+            },
+            "aiThreatSummary": "Measured checks completed for google.com at 142.250.67.14. HTTPS was reachable (HTTP 301); HTTP was reachable (HTTP 301). 3 observed configuration/intelligence findings; 4 of 14 standard TCP ports accepted a connection. This is a non-invasive surface/configuration assessment, not an exploit test or a complete CVE audit. Filtered ports and hosting-provider egress restrictions can limit results."
+          }
+        },
+        "domain-info": {
+          "domainInput": "google.com",
+          "domainData": {
+            "domain": "google.com",
+            "queryTime": "2026-10-03 05:18:47 UTC",
+            "registrar": "MarkMonitor Inc.",
+            "registrationDate": "1997-09-15T04:00:00Z",
+            "expirationDate": "2028-09-14T04:00:00Z",
+            "updatedDate": "2019-09-09T15:39:04Z",
+            "domainStatus": [
+              "client delete prohibited",
+              "client transfer prohibited",
+              "client update prohibited",
+              "server delete prohibited",
+              "server transfer prohibited",
+              "server update prohibited"
+            ],
+            "dnssec": "Unsigned",
+            "registrySource": "RDAP registry via rdap.org",
+            "registryStatus": "Registry data available",
+            "registrarId": "292",
+            "registryDomainId": "2138514_DOMAIN_COM-VRSN",
+            "registryEvents": [
+              {
+                "action": "registration",
+                "date": "1997-09-15T04:00:00Z"
+              },
+              {
+                "action": "expiration",
+                "date": "2028-09-14T04:00:00Z"
+              },
+              {
+                "action": "last changed",
+                "date": "2019-09-09T15:39:04Z"
+              },
+              {
+                "action": "last update of RDAP database",
+                "date": "2026-10-03T05:18:29Z"
+              }
+            ],
+            "nameServers": [
+              "ns3.google.com",
+              "ns2.google.com",
+              "ns1.google.com",
+              "ns4.google.com"
+            ],
+            "resolvedIp": "142.250.67.14",
+            "ipGeo": {
+              "city": "Mumbai",
+              "region": "Maharashtra",
+              "country": "India",
+              "countryCode": "IN",
+              "isp": "Google LLC",
+              "org": "Google LLC",
+              "asn": 15169,
+              "lat": 19.0728322,
+              "lon": 72.8826083,
+              "timezone": "Asia/Kolkata"
+            },
+            "dnsRecords": {
+              "A": [
+                {
+                  "name": "google.com",
+                  "type": "A",
+                  "typeName": "IPv4 Address",
+                  "TTL": 21,
+                  "data": "142.250.67.14"
+                }
+              ],
+              "AAAA": [
+                {
+                  "name": "google.com",
+                  "type": "AAAA",
+                  "typeName": "IPv6 Address",
+                  "TTL": 255,
+                  "data": "2404:6800:4009:82b::200e"
+                }
+              ],
+              "MX": [
+                {
+                  "name": "google.com",
+                  "type": "MX",
+                  "typeName": "Mail Exchanger",
+                  "data": "10 smtp.google.com"
+                }
+              ],
+              "NS": [
+                {
+                  "name": "google.com",
+                  "type": "NS",
+                  "typeName": "Name Servers",
+                  "data": "ns3.google.com"
+                },
+                {
+                  "name": "google.com",
+                  "type": "NS",
+                  "typeName": "Name Servers",
+                  "data": "ns2.google.com"
+                },
+                {
+                  "name": "google.com",
+                  "type": "NS",
+                  "typeName": "Name Servers",
+                  "data": "ns1.google.com"
+                },
+                {
+                  "name": "google.com",
+                  "type": "NS",
+                  "typeName": "Name Servers",
+                  "data": "ns4.google.com"
+                }
+              ],
+              "TXT": [
+                {
+                  "name": "google.com.",
+                  "type": "TXT",
+                  "typeName": "Text & Verification",
+                  "TTL": 300,
+                  "data": "google-site-verification=wD8N7i1JTNTkezJ49swvWW48f8_9xveREV4oB-0Hf5o"
+                },
+                {
+                  "name": "google.com.",
+                  "type": "TXT",
+                  "typeName": "Text & Verification",
+                  "TTL": 300,
+                  "data": "onetrust-domain-verification=6d685f1d41a94696ad7ef771f68993e0"
+                },
+                {
+                  "name": "google.com.",
+                  "type": "TXT",
+                  "typeName": "Text & Verification",
+                  "TTL": 300,
+                  "data": "onetrust-domain-verification=0d477fe608074e6f9c12bca7826035cc"
+                },
+                {
+                  "name": "google.com.",
+                  "type": "TXT",
+                  "typeName": "Text & Verification",
+                  "TTL": 300,
+                  "data": "google-site-verification=TV9-DBe4R80X4v0M4U_bd_J9cpOJM0nikft0jAgjmsQ"
+                },
+                {
+                  "name": "google.com.",
+                  "type": "TXT",
+                  "typeName": "Text & Verification",
+                  "TTL": 300,
+                  "data": "cisco-ci-domain-verification=47c38bc8c4b74b7233e9053220c1bbe76bcc1cd33c7acf7acd36cd6a5332004b"
+                },
+                {
+                  "name": "google.com.",
+                  "type": "TXT",
+                  "typeName": "Text & Verification",
+                  "TTL": 300,
+                  "data": "google-site-verification=4ibFUgB-wXLQ_S7vsXVomSTVamuOXBiVAzpR5IZ87D0"
+                },
+                {
+                  "name": "google.com.",
+                  "type": "TXT",
+                  "typeName": "Text & Verification",
+                  "TTL": 300,
+                  "data": "apple-domain-verification=30afIBcvSuDV2PLX"
+                },
+                {
+                  "name": "google.com.",
+                  "type": "TXT",
+                  "typeName": "Text & Verification",
+                  "TTL": 300,
+                  "data": "_r4rd1pvwyrpi7sw4a3hzmw8e51yh9td"
+                },
+                {
+                  "name": "google.com.",
+                  "type": "TXT",
+                  "typeName": "Text & Verification",
+                  "TTL": 300,
+                  "data": "facebook-domain-verification=22rm551cu4k0ab0bxsw536tlds4h95"
+                },
+                {
+                  "name": "google.com.",
+                  "type": "TXT",
+                  "typeName": "Text & Verification",
+                  "TTL": 300,
+                  "data": "MS=E4A68B9AB2BB9670BCE15412F62916164C0B20BB"
+                },
+                {
+                  "name": "google.com.",
+                  "type": "TXT",
+                  "typeName": "Text & Verification",
+                  "TTL": 300,
+                  "data": "work-accounts-domain-verification=Tcj6JjIMZOw2KsSEw2Nt2rLae89tN6"
+                },
+                {
+                  "name": "google.com.",
+                  "type": "TXT",
+                  "typeName": "Text & Verification",
+                  "TTL": 300,
+                  "data": "Z29vZ2xl"
+                },
+                {
+                  "name": "google.com.",
+                  "type": "TXT",
+                  "typeName": "Text & Verification",
+                  "TTL": 300,
+                  "data": "docusign=1b0a6754-49b1-4db5-8540-d2c12664b289"
+                },
+                {
+                  "name": "google.com.",
+                  "type": "TXT",
+                  "typeName": "Text & Verification",
+                  "TTL": 300,
+                  "data": "arcules-domain-verification=2R4t5G7nI6tRCo61lpxxbLksPYstxhGmtV75cpr8x9K"
+                },
+                {
+                  "name": "google.com.",
+                  "type": "TXT",
+                  "typeName": "Text & Verification",
+                  "TTL": 300,
+                  "data": "v=spf1 include:_spf.google.com ~all"
+                },
+                {
+                  "name": "google.com.",
+                  "type": "TXT",
+                  "typeName": "Text & Verification",
+                  "TTL": 300,
+                  "data": "docusign=05958488-4752-4ef2-95eb-aa7ba8a3bd0e"
+                },
+                {
+                  "name": "google.com.",
+                  "type": "TXT",
+                  "typeName": "Text & Verification",
+                  "TTL": 300,
+                  "data": "globalsign-smime-dv=CDYX+XFHUw2wml6/Gb8+59BsH31KzUr6c1l2BPvqKX8="
+                }
+              ],
+              "SOA": [
+                {
+                  "name": "google.com",
+                  "type": "SOA",
+                  "typeName": "Start of Authority",
+                  "data": "nsname=ns1.google.com hostmaster=dns-admin.google.com serial=992226757 refresh=900 retry=900 expire=1800 minttl=60"
+                }
+              ],
+              "CNAME": []
+            },
+            "spfRecord": "v=spf1 include:_spf.google.com ~all",
+            "dmarcRecord": "v=DMARC1; p=reject; rua=mailto:mailauth-reports@google.com",
+            "hasSpf": true,
+            "hasDmarc": true,
+            "isSecured": true,
+            "rawRdap": {
+              "objectClassName": "domain",
+              "handle": "2138514_DOMAIN_COM-VRSN",
+              "ldhName": "GOOGLE.COM",
+              "links": [
+                {
+                  "value": "https://rdap.verisign.com/com/v1/domain/google.com",
+                  "rel": "self",
+                  "href": "https://rdap.verisign.com/com/v1/domain/google.com",
+                  "type": "application/rdap+json"
+                },
+                {
+                  "value": "https://rdap.verisign.com/com/v1/domain/google.com",
+                  "rel": "related",
+                  "href": "https://rdap.markmonitor.com/rdap/domain/GOOGLE.COM",
+                  "type": "application/rdap+json"
+                }
+              ],
+              "status": [
+                "client delete prohibited",
+                "client transfer prohibited",
+                "client update prohibited",
+                "server delete prohibited",
+                "server transfer prohibited",
+                "server update prohibited"
+              ],
+              "entities": [
+                {
+                  "objectClassName": "entity",
+                  "handle": "292",
+                  "roles": [
+                    "registrar"
+                  ],
+                  "links": [
+                    {
+                      "href": "http://www.markmonitor.com",
+                      "type": "text/html",
+                      "value": "https://rdap.markmonitor.com/rdap/",
+                      "rel": "about"
+                    }
+                  ],
+                  "publicIds": [
+                    {
+                      "type": "IANA Registrar ID",
+                      "identifier": "292"
+                    }
+                  ],
+                  "vcardArray": [
+                    "vcard",
+                    [
+                      [
+                        "version",
+                        {},
+                        "text",
+                        "4.0"
+                      ],
+                      [
+                        "fn",
+                        {},
+                        "text",
+                        "MarkMonitor Inc."
+                      ]
+                    ]
+                  ],
+                  "entities": [
+                    {
+                      "objectClassName": "entity",
+                      "roles": [
+                        "abuse"
+                      ],
+                      "vcardArray": [
+                        "vcard",
+                        [
+                          [
+                            "version",
+                            {},
+                            "text",
+                            "4.0"
+                          ],
+                          [
+                            "fn",
+                            {},
+                            "text",
+                            ""
+                          ],
+                          [
+                            "tel",
+                            {
+                              "type": "voice"
+                            },
+                            "uri",
+                            "tel:+1.2086851750"
+                          ],
+                          [
+                            "email",
+                            {},
+                            "text",
+                            "abusecomplaints@markmonitor.com"
+                          ]
+                        ]
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "events": [
+                {
+                  "eventAction": "registration",
+                  "eventDate": "1997-09-15T04:00:00Z"
+                },
+                {
+                  "eventAction": "expiration",
+                  "eventDate": "2028-09-14T04:00:00Z"
+                },
+                {
+                  "eventAction": "last changed",
+                  "eventDate": "2019-09-09T15:39:04Z"
+                },
+                {
+                  "eventAction": "last update of RDAP database",
+                  "eventDate": "2026-10-03T05:18:29Z"
+                }
+              ],
+              "secureDNS": {
+                "delegationSigned": false
+              },
+              "nameservers": [
+                {
+                  "objectClassName": "nameserver",
+                  "ldhName": "NS1.GOOGLE.COM"
+                },
+                {
+                  "objectClassName": "nameserver",
+                  "ldhName": "NS2.GOOGLE.COM"
+                },
+                {
+                  "objectClassName": "nameserver",
+                  "ldhName": "NS3.GOOGLE.COM"
+                },
+                {
+                  "objectClassName": "nameserver",
+                  "ldhName": "NS4.GOOGLE.COM"
+                }
+              ],
+              "rdapConformance": [
+                "rdap_level_0",
+                "icann_rdap_technical_implementation_guide_1",
+                "icann_rdap_response_profile_1"
+              ],
+              "notices": [
+                {
+                  "title": "Terms of Service",
+                  "description": [
+                    "Service subject to Terms of Use."
+                  ],
+                  "links": [
+                    {
+                      "href": "https://www.verisign.com/domain-names/registration-data-access-protocol/terms-service/index.xhtml",
+                      "type": "text/html",
+                      "value": "https://rdap.verisign.com/com/v1/domain/google.com",
+                      "rel": "terms-of-service"
+                    }
+                  ]
+                },
+                {
+                  "title": "Status Codes",
+                  "description": [
+                    "For more information on domain status codes, please visit https://icann.org/epp"
+                  ],
+                  "links": [
+                    {
+                      "href": "https://icann.org/epp",
+                      "type": "text/html",
+                      "value": "https://rdap.verisign.com/com/v1/domain/google.com",
+                      "rel": "glossary"
+                    }
+                  ]
+                },
+                {
+                  "title": "RDDS Inaccuracy Complaint Form",
+                  "description": [
+                    "URL of the ICANN RDDS Inaccuracy Complaint Form: https://icann.org/wicf"
+                  ],
+                  "links": [
+                    {
+                      "href": "https://icann.org/wicf",
+                      "type": "text/html",
+                      "value": "https://rdap.verisign.com/com/v1/domain/google.com",
+                      "rel": "help"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        "ip-location": {
+          "inputIp": "8.8.8.8",
+          "data": {
+            "ip": "8.8.8.8",
+            "country": "United States",
+            "countryCode": "US",
+            "countryFlag": "https://flagcdn.com/w40/us.png",
+            "region": "California",
+            "city": "San Jose",
+            "postal": "95025",
+            "isp": "Google LLC",
+            "org": "Google LLC",
+            "asn": 15169,
+            "latitude": 37.3393939,
+            "longitude": -121.8949553,
+            "timezone": "America/Los_Angeles",
+            "accuracyDesc": "Network-level geolocation; not GPS precision"
+          }
         }
       }
     },

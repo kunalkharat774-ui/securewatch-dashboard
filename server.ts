@@ -7,11 +7,30 @@ import net from 'net';
 import http from 'http';
 import crypto from 'crypto';
 import https from 'https';
+import tls from 'tls';
 import { GoogleGenAI } from '@google/genai';
 import { sql } from '@vercel/postgres';
 import dotenv from 'dotenv';
 
 dotenv.config({ path: ['.env.local', '.env'] });
+
+const env = process.env as Record<string, string | undefined>;
+const placeholderEnvValue = /^(?:MY_[A-Z0-9_]+|YOUR(?:[_ -].*)?|REPLACE[_ -]?ME|CHANGE[_ -]?ME|<[^>]+>|\$\{[^}]+\})$/i;
+const resolveEnv = (...names: string[]) => {
+  for (const name of names) {
+    const value = env[name]?.trim();
+    if (value && !placeholderEnvValue.test(value)) return value;
+  }
+  return '';
+};
+const GEMINI_MODEL = 'gemini-2.5-flash';
+const resolvedEnv = {
+  GEMINI_API_KEY: resolveEnv('GEMINI_API_KEY', 'gemini_api_key', 'GOOGLE_API_KEY', 'google_api_key'),
+  PHISHGUARD_API_KEY: resolveEnv('PHISHGUARD_API_KEY', 'phishguard_api_key', 'PHISH_GUARD_API_KEY', 'phish_guard_api_key'),
+  ISMALICIOUS_API_KEY: resolveEnv('ISMALICIOUS_API_KEY', 'ismalicious_api', 'ISMALICIOUS_API', 'ismalicious_api_key'),
+  PROJECTDISCOVERY_API_KEY: resolveEnv('PROJECTDISCOVERY_API_KEY', 'projectdiscovery_api_key', 'PROJECT_DISCOVERY_API_KEY', 'project_discovery_api_key'),
+  SECUREWATCH_MASTER_PASSCODE: resolveEnv('SECUREWATCH_MASTER_PASSCODE', 'master_passcode', 'MASTER_PASSCODE'),
+};
 
 const isServerlessRuntime = Boolean(
   process.env.VERCEL ||
@@ -388,258 +407,81 @@ app.get('/api/threats', async (req, res) => {
 // Initialize Gemini Client lazily
 let aiClient: GoogleGenAI | null = null;
 function getGeminiClient() {
-  if (!aiClient && process.env.GEMINI_API_KEY) {
-    aiClient = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  if (!aiClient && resolvedEnv.GEMINI_API_KEY) {
+    aiClient = new GoogleGenAI({ apiKey: resolvedEnv.GEMINI_API_KEY });
   }
   return aiClient;
 }
 
-interface ProjectDiscoveryLeak {
-  id?: string;
-  url?: string;
-  username?: string;
-  email?: string;
-  email_address?: string;
-  device_ip?: string;
-  hostname?: string;
-  os?: string;
-  malware_path?: string;
-  country?: string;
-  log_date?: string;
-  hardware_id?: string;
-  domain?: string;
-  email_domain?: string;
-  url_domain?: string;
-  fetched_at?: string;
-  status?: string;
-  user_type?: string;
-  password?: string;
-}
-
-// Keep ProjectDiscovery credentials and raw credential fields server-side.
-app.get('/api/email-breach', async (req, res) => {
-  const email = String(req.query.email || '').trim().toLowerCase();
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return res.status(400).json({ error: 'A valid email address is required.' });
-  }
-
-  const apiKey = process.env.PROJECTDISCOVERY_API_KEY;
-
-  const queryXposedOrNot = async () => {
-    const response = await fetch(`https://api.xposedornot.com/v1/check-email/${encodeURIComponent(email)}`, {
-      headers: { Accept: 'application/json', 'User-Agent': 'SecureWatch/2.0 email-breach-checker' },
-      signal: AbortSignal.timeout(8000),
-    });
-    if (!response.ok) throw new Error(`XposedOrNot returned HTTP ${response.status}`);
-    const payload = await response.json() as { breaches?: string[] };
-    const breaches = Array.isArray(payload.breaches) ? payload.breaches : [];
-    const sources: BreachDetail[] = breaches.map((name) => ({
-      name: String(name),
-      domain: 'XposedOrNot breach index',
-      date: 'Date unavailable',
-      pwnCount: 'Indexed breach',
-      severity: 'HIGH',
-      leakedData: ['Email address'],
-      description: `XposedOrNot reported this email in the ${String(name)} breach index.`,
-    }));
-    const riskScore = Math.min(100, sources.length * 15);
-    return {
-      email,
-      isBreached: sources.length > 0,
-      foundInBreaches: sources.length,
-      riskScore,
-      riskLevel: riskScore >= 70 ? 'CRITICAL' : riskScore >= 40 ? 'HIGH' : sources.length ? 'MEDIUM' : 'LOW',
-      checkedAt: new Date().toISOString(),
-      sources,
-      recommendations: sources.length
-        ? ['Immediately change the password for affected accounts.', 'Enable phishing-resistant MFA and revoke active sessions.']
-        : ['No matching record was returned by the live breach provider.', 'Continue using unique passwords and phishing-resistant MFA.'],
-      provider: 'XposedOrNot fallback',
-      degraded: true,
-    };
-  };
-
-  if (!apiKey) {
-    try {
-      return res.json(await queryXposedOrNot());
-    } catch (error: any) {
-      return res.json({
-        email, isBreached: false, foundInBreaches: 0, riskScore: 0, riskLevel: 'LOW',
-        checkedAt: new Date().toISOString(), sources: [],
-        recommendations: ['Live breach intelligence is unavailable. Use unique passwords and phishing-resistant MFA.'],
-        provider: 'Breach providers unavailable', degraded: true,
-      });
-    }
-  }
-
-  try {
-    const response = await fetch('https://api.projectdiscovery.io/v1/leaks?type=all&time_range=all_time', {
-      headers: {
-        Accept: 'application/json',
-        'X-API-Key': apiKey,
-      },
-      signal: AbortSignal.timeout(15000),
-    });
-
-    if (!response.ok) {
-      return res.status(response.status === 401 || response.status === 403 ? 502 : response.status).json({
-        error: `ProjectDiscovery leak API returned HTTP ${response.status}.`,
-      });
-    }
-
-    const payload = await response.json() as {
-      data?: ProjectDiscoveryLeak[] | { leaks?: ProjectDiscoveryLeak[]; results?: ProjectDiscoveryLeak[] };
-      leaks?: ProjectDiscoveryLeak[];
-      results?: ProjectDiscoveryLeak[];
-    };
-    const data = Array.isArray(payload.data)
-      ? payload.data
-      : payload.data?.leaks || payload.data?.results || payload.leaks || payload.results || [];
-    const matchingLeaks = data.filter((leak) =>
-      [leak.username, leak.email, leak.email_address].some((value) => String(value || '').trim().toLowerCase() === email)
-    );
-
-    const sources = matchingLeaks.map((leak, index) => {
-      const exposedFields = [
-        (leak.username || leak.email || leak.email_address) && 'Email / Username',
-        leak.password && 'Password (value withheld)',
-        leak.device_ip && 'Device IP',
-        leak.hostname && 'Hostname',
-        leak.os && 'Operating System',
-        leak.malware_path && 'Malware Path',
-        leak.hardware_id && 'Hardware ID',
-      ].filter(Boolean) as string[];
-
-      return {
-        name: leak.domain || leak.url_domain || leak.hostname || 'ProjectDiscovery Leak Record',
-        domain: leak.email_domain || leak.domain || leak.url_domain || 'N/A',
-        date: leak.log_date || leak.fetched_at || 'Date unavailable',
-        pwnCount: '1 matching record',
-        severity: exposedFields.some((field) => field.includes('Password') || field.includes('Malware')) ? 'CRITICAL' : 'HIGH',
-        leakedData: exposedFields.length > 0 ? exposedFields : ['Matching email identifier'],
-        description: `Live ProjectDiscovery record ${leak.id || `#${index + 1}`} matched this email. Credential values are withheld.`,
-        industry: leak.user_type || 'Unknown',
-      };
-    });
-
-    const riskScore = Math.min(100, sources.reduce((score, source) => score + (source.severity === 'CRITICAL' ? 35 : 25), 0));
-    return res.json({
-      email,
-      isBreached: sources.length > 0,
-      foundInBreaches: sources.length,
-      riskScore,
-      riskLevel: riskScore >= 70 ? 'CRITICAL' : riskScore >= 40 ? 'HIGH' : sources.length > 0 ? 'MEDIUM' : 'LOW',
-      checkedAt: new Date().toISOString(),
-      sources,
-      recommendations: sources.length > 0
-        ? ['Immediately change the password for the affected account.', 'Enable phishing-resistant MFA and revoke active sessions.', 'Investigate the listed device and malware indicators with your security team.']
-        : ['No matching record was returned by ProjectDiscovery for this email.', 'Continue using unique passwords and phishing-resistant MFA.'],
-      provider: 'ProjectDiscovery',
-    });
-  } catch (error: any) {
-    console.error('ProjectDiscovery email breach lookup failed:', error?.message || error);
-    try {
-      return res.json(await queryXposedOrNot());
-    } catch (fallbackError: any) {
-      return res.json({
-        email, isBreached: false, foundInBreaches: 0, riskScore: 0, riskLevel: 'LOW',
-        checkedAt: new Date().toISOString(), sources: [],
-        recommendations: ['Live breach intelligence is temporarily unavailable. Verify again later and keep MFA enabled.'],
-        provider: 'Breach providers unavailable', degraded: true,
-      });
-    }
-  }
-});
-
-// POST /api/email-breach-check - Check email breach using xposedornot.com API
-app.post('/api/email-breach-check', async (req, res) => {
+const handleEmailBreachLookup: express.RequestHandler = async (req, res) => {
   const email = String(req.body?.email || '').trim().toLowerCase();
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return res.status(400).json({ error: 'A valid email address is required.' });
+    res.status(400).json({ error: 'A valid email address is required.' });
+    return;
   }
 
   try {
     const response = await fetch(`https://api.xposedornot.com/v1/check-email/${encodeURIComponent(email)}`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'SecureWatch/2.0 email-breach-checker',
-      },
+      headers: { Accept: 'application/json', 'User-Agent': 'SecureWatch/2.0 email-breach-checker' },
       signal: AbortSignal.timeout(10000),
     });
 
-    if (!response.ok) {
-      return res.json({
-        email,
-        breaches: [],
-        breachCount: 0,
-        isBreached: false,
-        riskScore: 0,
-        riskLevel: 'LOW',
-        checkedAt: new Date().toISOString(),
-        status: 'unavailable',
-        provider: 'xposedornot unavailable',
-        degraded: true,
-      });
+    let payload: unknown;
+    try {
+      payload = await response.json();
+    } catch {
+      throw new Error('XposedOrNot returned an invalid JSON response.');
     }
 
-    const data = await response.json() as {
-      breaches?: string[];
-      email?: string;
-      status?: string;
-    };
+    const providerError = payload && typeof payload === 'object' && 'Error' in payload
+      && typeof (payload as { Error: unknown }).Error === 'string'
+      ? (payload as { Error: string }).Error.trim()
+      : '';
+    const isNotFound = providerError.toLowerCase() === 'not found';
 
-    // Parse the response
-    const breaches = Array.isArray(data.breaches) ? data.breaches : [];
-    const isBreached = breaches.length > 0;
+    if (!response.ok && !(response.status === 404 && isNotFound)) {
+      if (response.status === 429) {
+        res.status(429).json({ error: 'XposedOrNot rate limit reached. Please wait before trying again.' });
+        return;
+      }
+      res.status(502).json({ error: `XposedOrNot returned HTTP ${response.status}. Please try again later.` });
+      return;
+    }
 
-    // Calculate risk score based on number and severity of breaches
-    const riskScore = Math.min(100, breaches.length * 15);
-    const riskLevel = isBreached
-      ? riskScore >= 70 ? 'CRITICAL' : riskScore >= 40 ? 'HIGH' : 'MEDIUM'
-      : 'LOW';
+    let breachNames: string[] = [];
+    if (!isNotFound) {
+      if (!payload || typeof payload !== 'object' || !('breaches' in payload)) {
+        throw new Error('XposedOrNot returned an unexpected response.');
+      }
+      const rawBreaches = (payload as { breaches: unknown }).breaches;
+      if (!Array.isArray(rawBreaches)) {
+        throw new Error('XposedOrNot returned invalid breach data.');
+      }
+      breachNames = rawBreaches.flat(Infinity)
+        .filter((name): name is string => typeof name === 'string')
+        .map((name) => name.trim())
+        .filter(Boolean);
+    }
 
-    return res.json({
+    const sources = [...new Set(breachNames)].map((name) => ({ name }));
+    res.json({
       email,
-      isBreached,
-      breachCount: breaches.length,
-      breaches,
-      riskScore,
-      riskLevel,
+      isBreached: sources.length > 0,
+      foundInBreaches: sources.length,
       checkedAt: new Date().toISOString(),
-      provider: 'xposedornot',
-      status: isBreached ? 'compromised' : 'safe',
-      recommendations: isBreached
-        ? [
-            'Immediately change your password for all affected accounts.',
-            'Enable two-factor authentication (2FA) on all important accounts.',
-            'Monitor credit reports for fraudulent activity.',
-            'Consider using a password manager with unique strong passwords.',
-            'Check if your identity has been used fraudulently.',
-          ]
-        : [
-            'Your email has not been found in known data breaches.',
-            'Continue to use unique, strong passwords for each account.',
-            'Keep your security software and OS updated.',
-            'Enable 2FA on all accounts that support it.',
-          ],
+      sources,
+      recommendations: sources.length > 0
+        ? ['Change passwords for accounts associated with this address, especially any reused passwords.', 'Enable multi-factor authentication and review active sessions.']
+        : ['No match was returned by this provider; this does not prove the address is absent from every breach.', 'Continue using unique passwords and multi-factor authentication.'],
+      provider: 'XposedOrNot',
     });
   } catch (error: any) {
-    console.error('xposedornot email breach check failed:', error?.message || error);
-    return res.json({
-      email,
-      breaches: [],
-      breachCount: 0,
-      isBreached: false,
-      riskScore: 0,
-      riskLevel: 'LOW',
-      checkedAt: new Date().toISOString(),
-      provider: 'xposedornot unavailable',
-      status: 'error',
-      degraded: true,
-    });
+    console.error('XposedOrNot email breach lookup failed:', error?.message || error);
+    res.status(502).json({ error: 'The breach provider is temporarily unavailable. Please try again later.' });
   }
-});
+};
+
+app.post(['/api/email-breach', '/api/email-breach-check'], handleEmailBreachLookup);
 
 // Proxy only the five-character hash prefix so the password never leaves the browser.
 app.post('/api/password-pwned', async (req, res) => {
@@ -893,8 +735,8 @@ let isMaliciousRateLimitUntil = 0;
 
 app.post('/api/scan-url-reputation', async (req, res) => {
   const rawUrl = String(req.body?.url || '').trim();
-  const phishGuardApiKey = process.env.PHISHGUARD_API_KEY;
-  const apiKey = process.env.ISMALICIOUS_API_KEY;
+  const phishGuardApiKey = resolvedEnv.PHISHGUARD_API_KEY;
+  const apiKey = resolvedEnv.ISMALICIOUS_API_KEY;
 
   let targetUrl: URL;
   try {
@@ -1024,9 +866,10 @@ interface PortResult {
 interface VulnerabilityItem {
   id: string;
   cve?: string;
+  reference?: string;
   title: string;
   severity: 'Critical' | 'High' | 'Medium' | 'Low';
-  cvssScore: number;
+  cvssScore?: number;
   owaspCategory: string;
   affectedAsset: string;
   description: string;
@@ -1056,91 +899,361 @@ interface ProjectDiscoveryVulnerability {
   remediation?: string;
   reference?: string[] | string;
   cve?: string;
+  cvss_score?: number;
 }
 
-// Helper: Real TCP Port Probe
-function probeTcpPort(host: string, port: number, timeoutMs = 1500): Promise<{ open: boolean; latency: number }> {
+const nonPublicScanAddresses = new net.BlockList();
+[
+  ['0.0.0.0', 8], ['10.0.0.0', 8], ['100.64.0.0', 10], ['127.0.0.0', 8],
+  ['169.254.0.0', 16], ['172.16.0.0', 12], ['192.0.0.0', 24], ['192.0.2.0', 24],
+  ['192.88.99.0', 24], ['192.168.0.0', 16], ['198.18.0.0', 15], ['198.51.100.0', 24],
+  ['203.0.113.0', 24], ['224.0.0.0', 4], ['240.0.0.0', 4],
+].forEach(([network, prefix]) => nonPublicScanAddresses.addSubnet(String(network), Number(prefix), 'ipv4'));
+[
+  ['::', 128], ['::1', 128], ['64:ff9b:1::', 48],
+  ['100::', 64], ['2001::', 23], ['2001:db8::', 32], ['fc00::', 7],
+  ['fe80::', 10], ['ff00::', 8],
+].forEach(([network, prefix]) => nonPublicScanAddresses.addSubnet(String(network), Number(prefix), 'ipv6'));
+
+function isPublicScanAddress(address: string): boolean {
+  const family = net.isIP(address);
+  if (family === 4) return !nonPublicScanAddresses.check(address, 'ipv4');
+  if (family === 6) return !/^::ffff:/i.test(address) && !nonPublicScanAddresses.check(address, 'ipv6');
+  return false;
+}
+
+app.get('/api/domain-dns', async (req, res) => {
+  const name = String(req.query.name || '').trim().toLowerCase().replace(/\.$/, '');
+  const type = String(req.query.type || '').trim().toUpperCase();
+  const validDomain = /^(?=.{1,253}$)(?:_?[a-z0-9](?:[a-z0-9_-]{0,61}[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i;
+  const supportedTypes = ['A', 'AAAA', 'MX', 'NS', 'TXT', 'SOA', 'CNAME'] as const;
+
+  if (!validDomain.test(name) || !supportedTypes.includes(type as typeof supportedTypes[number])) {
+    return res.status(400).json({ error: 'A valid domain name and supported DNS record type are required.' });
+  }
+
+  const typeName: Record<typeof supportedTypes[number], string> = {
+    A: 'IPv4 Address',
+    AAAA: 'IPv6 Address',
+    MX: 'Mail Exchanger',
+    NS: 'Name Servers',
+    TXT: 'Text & Verification',
+    SOA: 'Start of Authority',
+    CNAME: 'Canonical Name',
+  };
+  const typeNumber: Record<typeof supportedTypes[number], number> = {
+    A: 1,
+    AAAA: 28,
+    MX: 15,
+    NS: 2,
+    TXT: 16,
+    SOA: 6,
+    CNAME: 5,
+  };
+  const dnsType = type as typeof supportedTypes[number];
+  const mapAnswers = (answers: unknown) => {
+    if (!Array.isArray(answers)) return [];
+    return answers
+      .filter((answer): answer is { name: string; type: number; TTL?: number; data: string } =>
+        Boolean(answer) &&
+        typeof answer === 'object' &&
+        typeof (answer as { name?: unknown }).name === 'string' &&
+        typeof (answer as { type?: unknown }).type === 'number' &&
+        typeof (answer as { data?: unknown }).data === 'string' &&
+        (answer as { type: number }).type === typeNumber[dnsType])
+      .map((answer) => ({
+        name: answer.name,
+        type,
+        typeName: typeName[dnsType],
+        TTL: answer.TTL,
+        data: type === 'TXT' ? answer.data.replace(/^"|"$/g, '').replace(/\\"/g, '"') : answer.data,
+      }));
+  };
+
+  try {
+    let values: Array<{ data: string; ttl?: number }> = [];
+    switch (dnsType) {
+      case 'A':
+        values = (await dns.promises.resolve4(name, { ttl: true })).map((record) => ({ data: record.address, ttl: record.ttl }));
+        break;
+      case 'AAAA':
+        values = (await dns.promises.resolve6(name, { ttl: true })).map((record) => ({ data: record.address, ttl: record.ttl }));
+        break;
+      case 'MX':
+        values = (await dns.promises.resolveMx(name)).map((record) => ({
+          data: `${record.priority} ${record.exchange || '.'}`,
+        }));
+        break;
+      case 'NS':
+        values = (await dns.promises.resolveNs(name)).map((record) => ({ data: record }));
+        break;
+      case 'TXT':
+        values = (await dns.promises.resolveTxt(name)).map((record) => ({ data: record.join('') }));
+        break;
+      case 'SOA': {
+        const record = await dns.promises.resolveSoa(name);
+        values = [{
+          data: `nsname=${record.nsname} hostmaster=${record.hostmaster} serial=${record.serial} refresh=${record.refresh} retry=${record.retry} expire=${record.expire} minttl=${record.minttl}`,
+        }];
+        break;
+      }
+      case 'CNAME':
+        values = (await dns.promises.resolveCname(name)).map((record) => ({ data: record }));
+        break;
+    }
+
+    return res.set('Cache-Control', 'public, max-age=60').json({
+      name,
+      type,
+      source: 'SecureWatch backend DNS resolver',
+      records: values.map((record) => ({
+        name,
+        type,
+        typeName: typeName[dnsType],
+        TTL: record.ttl,
+        data: record.data,
+      })),
+    });
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    const dohProviders = [
+      {
+        url: `https://dns.google/resolve?name=${encodeURIComponent(name)}&type=${typeNumber[dnsType]}`,
+        source: 'Google DNS-over-HTTPS fallback',
+      },
+      {
+        url: `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(name)}&type=${typeNumber[dnsType]}`,
+        source: 'Cloudflare DNS-over-HTTPS fallback',
+      },
+    ];
+    for (const provider of dohProviders) {
+      try {
+        const response = await fetch(provider.url, {
+          headers: { Accept: 'application/dns-json' },
+          signal: AbortSignal.timeout(5000),
+        });
+        if (response.ok) {
+          const payload = await response.json() as { Status?: number; Answer?: unknown };
+          if (payload.Status === 0 || payload.Status === 3) {
+            const records = mapAnswers(payload.Answer);
+            return res.set('Cache-Control', 'public, max-age=60').json({
+              name,
+              type,
+              source: provider.source,
+              records,
+            });
+          }
+        }
+      } catch (fallbackError) {
+        console.warn(`${provider.source} failed for ${name} ${type}:`, fallbackError);
+      }
+    }
+    if (code === 'ENODATA' || code === 'ENOTFOUND' || code === 'ENONAME') {
+      return res.set('Cache-Control', 'public, max-age=60').json({
+        name,
+        type,
+        source: 'SecureWatch backend DNS resolver',
+        records: [],
+      });
+    }
+    console.error(`DNS ${type} lookup failed for ${name}:`, error);
+    return res.status(502).json({ error: `DNS ${type} lookup is temporarily unavailable for ${name}.` });
+  }
+});
+
+// Helper: bounded TCP connection checks; timeouts are reported as filtered, not closed.
+function probeTcpPort(host: string, port: number, timeoutMs = 1200): Promise<{ status: PortResult['status']; latency: number }> {
   return new Promise((resolve) => {
     const startTime = Date.now();
     const socket = new net.Socket();
+    let settled = false;
+    const finish = (status: PortResult['status']) => {
+      if (settled) return;
+      settled = true;
+      socket.destroy();
+      resolve({ status, latency: Date.now() - startTime });
+    };
 
     socket.setTimeout(timeoutMs);
 
-    socket.on('connect', () => {
-      const latency = Date.now() - startTime;
-      socket.destroy();
-      resolve({ open: true, latency });
-    });
-
-    socket.on('timeout', () => {
-      socket.destroy();
-      resolve({ open: false, latency: timeoutMs });
-    });
-
-    socket.on('error', () => {
-      socket.destroy();
-      resolve({ open: false, latency: Date.now() - startTime });
+    socket.once('connect', () => finish('Open'));
+    socket.once('timeout', () => finish('Filtered'));
+    socket.once('error', (error: NodeJS.ErrnoException) => {
+      finish(error.code === 'ECONNREFUSED' ? 'Closed' : 'Filtered');
     });
 
     socket.connect(port, host);
   });
 }
 
-// Helper: Real HTTP Header & SSL Probe
-function probeHttpTarget(targetUrl: string, timeoutMs = 4000): Promise<{
+// Helper: make one bounded request, pinned to the validated DNS address.
+async function probeHttpTarget(targetUrl: string, timeoutMs = 4000, resolvedAddress?: string): Promise<{
   statusCode?: number;
   headers: Record<string, string>;
   isHttps: boolean;
   sslValid?: boolean;
+  sslIssuer?: string;
+  sslValidTo?: string;
   serverHeader?: string;
   poweredByHeader?: string;
   redirectUrl?: string;
   responseTimeMs: number;
   error?: string;
 }> {
+  const url = new URL(targetUrl);
+  const isHttps = url.protocol === 'https:';
+  const urlHostname = url.hostname.replace(/^\[|\]$/g, '');
+  let scanAddress = resolvedAddress;
+  if (!scanAddress) {
+    const family = net.isIP(urlHostname);
+    const addresses = family
+      ? [urlHostname]
+      : (await Promise.all([
+          dns.promises.resolve4(urlHostname).catch(() => [] as string[]),
+          dns.promises.resolve6(urlHostname).catch(() => [] as string[]),
+        ])).flat();
+    if (!addresses.length || addresses.some((address) => !isPublicScanAddress(address))) {
+      return {
+        headers: {},
+        isHttps,
+        responseTimeMs: 0,
+        error: 'Target did not resolve exclusively to public addresses',
+      };
+    }
+    scanAddress = addresses[0];
+  }
+
   return new Promise((resolve) => {
     const startTime = Date.now();
-    let isHttps = targetUrl.startsWith('https://');
-    const clientModule = isHttps ? https : http;
+    let settled = false;
+    const finish = (result: {
+      statusCode?: number;
+      headers: Record<string, string>;
+      isHttps: boolean;
+      sslValid?: boolean;
+      sslIssuer?: string;
+      sslValidTo?: string;
+      serverHeader?: string;
+      poweredByHeader?: string;
+      redirectUrl?: string;
+      responseTimeMs: number;
+      error?: string;
+    }) => {
+      if (settled) return;
+      settled = true;
+      resolve(result);
+    };
 
-    try {
-      const req = clientModule.get(targetUrl, { timeout: timeoutMs, headers: { 'User-Agent': 'SecureWatch-Vulnerability-Scanner/2.0' } }, (res) => {
-        const headers: Record<string, string> = {};
-        for (const [k, v] of Object.entries(res.headers)) {
-          if (typeof v === 'string') {
-            headers[k.toLowerCase()] = v;
-          } else if (Array.isArray(v)) {
-            headers[k.toLowerCase()] = v.join(', ');
-          }
-        }
-
-        const responseTimeMs = Date.now() - startTime;
-
-        resolve({
-          statusCode: res.statusCode,
-          headers,
-          isHttps,
-          sslValid: isHttps,
-          serverHeader: headers['server'],
-          poweredByHeader: headers['x-powered-by'],
-          redirectUrl: headers['location'],
-          responseTimeMs,
-        });
+    const onResponse = (response: http.IncomingMessage) => {
+      const headers: Record<string, string> = {};
+      for (const [key, value] of Object.entries(response.headers)) {
+        if (typeof value === 'string') headers[key.toLowerCase()] = value;
+        else if (Array.isArray(value)) headers[key.toLowerCase()] = value.join(', ');
+      }
+      let sslValid: boolean | undefined;
+      let sslIssuer: string | undefined;
+      let sslValidTo: string | undefined;
+      if (isHttps && response.socket instanceof tls.TLSSocket) {
+        const certificate = response.socket.getPeerCertificate();
+        sslValid = response.socket.authorized &&
+          Boolean(certificate.valid_to) &&
+          Date.parse(certificate.valid_to) > Date.now();
+        const issuer = certificate.issuer?.O || certificate.issuer?.CN;
+        sslIssuer = Array.isArray(issuer) ? issuer[0] : issuer;
+        sslValidTo = certificate.valid_to;
+      }
+      finish({
+        statusCode: response.statusCode,
+        headers,
+        isHttps,
+        sslValid,
+        sslIssuer,
+        sslValidTo,
+        serverHeader: headers.server,
+        poweredByHeader: headers['x-powered-by'],
+        redirectUrl: headers.location,
+        responseTimeMs: Date.now() - startTime,
       });
+      response.resume();
+    };
 
-      req.on('timeout', () => {
-        req.destroy();
-        resolve({ headers: {}, isHttps, responseTimeMs: timeoutMs, error: 'Request Connection Timeout' });
-      });
+    const requestOptions: http.RequestOptions = {
+      hostname: scanAddress,
+      port: url.port || (isHttps ? 443 : 80),
+      path: `${url.pathname || '/'}${url.search}`,
+      method: 'GET',
+      timeout: timeoutMs,
+      family: net.isIP(scanAddress),
+      headers: {
+        Host: url.host,
+        'User-Agent': 'SecureWatch-Vulnerability-Scanner/2.0',
+        Accept: '*/*',
+        Connection: 'close',
+      },
+    };
+    const request = isHttps
+      ? https.request({
+          ...requestOptions,
+          servername: net.isIP(urlHostname) ? undefined : urlHostname,
+        checkServerIdentity: (_hostname, certificate) => tls.checkServerIdentity(urlHostname, certificate),
+        rejectUnauthorized: false,
+      }, onResponse)
+      : http.request(requestOptions, onResponse);
 
-      req.on('error', (err) => {
-        resolve({ headers: {}, isHttps, responseTimeMs: Date.now() - startTime, error: err.message });
-      });
-    } catch (e: any) {
-      resolve({ headers: {}, isHttps, responseTimeMs: Date.now() - startTime, error: e.message });
-    }
+    request.once('timeout', () => {
+      request.destroy();
+      finish({ headers: {}, isHttps, responseTimeMs: Date.now() - startTime, error: 'Request timed out' });
+    });
+    request.once('error', (error) => {
+      finish({ headers: {}, isHttps, responseTimeMs: Date.now() - startTime, error: error.message });
+    });
+    request.end();
   });
 }
+
+app.get('/api/domain-rdap', async (req, res) => {
+  const rawDomain = String(req.query.domain || '').trim().toLowerCase();
+  let domain: string;
+  try {
+    const parsed = new URL(`https://${rawDomain}`);
+    domain = parsed.hostname.replace(/\.$/, '');
+    if (
+      parsed.username ||
+      parsed.password ||
+      parsed.port ||
+      parsed.pathname !== '/' ||
+      parsed.search ||
+      parsed.hash ||
+      net.isIP(domain) ||
+      !/^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i.test(domain)
+    ) {
+      throw new Error('Invalid domain');
+    }
+  } catch {
+    return res.status(400).json({ error: 'Enter a valid registered domain name.' });
+  }
+
+  try {
+    const response = await fetch(`https://rdap.org/domain/${encodeURIComponent(domain)}`, {
+      headers: { Accept: 'application/rdap+json, application/json', 'User-Agent': 'SecureWatch/2.0 domain-registry-lookup' },
+      signal: AbortSignal.timeout(12000),
+    });
+    if (response.status === 404) {
+      return res.status(404).json({ error: 'The RDAP registry did not find this domain. It may be unregistered or unsupported by the registry.' });
+    }
+    if (!response.ok) {
+      return res.status(502).json({ error: `The RDAP registry returned HTTP ${response.status}.` });
+    }
+    const rdap = await response.json() as { ldhName?: string; objectClassName?: string };
+    if (rdap.objectClassName !== 'domain' || (rdap.ldhName && rdap.ldhName.toLowerCase() !== domain)) {
+      return res.status(502).json({ error: 'The registry returned an unexpected RDAP object.' });
+    }
+    return res.set('Cache-Control', 'public, max-age=300').json({ domain, source: 'RDAP registry via rdap.org', rdap });
+  } catch (error) {
+    console.error('Domain RDAP lookup failed:', error);
+    return res.status(502).json({ error: 'The domain registry lookup is temporarily unavailable. DNS lookups can still be used independently.' });
+  }
+});
 
 // ---------------------------------------------------------
 // API ENDPOINT: REAL IP LOCATION TRACKER (100% ACCURATE GEOLOCATION)
@@ -1368,116 +1481,142 @@ app.post('/api/scan-vulnerability', async (req, res) => {
       return res.status(400).json({ error: 'Target URL, domain, or IP is required.' });
     }
 
-    // Clean target
-    let cleaned = rawTarget.trim();
-    if (!cleaned.startsWith('http://') && !cleaned.startsWith('https://')) {
-      cleaned = 'https://' + cleaned;
-    }
+    const targetInput = rawTarget.trim();
+    const cleaned = /^https?:\/\//i.test(targetInput)
+      ? targetInput
+      : `https://${net.isIP(targetInput) === 6 ? `[${targetInput}]` : targetInput}`;
 
     let parsedUrl: URL;
     try {
       parsedUrl = new URL(cleaned);
-    } catch (e) {
+    } catch {
       return res.status(400).json({ error: 'Invalid hostname or URL format.' });
     }
 
-    const hostname = parsedUrl.hostname;
-    const isIpAddress = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(hostname);
+    if (!['http:', 'https:'].includes(parsedUrl.protocol) || parsedUrl.username || parsedUrl.password) {
+      return res.status(400).json({ error: 'Only HTTP or HTTPS targets without embedded credentials are supported.' });
+    }
 
-    // 1. REAL DNS LOOKUP
-    let resolvedIp = isIpAddress ? hostname : '127.0.0.1';
+    const hostname = parsedUrl.hostname.replace(/^\[|\]$/g, '').toLowerCase();
+    const addressFamily = net.isIP(hostname);
+    const isIpAddress = addressFamily !== 0;
+    if (hostname === 'localhost' || hostname.endsWith('.localhost') || hostname.endsWith('.local')) {
+      return res.status(403).json({ error: 'For safety, the scanner only accepts publicly routable targets that you own or are authorized to assess.' });
+    }
+
+    // Resolve and pin all network probes to a public address to prevent SSRF and DNS rebinding.
+    let resolvedAddresses: string[] = isIpAddress ? [hostname] : [];
     let mxRecords: string[] = [];
     let txtRecords: string[] = [];
     let nsRecords: string[] = [];
+    let dmarcTxtRecords: string[] = [];
 
-    try {
-      if (!isIpAddress) {
-        const aAddresses = await dns.promises.resolve4(hostname).catch(() => []);
-        if (aAddresses.length > 0) {
-          resolvedIp = aAddresses[0];
-        }
-
-        const mx = await dns.promises.resolveMx(hostname).catch(() => []);
-        mxRecords = mx.map((m) => `${m.exchange} (prio ${m.priority})`);
-
-        const txt = await dns.promises.resolveTxt(hostname).catch(() => []);
-        txtRecords = txt.map((t) => t.join(''));
-
-        const ns = await dns.promises.resolveNs(hostname).catch(() => []);
-        nsRecords = ns;
-      }
-    } catch (dnsErr) {
-      console.warn('DNS Resolution Notice:', dnsErr);
+    if (!isIpAddress) {
+      const [ipv4Addresses, ipv6Addresses, mx, txt, ns, dmarcTxt] = await Promise.all([
+        dns.promises.resolve4(hostname).catch(() => [] as string[]),
+        dns.promises.resolve6(hostname).catch(() => [] as string[]),
+        dns.promises.resolveMx(hostname).catch(() => [] as dns.MxRecord[]),
+        dns.promises.resolveTxt(hostname).catch(() => [] as string[][]),
+        dns.promises.resolveNs(hostname).catch(() => [] as string[]),
+        dns.promises.resolveTxt(`_dmarc.${hostname}`).catch(() => [] as string[][]),
+      ]);
+      resolvedAddresses = [...new Set([...ipv4Addresses, ...ipv6Addresses])];
+      mxRecords = mx.map((record) => !record.exchange || record.exchange === '.'
+        ? 'Null MX (mail is not accepted)'
+        : `${record.exchange} (prio ${record.priority})`);
+      txtRecords = txt.map((record) => record.join(''));
+      nsRecords = ns;
+      dmarcTxtRecords = dmarcTxt.map((record) => record.join(''));
     }
+    const mailEnabled = mxRecords.some((record) => !record.startsWith('Null MX'));
 
-    // 2. REAL HTTP & HTTPS HEADERS PROBE
-    const httpProbeUrl = `http://${hostname}`;
-    const httpsProbeUrl = `https://${hostname}`;
+    if (resolvedAddresses.length === 0) {
+      return res.status(422).json({ error: 'The target did not resolve to a public IPv4 or IPv6 address.' });
+    }
+    if (resolvedAddresses.some((address) => !isPublicScanAddress(address))) {
+      return res.status(403).json({ error: 'The target resolves to a private, reserved, or non-routable address; scanning was blocked.' });
+    }
+    const resolvedIp = resolvedAddresses[0];
 
+    // Probe the web origin without following redirects; port discovery is a separate TCP check.
+    const httpProbeUrl = new URL('/', `http://${parsedUrl.host}`).toString();
+    const httpsProbeUrl = new URL('/', `https://${parsedUrl.host}`).toString();
     const [httpRes, httpsRes] = await Promise.all([
-      probeHttpTarget(httpProbeUrl, 3500),
-      probeHttpTarget(httpsProbeUrl, 3500),
+      probeHttpTarget(httpProbeUrl, 3500, resolvedIp),
+      probeHttpTarget(httpsProbeUrl, 3500, resolvedIp),
     ]);
 
-    const activeRes = httpsRes.statusCode ? httpsRes : httpRes;
-    const headers = activeRes.headers || {};
+    const httpsReachable = typeof httpsRes.statusCode === 'number';
+    const httpReachable = typeof httpRes.statusCode === 'number';
+    const activeRes = httpsReachable ? httpsRes : httpRes;
+    const cspBlocksFraming = /(?:^|;)\s*frame-ancestors\s+[^;]+/i.test(httpsRes.headers['content-security-policy'] || '');
+    const headerResult = (present: boolean, missing: HeaderAudit['status'] = 'Fail'): HeaderAudit['status'] =>
+      !httpsReachable ? 'Warning' : present ? 'Pass' : missing;
+    const notAssessed = 'HTTPS endpoint unavailable; not assessed';
+    const hstsValue = httpsRes.headers['strict-transport-security'] || '';
+    const hstsMaxAge = Number(hstsValue.match(/(?:^|;)\s*max-age\s*=\s*(\d+)/i)?.[1] || 0);
+    const hstsEffective = hstsMaxAge > 0;
+    const xFrameValue = httpsRes.headers['x-frame-options'] || '';
+    const xFrameEffective = /^(deny|sameorigin)$/i.test(xFrameValue.trim());
+    const serverBanner = [httpsRes.headers.server, httpsRes.headers['x-powered-by']].filter(Boolean).join(' | ');
+    const serverVersionExposed = /\b(?:nginx|apache|iis|express|openresty)[/ ]v?\d+(?:\.\d+)+\b/i.test(serverBanner);
 
-    // 3. AUDIT HTTP SECURITY HEADERS
+    // 3. Audit headers only when an HTTPS response was actually observed.
     const headerAudits: HeaderAudit[] = [
       {
         name: 'Strict-Transport-Security (HSTS)',
-        status: headers['strict-transport-security'] ? 'Pass' : 'Fail',
-        currentValue: headers['strict-transport-security'] || 'Missing',
+        status: headerResult(hstsEffective),
+        currentValue: httpsReachable ? hstsValue || 'Missing' : notAssessed,
         recommended: 'max-age=31536000; includeSubDomains; preload',
         vulnerabilityMsg: 'Missing HSTS exposes users to SSL Strip & MITM downgrade attacks.',
       },
       {
         name: 'Content-Security-Policy (CSP)',
-        status: headers['content-security-policy'] ? 'Pass' : 'Fail',
-        currentValue: headers['content-security-policy'] ? headers['content-security-policy'].slice(0, 60) + '...' : 'Missing',
+        status: headerResult(Boolean(httpsRes.headers['content-security-policy'])),
+        currentValue: httpsReachable ? httpsRes.headers['content-security-policy'] ? httpsRes.headers['content-security-policy'].slice(0, 60) + '...' : 'Missing' : notAssessed,
         recommended: "default-src 'self'; script-src 'self' 'nonce-...'",
         vulnerabilityMsg: 'Missing CSP allows malicious Cross-Site Scripting (XSS) and data exfiltration.',
       },
       {
         name: 'X-Frame-Options',
-        status: headers['x-frame-options'] ? 'Pass' : 'Fail',
-        currentValue: headers['x-frame-options'] || 'Missing',
-        recommended: 'DENY or SAMEORIGIN',
+        status: headerResult(xFrameEffective || cspBlocksFraming),
+        currentValue: httpsReachable ? xFrameValue || (cspBlocksFraming ? 'Protected by CSP frame-ancestors' : 'Missing') : notAssessed,
+        recommended: 'DENY or SAMEORIGIN, or CSP frame-ancestors',
         vulnerabilityMsg: 'Missing X-Frame-Options enables Clickjacking frame embedding attacks.',
       },
       {
         name: 'X-Content-Type-Options',
-        status: headers['x-content-type-options']?.toLowerCase().includes('nosniff') ? 'Pass' : 'Fail',
-        currentValue: headers['x-content-type-options'] || 'Missing',
+        status: headerResult(httpsRes.headers['x-content-type-options']?.toLowerCase().split(',').some((value) => value.trim() === 'nosniff') || false),
+        currentValue: httpsReachable ? httpsRes.headers['x-content-type-options'] || 'Missing' : notAssessed,
         recommended: 'nosniff',
         vulnerabilityMsg: 'Missing nosniff allows browsers to MIME-sniff non-executable files into executable scripts.',
       },
       {
         name: 'Referrer-Policy',
-        status: headers['referrer-policy'] ? 'Pass' : 'Warning',
-        currentValue: headers['referrer-policy'] || 'Missing',
+        status: headerResult(Boolean(httpsRes.headers['referrer-policy']), 'Warning'),
+        currentValue: httpsReachable ? httpsRes.headers['referrer-policy'] || 'Missing' : notAssessed,
         recommended: 'strict-origin-when-cross-origin',
         vulnerabilityMsg: 'Missing Referrer-Policy may leak sensitive internal URLs to third-party domains.',
       },
       {
         name: 'Permissions-Policy',
-        status: headers['permissions-policy'] ? 'Pass' : 'Warning',
-        currentValue: headers['permissions-policy'] ? headers['permissions-policy'].slice(0, 50) + '...' : 'Missing',
+        status: headerResult(Boolean(httpsRes.headers['permissions-policy']), 'Warning'),
+        currentValue: httpsReachable ? httpsRes.headers['permissions-policy'] ? httpsRes.headers['permissions-policy'].slice(0, 50) + '...' : 'Missing' : notAssessed,
         recommended: 'camera=(), microphone=(), geolocation=()',
         vulnerabilityMsg: 'Unrestricted browser capabilities (camera, geolocation, mic).',
       },
       {
         name: 'Server Header Disclosure',
-        status: (headers['server'] || headers['x-powered-by']) ? 'Fail' : 'Pass',
-        currentValue: [headers['server'], headers['x-powered-by']].filter(Boolean).join(' | ') || 'Protected (Hidden)',
-        recommended: 'Remove Server & X-Powered-By version banners',
+        status: headerResult(!serverVersionExposed, 'Warning'),
+        currentValue: httpsReachable ? serverBanner || 'Not reported' : notAssessed,
+        recommended: 'Remove unnecessary software/version details from Server and X-Powered-By',
         vulnerabilityMsg: 'Exposing backend server versions assists attackers in targeting specific CVE exploits.',
       },
     ];
 
     // 4. CHECK EMAIL SECURITY (SPF & DMARC)
     const spfRecord = txtRecords.find((r) => r.startsWith('v=spf1'));
-    const dmarcRecord = txtRecords.find((r) => r.startsWith('v=DMARC1'));
+    const dmarcRecord = dmarcTxtRecords.find((r) => r.startsWith('v=DMARC1'));
 
     // 5. REAL TCP PORT DISCOVERY
     const targetPorts = [
@@ -1500,43 +1639,22 @@ app.post('/api/scan-vulnerability', async (req, res) => {
     const hostToProbe = resolvedIp || hostname;
     const portResults: PortResult[] = await Promise.all(
       targetPorts.map(async (p) => {
-        // Ports 80 and 443 correlate with HTTP probes if host is web
-        if (p.port === 80 && httpRes.statusCode) {
-          return {
-            port: 80,
-            service: 'HTTP (Web)',
-            protocol: 'TCP',
-            status: 'Open',
-            latencyMs: httpRes.responseTimeMs || 45,
-            risk: 'Low (Redirects to HTTPS)',
-          };
-        }
-        if (p.port === 443 && httpsRes.statusCode) {
-          return {
-            port: 443,
-            service: 'HTTPS (TLS Web)',
-            protocol: 'TCP',
-            status: 'Open',
-            latencyMs: httpsRes.responseTimeMs || 50,
-            risk: 'Clean (Encrypted Traffic)',
-          };
-        }
-
         const res = await probeTcpPort(hostToProbe, p.port, 1200);
         let riskMsg = 'Safe / Filtered';
-        if (res.open) {
-          if ([21, 23].includes(p.port)) riskMsg = 'HIGH (Unencrypted protocol)';
-          else if ([3306, 5432, 6379, 27017].includes(p.port)) riskMsg = 'CRITICAL (Database exposed publicly)';
-          else if ([22].includes(p.port)) riskMsg = 'Medium (Requires SSH key authentication & fail2ban)';
-          else riskMsg = 'Medium (Open Service)';
+        if (res.status === 'Open') {
+          if ([21, 23].includes(p.port)) riskMsg = 'High (potential cleartext service port; protocol unverified)';
+          else if ([3306, 5432, 6379, 27017].includes(p.port)) riskMsg = 'High (potential database port; service unverified)';
+          else if ([22].includes(p.port)) riskMsg = 'Review (potential SSH port; service unverified)';
+          else riskMsg = 'Review (TCP connection accepted; service unverified)';
         }
+        if (res.status === 'Filtered') riskMsg = 'No response before timeout; filtering or network egress may affect result';
 
         return {
           port: p.port,
           service: p.service,
           protocol: p.protocol,
-          status: res.open ? 'Open' : 'Closed',
-          latencyMs: res.open ? res.latency : 0,
+          status: res.status,
+          latencyMs: res.latency,
           risk: riskMsg,
         };
       })
@@ -1545,17 +1663,31 @@ app.post('/api/scan-vulnerability', async (req, res) => {
     // 6. BUILD DISCOVERED VULNERABILITIES LIST
     const vulnerabilities: VulnerabilityItem[] = [];
 
+    if (httpsReachable && httpsRes.sslValid === false) {
+      vulnerabilities.push({
+        id: 'vuln-tls-certificate',
+        title: 'TLS certificate could not be validated',
+        severity: 'High',
+        owaspCategory: 'A02:2021 Cryptographic Failures',
+        affectedAsset: `${hostname}:443`,
+        description: `The HTTPS endpoint presented a certificate that failed chain or validity checks${httpsRes.sslValidTo ? ` (valid to ${httpsRes.sslValidTo})` : ''}.`,
+        exploitVector: 'Users may be unable to authenticate the server identity, increasing exposure to interception if they bypass browser warnings.',
+        remediation: 'Install a certificate issued by a trusted CA for this hostname and renew it before expiry.',
+      });
+    }
+
     // Check 1: Missing HSTS
-    if (!headers['strict-transport-security']) {
+    if (httpsReachable && !hstsEffective) {
       vulnerabilities.push({
         id: 'vuln-hsts',
-        cve: 'OWASP-A05-2021',
-        title: 'Missing HTTP Strict Transport Security (HSTS)',
+        reference: 'OWASP A05:2021',
+        title: hstsValue ? 'Ineffective HTTP Strict Transport Security (HSTS)' : 'Missing HTTP Strict Transport Security (HSTS)',
         severity: 'Medium',
-        cvssScore: 6.1,
         owaspCategory: 'A05:2021 Security Misconfiguration',
         affectedAsset: `${hostname}:443`,
-        description: 'The server does not enforce HTTPS connections via HSTS headers, leaving connections vulnerable to SSL stripping and man-in-the-middle attacks.',
+        description: hstsValue
+          ? `The HSTS header was present but did not contain a positive max-age (observed: ${hstsValue}).`
+          : 'The HTTPS response did not include HSTS, so browsers are not instructed to require HTTPS on future visits.',
         exploitVector: 'An attacker on a public Wi-Fi network can intercept HTTP requests before redirection and downgrade the user to unencrypted HTTP.',
         remediation: 'Enable HSTS header with minimum max-age of 31536000 seconds (1 year) and includeSubDomains directive.',
         fixCode: `# Nginx Configuration\nadd_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;\n\n# Apache Configuration\nHeader always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"`,
@@ -1563,30 +1695,28 @@ app.post('/api/scan-vulnerability', async (req, res) => {
     }
 
     // Check 2: Missing CSP
-    if (!headers['content-security-policy']) {
+    if (httpsReachable && !httpsRes.headers['content-security-policy']) {
       vulnerabilities.push({
         id: 'vuln-csp',
-        cve: 'OWASP-A03-2021',
+        reference: 'OWASP A03:2021',
         title: 'Missing Content Security Policy (CSP)',
         severity: 'High',
-        cvssScore: 7.5,
         owaspCategory: 'A03:2021 Injection (XSS)',
         affectedAsset: hostname,
-        description: 'No Content Security Policy header is specified. The browser cannot restrict script sources or object embeds.',
-        exploitVector: 'Attacker injects inline JavaScript via stored/reflected XSS to siphon authorization tokens and session cookies.',
+        description: 'No Content Security Policy header was observed. This is a defense-in-depth gap and does not prove that an XSS flaw exists.',
+        exploitVector: 'If a separate script-injection flaw exists, an absent CSP may increase its impact.',
         remediation: 'Implement a strict Content Security Policy restricting script execution to authorized domains and trusted nonces.',
         fixCode: `# Nginx CSP Header\nadd_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;" always;`,
       });
     }
 
     // Check 3: Missing X-Frame-Options
-    if (!headers['x-frame-options']) {
+    if (httpsReachable && !xFrameEffective && !cspBlocksFraming) {
       vulnerabilities.push({
         id: 'vuln-clickjack',
-        cve: 'OWASP-A04-2021',
+        reference: 'OWASP A04:2021',
         title: 'Clickjacking Vulnerability (Missing X-Frame-Options)',
         severity: 'Medium',
-        cvssScore: 5.4,
         owaspCategory: 'A04:2021 Insecure Design',
         affectedAsset: hostname,
         description: 'The web application can be embedded inside an <iframe> on third-party attacker websites without restriction.',
@@ -1597,31 +1727,29 @@ app.post('/api/scan-vulnerability', async (req, res) => {
     }
 
     // Check 4: Exposed Server Header
-    if (headers['server'] || headers['x-powered-by']) {
-      const serverInfo = [headers['server'], headers['x-powered-by']].filter(Boolean).join(', ');
+    if (httpsReachable && serverVersionExposed) {
+      const serverInfo = serverBanner;
       vulnerabilities.push({
         id: 'vuln-banner',
-        cve: 'CVE-2023-INFO',
-        title: `Information Exposure: Backend Server Banner Exposed (${serverInfo})`,
+        reference: 'Informational disclosure; no CVE asserted',
+        title: `Information Exposure: Versioned Server Banner (${serverInfo})`,
         severity: 'Low',
-        cvssScore: 3.7,
         owaspCategory: 'A05:2021 Security Misconfiguration',
         affectedAsset: `${hostname} (Header)`,
         description: `The application leaks backend software version details (${serverInfo}), giving attackers reconnaissance telemetry.`,
-        exploitVector: 'Automated vulnerability scanners search for version strings to execute matching 1-day CVE exploits.',
+        exploitVector: 'Published version details can help prioritize further software-specific security assessment.',
         remediation: 'Configure the web server and application server to strip the Server and X-Powered-By response headers.',
         fixCode: `# Nginx conf\nserver_tokens off;\n\n# Express.js\napp.disable('x-powered-by');`,
       });
     }
 
     // Check 5: Email Spoofing (DMARC / SPF)
-    if (!dmarcRecord && !isIpAddress) {
+    if (!dmarcRecord && mailEnabled) {
       vulnerabilities.push({
         id: 'vuln-dmarc',
-        cve: 'CWE-290',
+        reference: 'CWE-290',
         title: 'Email Spoofing Risk: DMARC DNS Record Missing',
         severity: 'High',
-        cvssScore: 7.2,
         owaspCategory: 'A07:2021 Identification and Auth Failures',
         affectedAsset: `DNS TXT _dmarc.${hostname}`,
         description: 'No DMARC record found for this domain. Email receiving servers cannot verify if emails originating from this domain are authentic.',
@@ -1630,27 +1758,39 @@ app.post('/api/scan-vulnerability', async (req, res) => {
         fixCode: `# DNS TXT Record for _dmarc.${hostname}\nName: _dmarc\nType: TXT\nValue: v=DMARC1; p=quarantine; rua=mailto:dmarc-reports@${hostname}; pct=100;`,
       });
     }
+    if (!spfRecord && mailEnabled) {
+      vulnerabilities.push({
+        id: 'vuln-spf',
+        reference: 'CWE-290',
+        title: 'Email Spoofing Risk: SPF Record Missing',
+        severity: 'Medium',
+        owaspCategory: 'A07:2021 Identification and Authentication Failures',
+        affectedAsset: `DNS TXT ${hostname}`,
+        description: 'The domain has mail exchangers but no SPF TXT record was found at its DNS apex.',
+        exploitVector: 'Receiving mail systems may have less information to distinguish authorized senders from forged messages.',
+        remediation: 'Publish an SPF policy listing authorized senders and ending with an appropriate enforcement qualifier.',
+      });
+    }
 
     // Check 6: Exposed Database Ports
     const openDbPorts = portResults.filter((p) => p.status === 'Open' && [3306, 5432, 6379, 27017].includes(p.port));
     openDbPorts.forEach((dbPort) => {
       vulnerabilities.push({
         id: `vuln-db-${dbPort.port}`,
-        cve: 'OWASP-A01-2021',
-        title: `Critical Risk: Database Port ${dbPort.port} (${dbPort.service}) Publicly Accessible`,
-        severity: 'Critical',
-        cvssScore: 9.8,
+        reference: 'OWASP A01:2021',
+        title: `Potential database service may be exposed on TCP port ${dbPort.port}`,
+        severity: 'High',
         owaspCategory: 'A01:2021 Broken Access Control',
         affectedAsset: `${hostname}:${dbPort.port}`,
-        description: `Database port ${dbPort.port} is directly reachable over the public internet without firewall restrictions.`,
-        exploitVector: 'Brute-force credential attacks or unauthenticated Remote Code Execution against database daemons.',
+        description: `TCP port ${dbPort.port} accepted a connection. The scanner did not authenticate to or identify a database service on this port.`,
+        exploitVector: 'If a database service is listening, direct internet reachability may expose it to unauthorized connection attempts.',
         remediation: 'Bind the database to localhost (127.0.0.1) and restrict external access using UFW / Security Group firewall rules.',
         fixCode: `# Linux UFW Firewall Rule\nsudo ufw deny ${dbPort.port}/tcp\nsudo ufw allow from 10.0.0.0/8 to any port ${dbPort.port}`,
       });
     });
 
     // Enrich the observed findings with verified results from the user's ProjectDiscovery scans.
-    const projectDiscoveryApiKey = process.env.PROJECTDISCOVERY_API_KEY;
+    const projectDiscoveryApiKey = resolvedEnv.PROJECTDISCOVERY_API_KEY;
     if (projectDiscoveryApiKey && !isIpAddress) {
       try {
         const pdResponse = await fetch(`https://api.projectdiscovery.io/v1/scans/results?domain=${encodeURIComponent(hostname)}&limit=100`, {
@@ -1676,10 +1816,11 @@ app.post('/api/scan-vulnerability', async (req, res) => {
 
             vulnerabilities.push({
               id: `pd-${fingerprint || index}`,
-              cve: finding.cve || finding.template_id,
+              cve: finding.cve,
+              reference: finding.template_id || finding.template,
               title,
               severity,
-              cvssScore: severity === 'Critical' ? 9.8 : severity === 'High' ? 8.0 : severity === 'Medium' ? 5.5 : 2.5,
+              cvssScore: typeof finding.cvss_score === 'number' && Number.isFinite(finding.cvss_score) ? finding.cvss_score : undefined,
               owaspCategory: 'ProjectDiscovery verified scan result',
               affectedAsset: finding.matched_at || finding.host || hostname,
               description: finding.description || finding.impact || 'Verified finding returned by ProjectDiscovery cloud scanning.',
@@ -1696,7 +1837,7 @@ app.post('/api/scan-vulnerability', async (req, res) => {
       }
     }
 
-    // 7. CALCULATE REAL OVERALL SECURITY SCORE
+    // This heuristic is not a CVSS score or a security certification.
     let penaltySum = 0;
     vulnerabilities.forEach((v) => {
       if (v.severity === 'Critical') penaltySum += 35;
@@ -1706,60 +1847,61 @@ app.post('/api/scan-vulnerability', async (req, res) => {
     });
 
     const overallScore = Math.max(12, Math.min(100, 100 - penaltySum));
-    let riskLevel: 'Critical' | 'High' | 'Medium' | 'Low' | 'Safe' = 'Safe';
+    let riskLevel: 'Critical' | 'High' | 'Medium' | 'Low' | 'Safe' | 'Unknown' = 'Safe';
     if (overallScore < 40) riskLevel = 'Critical';
     else if (overallScore < 65) riskLevel = 'High';
     else if (overallScore < 85) riskLevel = 'Medium';
     else if (overallScore < 98) riskLevel = 'Low';
+    if (!httpsReachable && !httpReachable) riskLevel = 'Unknown';
 
-    // 8. GEMINI AI EXECUTIVE THREAT REPORT GENERATION (IF KEY PRESENT)
-    let aiThreatSummary = `Security Audit completed for target ${hostname}. Identified ${vulnerabilities.length} security findings across HTTP header configurations, DNS records, and active network ports. Overall posture score evaluated at ${overallScore}/100.`;
+    const openPorts = portResults.filter((port) => port.status === 'Open');
+    const aiThreatSummary = [
+      `Measured checks completed for ${hostname} at ${resolvedIp}.`,
+      `HTTPS was ${httpsReachable ? `reachable (HTTP ${httpsRes.statusCode})` : 'not reachable'}; HTTP was ${httpReachable ? `reachable (HTTP ${httpRes.statusCode})` : 'not reachable'}.`,
+      `${vulnerabilities.length} observed configuration/intelligence findings; ${openPorts.length} of ${portResults.length} standard TCP ports accepted a connection.`,
+      'This is a non-invasive surface/configuration assessment, not an exploit test or a complete CVE audit. Filtered ports and hosting-provider egress restrictions can limit results.',
+    ].join(' ');
 
-    const ai = getGeminiClient();
-    if (ai) {
-      try {
-        const prompt = `You are a Principal Cybersecurity Penetration Tester. Analyze this vulnerability scan report for target "${hostname}" (${resolvedIp}) and generate a concise 3-bullet Executive Threat Analysis with actionable hardening priorities:
-        - Overall Security Score: ${overallScore}/100 (${riskLevel} Risk)
-        - Open Ports: ${portResults.filter(p => p.status === 'Open').map(p => `${p.port}/${p.service}`).join(', ') || 'None'}
-        - Discovered Vulnerabilities: ${vulnerabilities.map(v => `${v.title} (${v.severity})`).join('; ') || 'None'}
-        - Mail Security: SPF=${spfRecord ? 'Present' : 'Missing'}, DMARC=${dmarcRecord ? 'Present' : 'Missing'}
-        Provide an executive summary statement in plain, professional security language. Keep it under 120 words.`;
-
-        const response = await ai.models.generateContent({
-          model: 'gemini-3.6-flash',
-          contents: prompt,
-        });
-
-        if (response.text) {
-          aiThreatSummary = response.text;
-        }
-      } catch (aiErr) {
-        console.warn('Gemini Threat AI Notice:', aiErr);
-      }
-    }
-
-    // RETURN 100% REAL SCAN DATA
     return res.json({
       target: hostname,
       resolvedIp,
+      resolvedAddresses,
       scannedAt: new Date().toISOString(),
       displayDate: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) + ', ' + new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      scanStatus: httpsReachable || httpReachable ? 'completed' : 'partial',
+      scanScope: 'Non-invasive DNS, HTTP/TLS configuration, and standard TCP port checks',
+      checksPerformed: [
+        'Public DNS A/AAAA, MX, NS, apex TXT, and _dmarc TXT lookups',
+        'HTTP and HTTPS root response status and security headers',
+        'HTTPS certificate trust and expiry check',
+        `TCP connection checks for ${portResults.length} standard ports`,
+      ],
+      limitations: [
+        'No exploit payloads, authentication bypasses, web crawling, or full CVE/database scan are performed.',
+        'Only the displayed standard ports are checked; a timeout is reported as Filtered, not Closed.',
+        'Security-header checks verify observed presence/basic validity, not the full strength or effectiveness of each policy.',
+        'Cloud hosting egress policies may prevent accurate TCP port results.',
+        'ProjectDiscovery findings are included only when its server-side API key and matching scan data are available.',
+      ],
       overallScore,
       riskLevel,
-      openPortsCount: portResults.filter((p) => p.status === 'Open').length,
+      openPortsCount: openPorts.length,
       vulnerabilitiesCount: vulnerabilities.length,
-      isHttps: activeRes.isHttps,
-      sslValid: activeRes.sslValid,
-      statusCode: activeRes.statusCode || 200,
+      isHttps: httpsReachable,
+      sslValid: httpsReachable ? httpsRes.sslValid : undefined,
+      sslIssuer: httpsRes.sslIssuer || 'N/A',
+      sslValidTo: httpsRes.sslValidTo || 'N/A',
+      statusCode: activeRes.statusCode || 0,
       responseTimeMs: activeRes.responseTimeMs,
       headerAudits,
       portResults,
       vulnerabilities,
       dnsSecurity: {
         spfPresent: !!spfRecord,
-        spfValue: spfRecord || 'Missing',
+        spfValue: spfRecord || (isIpAddress ? 'Not applicable to IP address' : 'Missing'),
         dmarcPresent: !!dmarcRecord,
-        dmarcValue: dmarcRecord || 'Missing',
+        dmarcValue: dmarcRecord || (isIpAddress ? 'Not applicable to IP address' : 'Missing at _dmarc hostname'),
+        mailEnabled,
         mxRecords,
         nsRecords,
       },
@@ -1828,7 +1970,7 @@ Provide a detailed structured response in JSON format with keys:
 Format output ONLY as raw valid JSON without markdown code blocks.`;
 
         const response = await ai.models.generateContent({
-          model: 'gemini-3.6-flash',
+          model: GEMINI_MODEL,
           contents: prompt,
         });
 
@@ -2085,7 +2227,7 @@ Provide a structured API Security & Latency Assessment in JSON format with keys:
 Return ONLY raw valid JSON without markdown code blocks.`;
 
         const response = await ai.models.generateContent({
-          model: 'gemini-3.6-flash',
+          model: GEMINI_MODEL,
           contents: prompt,
         });
 
@@ -2182,7 +2324,7 @@ const hasTenantDatabase = Boolean(
 let tenantTableReady: Promise<void> | null = null;
 const tenantLoadPromises = new Map<string, Promise<void>>();
 
-const authChallengeSecret = process.env.SECUREWATCH_MASTER_PASSCODE || 'securewatch-auth-challenge-secret';
+const authChallengeSecret = resolvedEnv.SECUREWATCH_MASTER_PASSCODE || 'securewatch-auth-challenge-secret';
 
 function signAuthChallenge(challenge: AuthChallenge): string {
   const payload = Buffer.from(JSON.stringify(challenge)).toString('base64url');
@@ -2578,7 +2720,7 @@ app.put('/api/users/:id', async (req, res) => {
 // ---------------------------------------------------------
 // MASTER ISOLATED DATABASE ADMIN API (PROTECTED BY PASSCODE)
 // ---------------------------------------------------------
-const MASTER_PASSCODE = process.env.SECUREWATCH_MASTER_PASSCODE;
+const MASTER_PASSCODE = resolvedEnv.SECUREWATCH_MASTER_PASSCODE;
 
 // POST /api/admin/all-data - Get all tenant stored data across the entire database
 app.post('/api/admin/all-data', (req, res) => {
@@ -2887,7 +3029,7 @@ Provide a JSON verdict with keys:
 "sandboxVerdict": 1-2 sentence recommendation for quarantine, execution, or sanitization.`;
 
         const aiResponse = await gemini.models.generateContent({
-          model: 'gemini-3.6-flash',
+          model: GEMINI_MODEL,
           contents: prompt,
           config: { responseMimeType: 'application/json' },
         });
@@ -2984,7 +3126,7 @@ app.post('/api/generate-security-report', async (req, res) => {
     if (logs.length === 0) recommendedActions.push('Connect verified SIEM or IDS telemetry before treating this report as an operational assessment.');
     if (recommendedActions.length === 0) recommendedActions.push('Continue collecting verified telemetry and review controls on the next assessment cycle.');
 
-    if (process.env.GEMINI_API_KEY) {
+    if (resolvedEnv.GEMINI_API_KEY) {
       try {
         const prompt = `You are a Chief Information Security Officer (CISO) and Lead Security Auditor writing an official audit report.
 Report Title: ${reportType}
@@ -3010,7 +3152,7 @@ Return JSON with exact keys:
         const gemini = getGeminiClient();
         if (gemini) {
           const aiResponse = await gemini.models.generateContent({
-            model: 'gemini-3.6-flash',
+            model: GEMINI_MODEL,
             contents: prompt,
             config: { responseMimeType: 'application/json' },
           });
@@ -3109,7 +3251,7 @@ Guidelines:
 
     if (ai) {
       const modelsToTry = [
-        { name: 'gemini-3.6-flash', config: { systemInstruction, temperature: 0.7 } },
+        { name: GEMINI_MODEL, config: { systemInstruction, temperature: 0.7 } },
         { name: 'gemini-flash-latest', config: { systemInstruction, temperature: 0.7 } }
       ];
       let apiSuccess = false;
@@ -3143,7 +3285,7 @@ Guidelines:
         try {
           const fullPrompt = `${systemInstruction}\n\nUser Question:\n${prompt}`;
           const simpleRes = await ai.models.generateContent({
-            model: 'gemini-3.6-flash',
+            model: GEMINI_MODEL,
             contents: fullPrompt
           });
           if (simpleRes && simpleRes.text) {
@@ -3161,7 +3303,7 @@ Guidelines:
     // Comprehensive Local Knowledge & Intelligent Fallback Engine
     if (!responseText) {
       const lowerP = prompt.toLowerCase().trim();
-      const vsCodeTip = !process.env.GEMINI_API_KEY
+      const vsCodeTip = !resolvedEnv.GEMINI_API_KEY
         ? '\n\n---\n> 💡 **VS Code Local Setup Tip**: To activate live dynamic Gemini AI responses in VS Code:\n> 1. Create a .env file in the project root folder.\n> 2. Add GEMINI_API_KEY="your_gemini_api_key_here" (Get a valid key from Google AI Studio).\n> 3. Start the project with npm run dev.'
         : '';
 

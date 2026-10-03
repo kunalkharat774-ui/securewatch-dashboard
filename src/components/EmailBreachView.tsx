@@ -1,22 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 
 export interface BreachDetail {
   name: string;
-  domain: string;
-  date: string;
-  pwnCount: string;
-  severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
-  leakedData: string[];
-  description: string;
-  industry?: string;
 }
 
 export interface BreachQueryResult {
   email: string;
   isBreached: boolean;
   foundInBreaches: number;
-  riskScore: number;
-  riskLevel: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
   checkedAt: string;
   sources: BreachDetail[];
   recommendations: string[];
@@ -33,6 +24,7 @@ export const EmailBreachView: React.FC<EmailBreachViewProps> = ({ onBackToDashbo
 
   // Email Breach States
   const [emailInput, setEmailInput] = useState<string>('');
+  const [emailLookupConsent, setEmailLookupConsent] = useState<boolean>(false);
   const [checkingEmail, setCheckingEmail] = useState<boolean>(false);
   const [emailProgressStep, setEmailProgressStep] = useState<string>('');
   const [breachResult, setBreachResult] = useState<BreachQueryResult | null>(null);
@@ -66,9 +58,14 @@ export const EmailBreachView: React.FC<EmailBreachViewProps> = ({ onBackToDashbo
     return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('').toUpperCase();
   };
 
-  // Query the server-side ProjectDiscovery integration; the API key never reaches the browser.
+  // Submit only after explaining that the address is sent to the breach-data provider.
   const handleCheckEmail = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+
+    if (!emailLookupConsent) {
+      setEmailError('Please confirm that you want to send this address to XposedOrNot for a breach-data lookup.');
+      return;
+    }
 
     const cleanEmail = emailInput.trim().toLowerCase();
     if (!isValidEmail(cleanEmail)) {
@@ -79,16 +76,18 @@ export const EmailBreachView: React.FC<EmailBreachViewProps> = ({ onBackToDashbo
     setEmailError(null);
     setCheckingEmail(true);
     setBreachResult(null);
-    setEmailProgressStep('Connecting to ProjectDiscovery live leak intelligence...');
+    setEmailProgressStep('Connecting to XposedOrNot breach-data search...');
 
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), 20000);
 
     try {
-      setEmailProgressStep('Searching global compromised credential databases...');
-      const response = await fetch(`/api/email-breach?email=${encodeURIComponent(cleanEmail)}`, {
+      setEmailProgressStep('Checking whether this address appears in reported breach datasets...');
+      const response = await fetch('/api/email-breach', {
+        method: 'POST',
         signal: controller.signal,
-        headers: { Accept: 'application/json' },
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ email: cleanEmail }),
       });
       const responseText = await response.text();
       let data: Partial<BreachQueryResult> & { error?: string } = {};
@@ -107,21 +106,18 @@ export const EmailBreachView: React.FC<EmailBreachViewProps> = ({ onBackToDashbo
       const checkedAt = data.checkedAt ? new Date(data.checkedAt) : new Date();
       const recommendations = Array.isArray(data.recommendations) ? data.recommendations : [];
 
-      setEmailProgressStep('Analyzing live leak metadata and exposed field types...');
       setBreachResult({
         email: typeof data.email === 'string' ? data.email : cleanEmail,
         isBreached: data.isBreached,
         foundInBreaches: Number.isFinite(data.foundInBreaches) ? Number(data.foundInBreaches) : data.sources.length,
-        riskScore: Number.isFinite(data.riskScore) ? Number(data.riskScore) : 0,
-        riskLevel: data.riskLevel || 'LOW',
-        checkedAt: Number.isNaN(checkedAt.getTime()) ? 'Time unavailable' : checkedAt.toLocaleTimeString(),
+        checkedAt: Number.isNaN(checkedAt.getTime()) ? 'Time unavailable' : checkedAt.toLocaleString(),
         sources: data.sources,
         recommendations,
         provider: typeof data.provider === 'string' ? data.provider : undefined,
         degraded: data.degraded === true,
       });
 
-      triggerToast(`Live breach search complete for ${cleanEmail}`);
+      triggerToast(`Breach-data lookup complete for ${cleanEmail}`);
     } catch (err: unknown) {
       setEmailError(err instanceof DOMException && err.name === 'AbortError'
         ? 'The breach query timed out. Please try again.'
@@ -220,11 +216,11 @@ export const EmailBreachView: React.FC<EmailBreachViewProps> = ({ onBackToDashbo
             )}
             <h2 className="text-xl font-bold text-white flex items-center gap-2 tracking-tight">
               <i className="fa-solid fa-user-shield text-red-400"></i>
-              Securewatch Dark Web Breach & Password Intelligence
+              SecureWatch Breach Exposure & Password Checks
             </h2>
           </div>
           <p className="text-xs text-gray-400 mt-1">
-            Live breach records returned by ProjectDiscovery leak intelligence. No demo or sample records are used.
+            Check known breach datasets. This does not enumerate which websites an address has registered with.
           </p>
         </div>
 
@@ -265,15 +261,15 @@ export const EmailBreachView: React.FC<EmailBreachViewProps> = ({ onBackToDashbo
                   type="email"
                   value={emailInput}
                   onChange={(e) => setEmailInput(e.target.value)}
-                  placeholder="Enter email address to inspect (e.g., user@domain.com)..."
+                  placeholder="Enter an email address to check (e.g., user@domain.com)..."
                   className="w-full pl-10 pr-4 py-2.5 bg-[#141a2e] border border-[#232d48] rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-red-500 transition-colors font-mono"
                 />
               </div>
 
               <button
                 type="submit"
-                disabled={checkingEmail}
-                className="bg-red-600 hover:bg-red-500 text-white font-medium px-6 py-2.5 rounded-lg text-sm flex items-center justify-center gap-2 transition-colors disabled:opacity-50 cursor-pointer shadow-md"
+                disabled={checkingEmail || !emailLookupConsent}
+                className="bg-red-600 hover:bg-red-500 text-white font-medium px-6 py-2.5 rounded-lg text-sm flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-md"
               >
                 {checkingEmail ? (
                   <>
@@ -289,6 +285,18 @@ export const EmailBreachView: React.FC<EmailBreachViewProps> = ({ onBackToDashbo
               </button>
             </form>
 
+            <label className="flex items-start gap-2 text-xs text-gray-400 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={emailLookupConsent}
+                onChange={(e) => setEmailLookupConsent(e.target.checked)}
+                className="mt-0.5 accent-red-500"
+              />
+              <span>
+                I own this email address or have permission to check it. I understand the address will be sent to XposedOrNot for a breach-data lookup; it is not used to check website sign-ups.
+              </span>
+            </label>
+
             {emailError && (
               <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-red-400 text-xs flex items-center gap-2">
                 <i className="fa-solid fa-triangle-exclamation"></i>
@@ -301,7 +309,7 @@ export const EmailBreachView: React.FC<EmailBreachViewProps> = ({ onBackToDashbo
           {checkingEmail && (
             <div className="bg-[#0d111c] border border-[#1f2335] rounded-xl p-12 text-center space-y-3 shadow-lg">
               <i className="fa-solid fa-shield-cat text-4xl text-red-500 animate-pulse"></i>
-              <h3 className="text-sm font-bold text-white">Querying Live XposedOrNot Dark Web Repository</h3>
+              <h3 className="text-sm font-bold text-white">Checking XposedOrNot Breach Datasets</h3>
               <p className="text-xs text-gray-400 font-mono">{emailProgressStep}</p>
             </div>
           )}
@@ -325,44 +333,40 @@ export const EmailBreachView: React.FC<EmailBreachViewProps> = ({ onBackToDashbo
                       </div>
                       <div>
                         <h4 className="font-bold text-red-400 text-base flex items-center gap-2">
-                          LEAK DETECTED: Email Found in Data Breaches!
+                          Email Found in Reported Breach Datasets
                         </h4>
                         <p className="text-xs text-gray-300 mt-0.5">
-                          Email <span className="font-mono text-white font-bold">{breachResult.email}</span> appeared in <strong className="text-red-400 font-bold">{breachResult.foundInBreaches} verified security incidents</strong>.
+                          <span className="font-mono text-white font-bold">{breachResult.email}</span> matched {breachResult.foundInBreaches} breach dataset{breachResult.foundInBreaches === 1 ? '' : 's'} reported by the provider.
                         </p>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <span className="px-3 py-1 rounded-md text-xs font-bold bg-red-500/20 text-red-400 border border-red-500/40">
-                        {breachResult.riskLevel} SEVERITY
-                      </span>
                       <span className="text-xs text-gray-400 font-mono">
                         Checked: {breachResult.checkedAt}
                       </span>
                     </div>
                   </div>
 
-                  {/* Stats Grid */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
                     <div className="p-3 bg-[#080a10] border border-red-500/20 rounded-lg">
-                      <span className="text-[10px] text-gray-400 uppercase font-bold block">Exposure Risk Score</span>
-                      <div className="text-lg font-bold font-mono text-red-400 mt-0.5">
-                        {breachResult.riskScore} / 100
-                      </div>
-                    </div>
-
-                    <div className="p-3 bg-[#080a10] border border-red-500/20 rounded-lg">
-                      <span className="text-[10px] text-gray-400 uppercase font-bold block">Confirmed Breaches</span>
+                      <span className="text-[10px] text-gray-400 uppercase font-bold block">Matching Datasets</span>
                       <div className="text-lg font-bold font-mono text-amber-400 mt-0.5">
-                        {breachResult.foundInBreaches} Leaks
+                        {breachResult.foundInBreaches}
                       </div>
                     </div>
 
                     <div className="p-3 bg-[#080a10] border border-red-500/20 rounded-lg">
-                      <span className="text-[10px] text-gray-400 uppercase font-bold block">Source Database</span>
+                      <span className="text-[10px] text-gray-400 uppercase font-bold block">Lookup Provider</span>
                       <div className="text-xs font-semibold text-emerald-400 mt-1 font-mono">
-                        {breachResult.provider || 'ProjectDiscovery Live'}
+                        {breachResult.provider || 'XposedOrNot'}
+                      </div>
+                    </div>
+
+                    <div className="p-3 bg-[#080a10] border border-red-500/20 rounded-lg">
+                      <span className="text-[10px] text-gray-400 uppercase font-bold block">Breach Dates</span>
+                      <div className="text-xs font-semibold text-gray-300 mt-1">
+                        Not provided by this lookup
                       </div>
                     </div>
                   </div>
@@ -377,16 +381,16 @@ export const EmailBreachView: React.FC<EmailBreachViewProps> = ({ onBackToDashbo
                       </div>
                       <div>
                         <h4 className="font-bold text-emerald-400 text-base flex items-center gap-2">
-                          GOOD NEWS: No Data Breaches Found!
+                          No Match in This Provider's Indexed Datasets
                         </h4>
                         <p className="text-xs text-gray-300 mt-0.5">
-                          Email <span className="font-mono text-white font-bold">{breachResult.email}</span> was not detected in any indexed dark web repositories.
+                          No matching dataset was returned for <span className="font-mono text-white font-bold">{breachResult.email}</span>.
                         </p>
                       </div>
                     </div>
 
                     <span className={`px-3 py-1 rounded-md text-xs font-bold border ${breachResult.degraded ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'}`}>
-                      {breachResult.degraded ? 'UNVERIFIED' : '100 / 100 SAFE'}
+                      PROVIDER RESULT
                     </span>
                   </div>
 
@@ -407,46 +411,20 @@ export const EmailBreachView: React.FC<EmailBreachViewProps> = ({ onBackToDashbo
                   <h4 className="font-bold text-sm text-white flex items-center justify-between border-b border-[#1f2335] pb-3">
                     <span className="flex items-center gap-2">
                       <i className="fa-solid fa-list-check text-red-400" />
-                      Detailed Breach Incidents Breakdown
+                      Breach Datasets Reported by Provider
                     </span>
                     <span className="text-xs text-gray-400 font-mono font-normal">
-                      {breachResult.sources.length} Incidents
+                      {breachResult.sources.length} Datasets
                     </span>
                   </h4>
 
                   <div className="grid grid-cols-1 gap-4">
                     {breachResult.sources.map((src, idx) => (
-                      <div key={idx} className="bg-[#141a2e] p-4 rounded-xl border border-[#232d48] space-y-3 hover:border-red-500/40 transition">
-                        <div className="flex justify-between items-start gap-2 flex-wrap">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold text-white text-sm">{src.name}</span>
-                              <span className="text-[11px] text-gray-400 font-mono">({src.date})</span>
-                            </div>
-                            <span className="text-[11px] text-emerald-400 font-mono block mt-0.5">
-                              Domain: {src.domain} • Impact: {src.pwnCount}
-                            </span>
-                          </div>
-
-                          <span className={`px-2.5 py-1 rounded text-[10px] font-bold ${
-                            src.severity === 'CRITICAL' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                          }`}>
-                            {src.severity}
-                          </span>
-                        </div>
-
-                        <p className="text-xs text-gray-300 leading-relaxed bg-[#0d111c] p-3 rounded border border-[#232d48]">
-                          {src.description}
+                      <div key={`${src.name}-${idx}`} className="bg-[#141a2e] p-4 rounded-xl border border-[#232d48]">
+                        <span className="font-bold text-white text-sm">{src.name}</span>
+                        <p className="text-xs text-gray-400 mt-2">
+                          The provider did not return breach date, exposed-field, or incident-size details for this dataset.
                         </p>
-
-                        <div className="flex items-center gap-2 text-[11px] flex-wrap pt-1">
-                          <span className="text-gray-400 font-semibold">Exposed Fields:</span>
-                          {src.leakedData.map((field, i) => (
-                            <span key={i} className="px-2 py-0.5 rounded bg-[#0d111c] text-red-300 border border-red-500/20 font-mono text-[10px]">
-                              {field}
-                            </span>
-                          ))}
-                        </div>
                       </div>
                     ))}
                   </div>
@@ -460,9 +438,9 @@ export const EmailBreachView: React.FC<EmailBreachViewProps> = ({ onBackToDashbo
               <div className="w-16 h-16 mx-auto rounded-full bg-[#141a2e] border border-[#232d48] flex items-center justify-center text-red-400 text-2xl">
                 <i className="fa-solid fa-envelope-open-text"></i>
               </div>
-              <h3 className="text-base font-bold text-white">Live Email Breach Checker</h3>
+              <h3 className="text-base font-bold text-white">Email Breach Exposure Check</h3>
               <p className="text-xs text-gray-400 max-w-md mx-auto">
-                Enter an email address above to run a 100% real live query against XposedOrNot global dark web leak feeds.
+                With your permission, check whether this email appears in XposedOrNot's indexed breach datasets. This does not reveal whether an address has an account on a website, and a clean result is not proof that it has never been exposed.
               </p>
             </div>
           )}

@@ -22,6 +22,10 @@ The backend sends every entered URL to `https://phishguard.in/api/analyze-url` a
 
 The production build command is `npm run build`, and the generated output directory is `dist`.
 
+### API integrations
+
+Copy `.env.example` to `.env.local` for local development and enter only the provider keys you actually have. `GEMINI_API_KEY` enables AI-generated analysis and responses; without it, the affected features use their local analysis/fallback behavior. URL reputation uses `PHISHGUARD_API_KEY` first and `ISMALICIOUS_API_KEY` as its provider alternative, then falls back to SecureWatch's live inspection. `PROJECTDISCOVERY_API_KEY` optionally enriches vulnerability scans. These are server-side credentials: do not add a `VITE_` prefix, commit `.env.local`, or reuse a generic `API_KEY` variable for multiple providers. Placeholder values are ignored.
+
 SecureWatch is a modern, real-time cyber threat monitoring and security analysis platform designed to help security analysts track vulnerabilities, monitor live network traffic, check URL reputations, and secure sensitive files.
 
 <p align="center">
@@ -40,6 +44,10 @@ SecureWatch is a modern, real-time cyber threat monitoring and security analysis
 * **File Security (Encryption & Decryption):** Securely upload, encrypt, and password-protect sensitive files, or decrypt them using a secure password interface.
 * **Vulnerability & Risk Assessment:** Access modules like OWASP Top 10, Risk Assessment, Email Breach Checker, Password Strength tools, and IP/Domain Lookups.
 * **Activity & Log Management:** Real-time logging of recent URL scans and file activities with instant status tracking (Success, Blocked, Caution).
+
+## Email Breach Exposure Checks
+
+The email checker queries XposedOrNot for breach datasets matching the submitted address. It requires explicit consent, sends the address to that provider, and does not test website registrations. Results display only dataset names returned by the provider; breach dates, exposed fields, and incident sizes are not inferred when the provider does not supply them. A no-match result applies only to that provider's indexed data and is not proof that an address has never been exposed.
 
 ---
 

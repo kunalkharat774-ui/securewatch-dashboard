@@ -5,7 +5,7 @@ export interface DnsRecord {
   name: string;
   type: string;
   typeName: string;
-  TTL: number;
+  TTL?: number;
   data: string;
 }
 
@@ -14,11 +14,16 @@ export interface DomainIntelligence {
   queryTime: string;
   // WHOIS / RDAP
   registrar?: string;
+  registrarId?: string;
+  registryDomainId?: string;
   registrationDate?: string;
   expirationDate?: string;
   updatedDate?: string;
+  registryEvents?: { action: string; date: string }[];
   domainStatus?: string[];
   dnssec?: string;
+  registrySource?: string;
+  registryStatus?: string;
   nameServers: string[];
   // IP & Geo
   resolvedIp?: string;
@@ -71,6 +76,7 @@ export const DomainInfoView: React.FC<DomainInfoViewProps> = ({ onBackToDashboar
   const [domainInput, setDomainInput] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
   const [domainData, setDomainData] = useState<DomainIntelligence | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'dns' | 'security' | 'whois'>('overview');
   const [selectedDnsFilter, setSelectedDnsFilter] = useState<string>('ALL');
@@ -99,68 +105,29 @@ export const DomainInfoView: React.FC<DomainInfoViewProps> = ({ onBackToDashboar
     return clean;
   };
 
-  // Query DNS over HTTPS API with Google DoH & Cloudflare DoH fallback
+  // Resolve DNS through the backend so browser CORS or network policies do not hide records.
   const fetchDnsRecord = async (domain: string, type: string): Promise<DnsRecord[]> => {
-    // Primary: Google DoH
-    try {
-      const res = await fetch(`https://dns.google/resolve?name=${encodeURIComponent(domain)}&type=${type}`);
-      if (res.ok) {
-        const json = await res.json();
-        if (json.Answer && Array.isArray(json.Answer)) {
-          return json.Answer.map((ans: any) => ({
-            name: ans.name,
-            type: type,
-            typeName: RECORD_TYPES.find((r) => r.type === type)?.name || type,
-            TTL: ans.TTL,
-            data: ans.data,
-          }));
-        }
-      }
-    } catch {
-      // Fallback below
-    }
-
-    // Secondary: Cloudflare DoH
-    try {
-      const res = await fetch(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(domain)}&type=${type}`, {
-        headers: { Accept: 'application/dns-json' },
-      });
-      if (res.ok) {
-        const json = await res.json();
-        if (json.Answer && Array.isArray(json.Answer)) {
-          return json.Answer.map((ans: any) => ({
-            name: ans.name,
-            type: type,
-            typeName: RECORD_TYPES.find((r) => r.type === type)?.name || type,
-            TTL: ans.TTL,
-            data: ans.data,
-          }));
-        }
-      }
-    } catch {
-      // Empty if failed
-    }
-
-    return [];
+    const response = await fetch(`/api/domain-dns?name=${encodeURIComponent(domain)}&type=${encodeURIComponent(type)}`, { cache: 'no-store' });
+    const payload = await response.json() as { records?: DnsRecord[]; error?: string };
+    if (!response.ok) throw new Error(payload.error || `DNS ${type} lookup failed with HTTP ${response.status}.`);
+    if (!Array.isArray(payload.records)) throw new Error(`DNS ${type} lookup returned an invalid response.`);
+    return payload.records;
   };
 
-  // Fetch WHOIS / RDAP Data with fallback endpoints
-  const fetchRdapData = async (domain: string) => {
+  // Fetch public registry data through the backend to avoid browser CORS failures.
+  const fetchRdapData = async (domain: string): Promise<{ rdap: any | null; source: string; error?: string }> => {
     try {
-      const res = await fetch(`https://rdap.org/domain/${encodeURIComponent(domain)}`);
-      if (res.ok) {
-        return await res.json();
-      }
-    } catch {}
-
-    try {
-      const res = await fetch(`https://rdap-bootstrap.arin.net/bootstrap/domain/${encodeURIComponent(domain)}`);
-      if (res.ok) {
-        return await res.json();
-      }
-    } catch {}
-
-    return null;
+      const res = await fetch(`/api/domain-rdap?domain=${encodeURIComponent(domain)}`, { cache: 'no-store' });
+      const payload = await res.json();
+      if (!res.ok) return { rdap: null, source: 'RDAP registry', error: payload.error || `Registry lookup failed with HTTP ${res.status}.` };
+      return { rdap: payload.rdap || null, source: payload.source || 'RDAP registry' };
+    } catch (error) {
+      return {
+        rdap: null,
+        source: 'RDAP registry',
+        error: error instanceof Error ? error.message : 'Registry lookup request failed.',
+      };
+    }
   };
 
   // Fetch IP Geolocation for resolved server IP
@@ -206,32 +173,47 @@ export const DomainInfoView: React.FC<DomainInfoViewProps> = ({ onBackToDashboar
 
     setLoading(true);
     setError(null);
+    setWarning(null);
+    setDomainData(null);
 
     try {
+      // Keep valid DNS results available if one record type is temporarily unavailable.
+      const dnsLookupErrors: string[] = [];
+      const lookupRecords = async (domain: string, type: string): Promise<DnsRecord[]> => {
+        try {
+          return await fetchDnsRecord(domain, type);
+        } catch (lookupError) {
+          dnsLookupErrors.push(`${type}${domain !== clean ? ` (${domain})` : ''}`);
+          console.warn(`Domain intelligence ${type} lookup failed for ${domain}:`, lookupError);
+          return [];
+        }
+      };
+
       // 1. Parallel DNS lookup across all major record types & DMARC
       const [aRecs, aaaaRecs, mxRecs, nsRecs, txtRecs, soaRecs, cnameRecs, dmarcRecs] = await Promise.all([
-        fetchDnsRecord(clean, 'A'),
-        fetchDnsRecord(clean, 'AAAA'),
-        fetchDnsRecord(clean, 'MX'),
-        fetchDnsRecord(clean, 'NS'),
-        fetchDnsRecord(clean, 'TXT'),
-        fetchDnsRecord(clean, 'SOA'),
-        fetchDnsRecord(clean, 'CNAME'),
-        fetchDnsRecord(`_dmarc.${clean}`, 'TXT'),
+        lookupRecords(clean, 'A'),
+        lookupRecords(clean, 'AAAA'),
+        lookupRecords(clean, 'MX'),
+        lookupRecords(clean, 'NS'),
+        lookupRecords(clean, 'TXT'),
+        lookupRecords(clean, 'SOA'),
+        lookupRecords(clean, 'CNAME'),
+        lookupRecords(`_dmarc.${clean}`, 'TXT'),
       ]);
 
       // 2. Extract SPF and DMARC
       const spfObj = txtRecs.find((r) => r.data.toLowerCase().includes('v=spf1'));
       const dmarcObj = dmarcRecs.find((r) => r.data.toLowerCase().includes('v=dmarc1')) || txtRecs.find((r) => r.data.toLowerCase().includes('v=dmarc1'));
 
-      // 3. Extract primary resolved IPv4
-      const primaryIp = aRecs.length > 0 ? aRecs[0].data : undefined;
+      // Prefer IPv4 for display, but still provide a usable address for IPv6-only domains.
+      const primaryIp = aRecs[0]?.data || aaaaRecs[0]?.data;
 
       // 4. Parallel fetch RDAP data & IP Geolocation if IP exists
-      const [rdap, ipGeo] = await Promise.all([
+      const [registry, ipGeo] = await Promise.all([
         fetchRdapData(clean),
         primaryIp ? fetchIpGeolocation(primaryIp) : Promise.resolve(null),
       ]);
+      const rdap = registry.rdap;
 
       // Parse RDAP details if available
       let registrar = 'N/A';
@@ -250,20 +232,16 @@ export const DomainInfoView: React.FC<DomainInfoViewProps> = ({ onBackToDashboar
             if (fnObj) registrar = fnObj[3];
           }
         }
-        if (registrar === 'N/A' && rdap.port43) {
-          registrar = rdap.port43;
-        }
-
         // Event dates
         if (rdap.events && Array.isArray(rdap.events)) {
           const regEvt = rdap.events.find((e: any) => e.eventAction === 'registration');
-          if (regEvt) createdDate = regEvt.eventDate?.split('T')[0] || regEvt.eventDate;
+          if (regEvt) createdDate = regEvt.eventDate || 'N/A';
 
           const expEvt = rdap.events.find((e: any) => e.eventAction === 'expiration');
-          if (expEvt) expiryDate = expEvt.eventDate?.split('T')[0] || expEvt.eventDate;
+          if (expEvt) expiryDate = expEvt.eventDate || 'N/A';
 
           const updEvt = rdap.events.find((e: any) => e.eventAction === 'last changed');
-          if (updEvt) updatedDate = updEvt.eventDate?.split('T')[0] || updEvt.eventDate;
+          if (updEvt) updatedDate = updEvt.eventDate || 'N/A';
         }
 
         // Status
@@ -280,8 +258,14 @@ export const DomainInfoView: React.FC<DomainInfoViewProps> = ({ onBackToDashboar
       // Check if DNS query returned no records at all
       const totalRecordsCount = aRecs.length + aaaaRecs.length + mxRecs.length + nsRecs.length + txtRecs.length + soaRecs.length + cnameRecs.length;
       if (totalRecordsCount === 0 && !rdap) {
-        setError(`No DNS records or WHOIS records found for domain "${clean}". The domain may not exist or DNS is non-responsive.`);
+        throw new Error(registry.error || `No DNS records or registration data were found for "${clean}". The domain may not exist or DNS/registry services may be unavailable.`);
       }
+      const partialWarnings: string[] = [];
+      if (dnsLookupErrors.length > 0) {
+        partialWarnings.push(`Some DNS lookups failed (${[...new Set(dnsLookupErrors)].join(', ')}); the displayed records are partial.`);
+      }
+      if (!rdap && registry.error) partialWarnings.push(registry.error);
+      if (primaryIp && !ipGeo) partialWarnings.push('IP geolocation is unavailable; DNS and registry details are still shown.');
 
       const intelligence: DomainIntelligence = {
         domain: clean,
@@ -292,6 +276,15 @@ export const DomainInfoView: React.FC<DomainInfoViewProps> = ({ onBackToDashboar
         updatedDate,
         domainStatus,
         dnssec: rdap ? (rdap.secureDNS?.delegationSigned ? 'Signed (DNSSEC Active)' : 'Unsigned') : 'N/A',
+        registrySource: registry.source,
+        registryStatus: rdap ? 'Registry data available' : registry.error || 'No public RDAP record was returned.',
+        registrarId: rdap?.entities?.find((entity: any) => entity.roles?.includes('registrar'))?.publicIds?.find((id: any) => id.type === 'IANA Registrar ID')?.identifier,
+        registryDomainId: rdap?.handle,
+        registryEvents: Array.isArray(rdap?.events)
+          ? rdap.events
+              .filter((event: any) => event.eventAction && event.eventDate)
+              .map((event: any) => ({ action: String(event.eventAction), date: String(event.eventDate) }))
+          : [],
         nameServers: nameServersList,
         resolvedIp: primaryIp,
         ipGeo: ipGeo || undefined,
@@ -315,6 +308,7 @@ export const DomainInfoView: React.FC<DomainInfoViewProps> = ({ onBackToDashboar
       setDomainData(intelligence);
       setDomainInput(clean);
       setPersistedDomain({ domainInput: clean, domainData: intelligence });
+      setWarning(partialWarnings.length > 0 ? partialWarnings.join(' ') : null);
       triggerToast(`Successfully retrieved live domain intelligence for ${clean}`);
     } catch (err: any) {
       setError(err?.message || 'Failed to fetch domain information. Please check your network connection.');
@@ -423,7 +417,7 @@ CNAME Records: ${domainData.dnsRecords.CNAME.length}
             </h2>
           </div>
           <p className="text-xs text-gray-400 mt-1">
-            Real-time DNS records, WHOIS registration data, email auth security check, and server IP geolocation lookup.
+            Live DNS records, public RDAP registration dates and status, email authentication, and server IP geolocation.
           </p>
         </div>
 
@@ -486,6 +480,12 @@ CNAME Records: ${domainData.dnsRecords.CNAME.length}
           <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-red-400 text-xs flex items-center gap-2">
             <i className="fa-solid fa-triangle-exclamation text-sm"></i>
             {error}
+          </div>
+        )}
+        {warning && (
+          <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 text-amber-300 text-xs flex items-center gap-2">
+            <i className="fa-solid fa-circle-info text-sm"></i>
+            {warning}
           </div>
         )}
       </div>
@@ -650,6 +650,20 @@ CNAME Records: ${domainData.dnsRecords.CNAME.length}
                         <span className="text-gray-500 font-mono text-[10px]">No status returned</span>
                       )}
                     </div>
+
+                  </div>
+
+                  <div className="bg-[#141a2e] border border-[#232d48] rounded-lg p-3 space-y-1">
+                    <span className="text-gray-400 block text-[10px] uppercase font-semibold">Registry data source</span>
+                    <span className="text-gray-200 font-mono text-[11px]">{domainData.registrySource || 'RDAP registry'}</span>
+                    <span className={`block text-[11px] ${domainData.registryStatus === 'Registry data available' ? 'text-emerald-300' : 'text-amber-300'}`}>
+                      {domainData.registryStatus || 'Registry did not publish this field.'}
+                    </span>
+                    {domainData.registrarId && <span className="block text-gray-400 text-[11px]">IANA Registrar ID: {domainData.registrarId}</span>}
+                    {domainData.registryDomainId && <span className="block text-gray-400 text-[11px]">Registry domain ID: {domainData.registryDomainId}</span>}
+                    <p className="pt-1 text-gray-500 text-[10px]">
+                      Registration dates and contact fields are shown only when the domain registry publishes them; privacy redaction or unsupported RDAP coverage cannot be bypassed.
+                    </p>
                   </div>
 
                   {/* Nameservers */}
@@ -803,7 +817,7 @@ CNAME Records: ${domainData.dnsRecords.CNAME.length}
                             </span>
                           </td>
                           <td className="p-3 text-gray-300 font-mono text-[11px]">{rec.name}</td>
-                          <td className="p-3 text-gray-400 font-mono text-[11px]">{rec.TTL}s</td>
+                          <td className="p-3 text-gray-400 font-mono text-[11px]">{typeof rec.TTL === 'number' ? `${rec.TTL}s` : 'Not reported'}</td>
                           <td className="p-3 text-white font-mono text-[11px] break-all max-w-md">{rec.data}</td>
                         </tr>
                       ))
@@ -943,6 +957,22 @@ CNAME Records: ${domainData.dnsRecords.CNAME.length}
                       <span className="text-gray-400 block text-[10px]">Last Updated</span>
                       <span className="text-gray-300 font-mono">{domainData.updatedDate || 'N/A'}</span>
                     </div>
+                    <div>
+                      <span className="text-gray-400 block text-[10px]">Registry source / status</span>
+                      <span className="text-gray-300 font-mono">{domainData.registrySource || 'RDAP registry'} · {domainData.registryStatus || 'Not published'}</span>
+                    </div>
+                    {domainData.registrarId && (
+                      <div>
+                        <span className="text-gray-400 block text-[10px]">IANA Registrar ID</span>
+                        <span className="text-gray-300 font-mono">{domainData.registrarId}</span>
+                      </div>
+                    )}
+                    {domainData.registryEvents?.map((event, index) => (
+                      <div key={`${event.action}-${index}`}>
+                        <span className="text-gray-400 block text-[10px]">{event.action}</span>
+                        <span className="text-gray-300 font-mono">{event.date}</span>
+                      </div>
+                    ))}
                   </div>
 
                   <div className="bg-[#141a2e] border border-[#232d48] rounded-xl p-4 space-y-3">
