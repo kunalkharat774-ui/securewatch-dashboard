@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { usePersistentComponentState } from '../utils/usePersistentComponentState';
 
@@ -20,6 +20,10 @@ interface ApiMonitoringViewProps {
   onBackToDashboard?: () => void;
 }
 
+type ProbeMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
+
+const MAX_HISTORY = 20;
+
 const INITIAL_ENDPOINTS: ApiEndpointItem[] = [
   {
     id: 'health',
@@ -36,22 +40,31 @@ const INITIAL_ENDPOINTS: ApiEndpointItem[] = [
   },
 ];
 
+const statusFromCode = (code: number): 'Healthy' | 'Degraded' | 'Down' =>
+  code < 300 ? 'Healthy' : code < 500 ? 'Degraded' : 'Down';
+
 export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDashboard }) => {
-  const [monitorState, setMonitorState] = usePersistentComponentState<{ endpoints: ApiEndpointItem[] }>('api-monitoring', { endpoints: INITIAL_ENDPOINTS });
+  const [monitorState, setMonitorState] = usePersistentComponentState<{ endpoints: ApiEndpointItem[] }>(
+    'api-monitoring',
+    { endpoints: INITIAL_ENDPOINTS }
+  );
   const endpoints = monitorState.endpoints;
-  const setEndpoints = (next: ApiEndpointItem[] | ((current: ApiEndpointItem[]) => ApiEndpointItem[])) => {
+  const setEndpoints = (
+    next: ApiEndpointItem[] | ((current: ApiEndpointItem[]) => ApiEndpointItem[])
+  ) => {
     setMonitorState((current) => ({
       ...current,
       endpoints: typeof next === 'function' ? next(current.endpoints) : next,
     }));
   };
+
   const [isLiveStreaming, setIsLiveStreaming] = useState<boolean>(true);
-  const [selectedMethod, setSelectedMethod] = useState<'GET' | 'POST' | 'PUT' | 'DELETE'>('GET');
+  const [selectedMethod, setSelectedMethod] = useState<ProbeMethod>('GET');
   const [testUrl, setTestUrl] = useState<string>('/api/health');
   const [isPinging, setIsPinging] = useState<boolean>(false);
   const [pingResult, setPingResult] = useState<any | null>(null);
 
-  // Live Chart Stream Latency Data
+  // Live chart stream latency data
   const [latencyHistory, setLatencyHistory] = useState<number[]>([]);
 
   // Measured load test state
@@ -65,7 +78,7 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
     peakRps: number;
   } | null>(null);
 
-  // AI API Audit State
+  // AI API audit state
   const [auditEndpoint, setAuditEndpoint] = useState<ApiEndpointItem | null>(null);
   const [isAuditingAi, setIsAuditingAi] = useState<boolean>(false);
   const [aiAuditReport, setAiAuditReport] = useState<{
@@ -78,56 +91,86 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
 
   // Toast
   const [toast, setToast] = useState<{ text: string; type: 'success' | 'info' | 'danger' } | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const showToast = (text: string, type: 'success' | 'info' | 'danger' = 'info') => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
     setToast({ text, type });
-    setTimeout(() => setToast(null), 3000);
+    toastTimer.current = setTimeout(() => setToast(null), 3000);
   };
 
-  // Real Request Metrics Counter
+  useEffect(() => {
+    return () => {
+      if (toastTimer.current) clearTimeout(toastTimer.current);
+    };
+  }, []);
+
+  // Real request metrics counter
   const [totalProbesCount, setTotalProbesCount] = useState<number>(0);
   const [isProbingAll, setIsProbingAll] = useState<boolean>(false);
 
-  // Add Endpoint Modal State
+  // Add endpoint modal state
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
   const [newEpName, setNewEpName] = useState<string>('');
   const [newEpPath, setNewEpPath] = useState<string>('');
-  const [newEpMethod, setNewEpMethod] = useState<'GET' | 'POST' | 'PUT' | 'DELETE'>('GET');
+  const [newEpMethod, setNewEpMethod] = useState<ProbeMethod>('GET');
   const [newEpAuth, setNewEpAuth] = useState<'JWT Bearer' | 'API Key' | 'OAuth 2.0' | 'Public'>('Public');
 
-  // Real Live Stream Telemetry Probe
+  // Real live stream telemetry probe
   useEffect(() => {
     if (!isLiveStreaming) return;
+
+    let cancelled = false;
 
     const measureRealTelemetry = async () => {
       const t0 = performance.now();
       try {
         const res = await fetch('/api/health', { method: 'GET', cache: 'no-store' });
-        const t1 = performance.now();
-        const measuredLat = Math.round(t1 - t0);
+        const measuredLat = Math.round(performance.now() - t0);
+        if (cancelled) return;
 
-        setLatencyHistory((prev) => [...prev.slice(1), measuredLat]);
+        setLatencyHistory((prev) => [...prev, measuredLat].slice(-MAX_HISTORY));
 
-        setEndpoints((prev) => prev.map((ep) => ep.path === '/api/health'
-          ? { ...ep, latencyMs: measuredLat, lastTested: 'Just now', status: res.ok ? 'Healthy' : 'Degraded' }
-          : ep));
+        setEndpoints((prev) =>
+          prev.map((ep) =>
+            ep.path === '/api/health'
+              ? { ...ep, latencyMs: measuredLat, lastTested: 'Just now', status: res.ok ? 'Healthy' : 'Degraded' }
+              : ep
+          )
+        );
       } catch (err) {
-        setEndpoints((prev) => prev.map((ep) => ep.path === '/api/health'
-          ? { ...ep, lastTested: 'Just now', status: 'Down' }
-          : ep));
+        if (cancelled) return;
+        setEndpoints((prev) =>
+          prev.map((ep) =>
+            ep.path === '/api/health' ? { ...ep, lastTested: 'Just now', status: 'Down', latencyMs: 0 } : ep
+          )
+        );
       }
     };
 
     measureRealTelemetry();
     const interval = setInterval(measureRealTelemetry, 2500);
 
-    return () => clearInterval(interval);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLiveStreaming]);
 
-  // Handle Real Endpoint Ping
-  const handlePing = async (urlToPing?: string, methodToUse?: 'GET' | 'POST' | 'PUT' | 'DELETE') => {
+  // Handle real endpoint ping
+  const handlePing = async (
+    urlToPing?: string,
+    methodToUse?: ProbeMethod,
+    endpointId?: string
+  ) => {
     const targetUrl = urlToPing || testUrl;
     const targetMethod = methodToUse || selectedMethod;
+
+    const matches = (endpoint: ApiEndpointItem) =>
+      endpointId
+        ? endpoint.id === endpointId
+        : endpoint.path === targetUrl && endpoint.method === targetMethod;
 
     setIsPinging(true);
     setPingResult(null);
@@ -144,21 +187,43 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
       if (res.ok) {
         const data = await res.json();
         setPingResult(data);
-        setEndpoints((prev) => prev.map((endpoint) => endpoint.path === targetUrl && endpoint.method === targetMethod
-          ? {
-              ...endpoint,
-              latencyMs: data.latencyMs,
-              status: data.status < 300 ? 'Healthy' : data.status < 500 ? 'Degraded' : 'Down',
-              lastTested: 'Just now',
-              rateLimit: data.rateLimitRemaining === '100' ? endpoint.rateLimit : `${data.rateLimitRemaining} remaining`,
-            }
-          : endpoint));
-        showToast(`API Probe Succeeded: ${data.status} ${data.statusText} (${data.latencyMs}ms)`, 'success');
+        setEndpoints((prev) =>
+          prev.map((endpoint) =>
+            matches(endpoint)
+              ? {
+                  ...endpoint,
+                  latencyMs: data.latencyMs,
+                  status: statusFromCode(data.status),
+                  lastTested: 'Just now',
+                  rateLimit:
+                    data.rateLimitRemaining === undefined || data.rateLimitRemaining === '100'
+                      ? endpoint.rateLimit
+                      : `${data.rateLimitRemaining} remaining`,
+                }
+              : endpoint
+          )
+        );
+        showToast(
+          `API Probe Succeeded: ${data.status} ${data.statusText} (${data.latencyMs}ms)`,
+          data.status < 400 ? 'success' : 'danger'
+        );
       } else {
         throw new Error('Server returned error response');
       }
     } catch (err: any) {
-      setPingResult({ url: targetUrl, method: targetMethod, status: 0, statusText: 'Probe failed', latencyMs: 0, bodySnippet: err.message });
+      setPingResult({
+        url: targetUrl,
+        method: targetMethod,
+        status: 0,
+        statusText: 'Probe failed',
+        latencyMs: 0,
+        bodySnippet: err.message,
+      });
+      setEndpoints((prev) =>
+        prev.map((endpoint) =>
+          matches(endpoint) ? { ...endpoint, status: 'Down', latencyMs: 0, lastTested: 'Just now' } : endpoint
+        )
+      );
       showToast(`API Probe Failed: ${err.message}`, 'danger');
     } finally {
       setIsPinging(false);
@@ -170,36 +235,41 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
     setIsProbingAll(true);
     showToast('Executing live parallel probe on all endpoints...', 'info');
 
+    const snapshot = endpoints;
+
     try {
-      const updatedList = await Promise.all(
-        endpoints.map(async (ep) => {
+      const results = await Promise.all(
+        snapshot.map(async (ep) => {
           try {
             const res = await fetch('/api/ping-endpoint', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ url: ep.path, method: ep.method }),
+              body: JSON.stringify({ url: ep.path, method: ep.method === 'PATCH' ? 'POST' : ep.method }),
             });
             if (res.ok) {
               const data = await res.json();
-              const statusLabel: 'Healthy' | 'Degraded' | 'Down' =
-                data.status < 300 ? 'Healthy' : data.status < 500 ? 'Degraded' : 'Down';
               return {
-                ...ep,
-                latencyMs: data.latencyMs,
-                status: statusLabel,
-                lastTested: 'Just now',
+                id: ep.id,
+                latencyMs: data.latencyMs as number,
+                status: statusFromCode(data.status),
               };
             }
           } catch (e) {
-            return { ...ep, status: 'Down' as const, lastTested: 'Just now' };
+            // fall through to Down
           }
-          return { ...ep, status: 'Down' as const, lastTested: 'Just now' };
+          return { id: ep.id, latencyMs: 0, status: 'Down' as const };
         })
       );
 
-      setEndpoints(updatedList);
-      setTotalProbesCount((c) => c + endpoints.length);
-      showToast('All Endpoints Probed Live! Latencies & Status updated.', 'success');
+      // Merge by id so endpoints added/removed during the probe are preserved
+      setEndpoints((prev) =>
+        prev.map((ep) => {
+          const r = results.find((x) => x.id === ep.id);
+          return r ? { ...ep, latencyMs: r.latencyMs, status: r.status, lastTested: 'Just now' } : ep;
+        })
+      );
+      setTotalProbesCount((c) => c + snapshot.length);
+      showToast('All endpoints probed live. Latencies & status updated.', 'success');
     } catch (err) {
       showToast('Completed batch probe execution.', 'info');
     } finally {
@@ -207,7 +277,7 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
     }
   };
 
-  // Add Custom Endpoint Handler
+  // Add custom endpoint handler
   const handleAddCustomEndpoint = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newEpName || !newEpPath) return;
@@ -223,27 +293,28 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
       errorRatePct: 0,
       authType: newEpAuth,
       rateLimit: 'Not reported',
-      lastTested: 'Just now',
+      lastTested: 'Not tested',
     };
 
-    setEndpoints([newEndpoint, ...endpoints]);
+    setEndpoints((prev) => [newEndpoint, ...prev]);
     setIsAddModalOpen(false);
     setNewEpName('');
     setNewEpPath('');
     showToast(`Added custom endpoint: ${newEndpoint.path}`, 'success');
 
     // Probe it immediately
-    handlePing(newEndpoint.path, newEndpoint.method === 'PATCH' ? 'POST' : newEndpoint.method);
+    handlePing(newEndpoint.path, newEndpoint.method === 'PATCH' ? 'POST' : newEndpoint.method, newEndpoint.id);
   };
 
-  // Remove Endpoint
+  // Remove endpoint
   const handleRemoveEndpoint = (id: string) => {
     setEndpoints((prev) => prev.filter((e) => e.id !== id));
     showToast(`Endpoint ${id} removed from monitoring inventory`, 'info');
   };
 
-  // Run a measured burst against the real backend health endpoint.
+  // Run a measured burst against the real backend health endpoint
   const handleRunLoadTest = async () => {
+    if (isLoadTesting) return;
     setIsLoadTesting(true);
     setLoadTestProgress(0);
     setLoadTestStats(null);
@@ -253,28 +324,39 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
     const startedAt = performance.now();
     try {
       for (let offset = 0; offset < totalRequests; offset += 25) {
-        const batch = await Promise.all(Array.from({ length: Math.min(25, totalRequests - offset) }, async () => {
-          const requestStartedAt = performance.now();
-          try {
-            const response = await fetch('/api/health', { method: 'GET', cache: 'no-store' });
-            return { ok: response.ok, latencyMs: Math.round(performance.now() - requestStartedAt) };
-          } catch {
-            return { ok: false, latencyMs: Math.round(performance.now() - requestStartedAt) };
-          }
-        }));
+        const batch = await Promise.all(
+          Array.from({ length: Math.min(25, totalRequests - offset) }, async () => {
+            const requestStartedAt = performance.now();
+            try {
+              const response = await fetch('/api/health', { method: 'GET', cache: 'no-store' });
+              return { ok: response.ok, latencyMs: Math.round(performance.now() - requestStartedAt) };
+            } catch {
+              return { ok: false, latencyMs: Math.round(performance.now() - requestStartedAt) };
+            }
+          })
+        );
         results.push(...batch);
         setLoadTestProgress(Math.round(((offset + batch.length) / totalRequests) * 100));
       }
       const passedReq = results.filter((result) => result.ok).length;
       const elapsedSeconds = Math.max((performance.now() - startedAt) / 1000, 0.001);
-      setLoadTestStats({ totalReq: results.length, passedReq, failedReq: results.length - passedReq, avgLatency: Math.round(results.reduce((sum, result) => sum + result.latencyMs, 0) / results.length), peakRps: Math.round(results.length / elapsedSeconds) });
-      showToast(`Real load test complete: ${passedReq}/${results.length} requests succeeded.`, passedReq === results.length ? 'success' : 'danger');
+      setLoadTestStats({
+        totalReq: results.length,
+        passedReq,
+        failedReq: results.length - passedReq,
+        avgLatency: Math.round(results.reduce((sum, result) => sum + result.latencyMs, 0) / results.length),
+        peakRps: Math.round(results.length / elapsedSeconds),
+      });
+      showToast(
+        `Real load test complete: ${passedReq}/${results.length} requests succeeded.`,
+        passedReq === results.length ? 'success' : 'danger'
+      );
     } finally {
       setIsLoadTesting(false);
     }
   };
 
-  // Run AI Security Audit
+  // Run AI security audit
   const handleRunAiAudit = async (endpoint: ApiEndpointItem) => {
     setAuditEndpoint(endpoint);
     setIsAuditingAi(true);
@@ -303,10 +385,30 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
   };
 
   const observedEndpoints = endpoints.filter((endpoint) => endpoint.lastTested !== 'Not tested');
-  const avgSystemLatency = observedEndpoints.length
-    ? Math.round(observedEndpoints.reduce((acc, curr) => acc + curr.latencyMs, 0) / observedEndpoints.length)
+  const reachableEndpoints = observedEndpoints.filter((endpoint) => endpoint.status !== 'Down');
+  const avgSystemLatency = reachableEndpoints.length
+    ? Math.round(reachableEndpoints.reduce((acc, curr) => acc + curr.latencyMs, 0) / reachableEndpoints.length)
     : null;
-  const gatewayStatus = endpoints.some((endpoint) => endpoint.status === 'Down') ? 'DOWN' : 'ONLINE';
+  const gatewayStatus: 'ONLINE' | 'DOWN' | 'UNKNOWN' = !observedEndpoints.length
+    ? 'UNKNOWN'
+    : observedEndpoints.some((endpoint) => endpoint.status === 'Down')
+    ? 'DOWN'
+    : 'ONLINE';
+  const availabilityPct = observedEndpoints.length
+    ? Math.round((reachableEndpoints.length / observedEndpoints.length) * 100)
+    : null;
+
+  const chartMax = Math.max(50, ...latencyHistory);
+
+  const auditScore = aiAuditReport?.securityScore ?? 0;
+  const auditBadge =
+    auditScore >= 80
+      ? { text: 'STRONG SECURITY POSTURE', cls: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' }
+      : auditScore >= 50
+      ? { text: 'NEEDS IMPROVEMENT', cls: 'bg-amber-500/20 text-amber-400 border-amber-500/30' }
+      : { text: 'HIGH RISK', cls: 'bg-red-500/20 text-red-400 border-red-500/30' };
+
+  const pingIsOk = pingResult ? pingResult.status > 0 && pingResult.status < 400 : false;
 
   return (
     <div className="space-y-6 relative">
@@ -347,8 +449,16 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
           <div>
             <div className="flex items-center gap-2.5">
               <span className="relative flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500" />
+                <span
+                  className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+                    gatewayStatus === 'ONLINE' ? 'bg-emerald-400' : gatewayStatus === 'DOWN' ? 'bg-red-400' : 'bg-gray-400'
+                  }`}
+                />
+                <span
+                  className={`relative inline-flex rounded-full h-3 w-3 ${
+                    gatewayStatus === 'ONLINE' ? 'bg-emerald-500' : gatewayStatus === 'DOWN' ? 'bg-red-500' : 'bg-gray-500'
+                  }`}
+                />
               </span>
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
                 <i className="fa-solid fa-network-wired text-purple-400" /> Securewatch API Gateway & Health Monitor
@@ -398,7 +508,18 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
         <div className="pt-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-3 text-xs font-mono">
           <div className="flex items-center gap-4 flex-wrap">
             <span className="text-gray-400">
-              Gateway Status: <strong className={gatewayStatus === 'ONLINE' ? 'text-emerald-400' : 'text-red-400'}>{gatewayStatus}</strong>
+              Gateway Status:{' '}
+              <strong
+                className={
+                  gatewayStatus === 'ONLINE'
+                    ? 'text-emerald-400'
+                    : gatewayStatus === 'DOWN'
+                    ? 'text-red-400'
+                    : 'text-gray-400'
+                }
+              >
+                {gatewayStatus}
+              </strong>
             </span>
             <span className="text-gray-600">|</span>
             <span className="text-gray-400">
@@ -406,11 +527,21 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
             </span>
             <span className="text-gray-600">|</span>
             <span className="text-gray-400">
-              Average Observed Latency: <strong className="text-amber-300">{avgSystemLatency === null ? 'No data' : `${avgSystemLatency} ms`}</strong>
+              Average Observed Latency:{' '}
+              <strong className="text-amber-300">{avgSystemLatency === null ? 'No data' : `${avgSystemLatency} ms`}</strong>
+            </span>
+            <span className="text-gray-600">|</span>
+            <span className="text-gray-400">
+              Manual Probes: <strong className="text-blue-300">{totalProbesCount}</strong>
             </span>
           </div>
 
-          <span className="text-gray-400">Current rate: <strong className="text-blue-400">Available after load test</strong></span>
+          <span className="text-gray-400">
+            Current rate:{' '}
+            <strong className="text-blue-400">
+              {loadTestStats ? `${loadTestStats.peakRps} req/sec` : 'Available after load test'}
+            </strong>
+          </span>
         </div>
       </div>
 
@@ -419,7 +550,9 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
         <div className="p-4 bg-[#0d111c] border border-[#1f2335] rounded-xl flex items-center justify-between">
           <div>
             <span className="text-xs text-gray-400 font-medium block">API Gateway Availability</span>
-            <div className="text-2xl font-bold font-mono text-emerald-400 mt-0.5">{observedEndpoints.length ? `${Math.round(observedEndpoints.filter((endpoint) => endpoint.status !== 'Down').length / observedEndpoints.length * 100)}%` : 'No data'}</div>
+            <div className="text-2xl font-bold font-mono text-emerald-400 mt-0.5">
+              {availabilityPct === null ? 'No data' : `${availabilityPct}%`}
+            </div>
             <span className="text-[11px] text-gray-400 mt-1 block font-mono">
               <i className="fa-solid fa-chart-line mr-1" /> Based on current probes
             </span>
@@ -432,7 +565,9 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
         <div className="p-4 bg-[#0d111c] border border-[#1f2335] rounded-xl flex items-center justify-between">
           <div>
             <span className="text-xs text-gray-400 font-medium block">Avg Response Latency</span>
-            <div className="text-2xl font-bold font-mono text-purple-400 mt-0.5">{avgSystemLatency} ms</div>
+            <div className="text-2xl font-bold font-mono text-purple-400 mt-0.5">
+              {avgSystemLatency === null ? 'No data' : `${avgSystemLatency} ms`}
+            </div>
             <span className="text-[11px] text-purple-300 mt-1 block font-mono">
               <i className="fa-solid fa-bolt mr-1" /> Current probe observations
             </span>
@@ -445,8 +580,14 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
         <div className="p-4 bg-[#0d111c] border border-[#1f2335] rounded-xl flex items-center justify-between">
           <div>
             <span className="text-xs text-gray-400 font-medium block">HTTP Error Rate (5xx)</span>
-            <div className="text-2xl font-bold font-mono text-blue-400 mt-0.5">Observed on probe</div>
-            <span className="text-[11px] text-gray-400 mt-1 block font-mono">Historical error data unavailable</span>
+            <div className="text-2xl font-bold font-mono text-blue-400 mt-0.5">
+              {loadTestStats
+                ? `${((loadTestStats.failedReq / loadTestStats.totalReq) * 100).toFixed(1)}%`
+                : 'Observed on probe'}
+            </div>
+            <span className="text-[11px] text-gray-400 mt-1 block font-mono">
+              {loadTestStats ? 'From last load test' : 'Historical error data unavailable'}
+            </span>
           </div>
           <div className="w-10 h-10 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
             <i className="fa-solid fa-chart-line" />
@@ -486,32 +627,43 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
               <div className="border-b border-gray-400 w-full" />
             </div>
 
-            {latencyHistory.length ? latencyHistory.map((lat, idx) => {
-              const heightPct = Math.min(100, Math.max(12, (lat / 50) * 100));
-              const isHigh = lat > 30;
+            {latencyHistory.length ? (
+              latencyHistory.map((lat, idx) => {
+                const heightPct = Math.min(100, Math.max(12, (lat / chartMax) * 100));
+                const isHigh = lat > 30;
 
-              return (
-                <div key={idx} className="flex-1 flex flex-col items-center gap-1 h-full justify-end group z-10">
-                  {/* Tooltip on hover */}
-                  <div className="opacity-0 group-hover:opacity-100 transition text-[10px] bg-purple-950 text-purple-200 px-1.5 py-0.5 rounded font-mono border border-purple-500/40 pointer-events-none">
-                    {lat}ms
+                return (
+                  <div key={idx} className="flex-1 flex flex-col items-center gap-1 h-full justify-end group z-10">
+                    {/* Tooltip on hover */}
+                    <div className="opacity-0 group-hover:opacity-100 transition text-[10px] bg-purple-950 text-purple-200 px-1.5 py-0.5 rounded font-mono border border-purple-500/40 pointer-events-none">
+                      {lat}ms
+                    </div>
+                    <motion.div
+                      initial={{ height: 0 }}
+                      animate={{ height: `${heightPct}%` }}
+                      transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+                      className={`w-full rounded-t transition-colors ${
+                        isHigh ? 'bg-amber-500 hover:bg-amber-400' : 'bg-purple-500 hover:bg-purple-400'
+                      }`}
+                    />
                   </div>
-                  <motion.div
-                    initial={{ height: 0 }}
-                    animate={{ height: `${heightPct}%` }}
-                    transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-                    className={`w-full rounded-t transition-colors ${
-                      isHigh ? 'bg-amber-500 hover:bg-amber-400' : 'bg-purple-500 hover:bg-purple-400'
-                    }`}
-                  />
-                </div>
-              );
-            }) : <span className="absolute inset-0 flex items-center justify-center text-xs text-gray-500 font-mono">Waiting for real probe data...</span>}
+                );
+              })
+            ) : (
+              <span className="absolute inset-0 flex items-center justify-center text-xs text-gray-500 font-mono">
+                {isLiveStreaming ? 'Waiting for real probe data...' : 'Telemetry paused'}
+              </span>
+            )}
           </div>
 
-          <div className="flex items-center justify-between text-[11px] font-mono text-gray-400">
+          <div className="flex items-center justify-between text-[11px] font-mono text-gray-400 flex-wrap gap-2">
             <span>Minimum: {latencyHistory.length ? `${Math.min(...latencyHistory)}ms` : 'No data'}</span>
-            <span>Average: {latencyHistory.length ? `${Math.round(latencyHistory.reduce((a, b) => a + b, 0) / latencyHistory.length)}ms` : 'No data'}</span>
+            <span>
+              Average:{' '}
+              {latencyHistory.length
+                ? `${Math.round(latencyHistory.reduce((a, b) => a + b, 0) / latencyHistory.length)}ms`
+                : 'No data'}
+            </span>
             <span>Peak Spike: {latencyHistory.length ? `${Math.max(...latencyHistory)}ms` : 'No data'}</span>
             <span>Target SLA: &lt;50ms</span>
           </div>
@@ -525,7 +677,7 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
               <h3 className="font-bold text-sm text-white">Live Load Test</h3>
             </div>
             <p className="text-xs text-gray-400">
-              Send 500 real requests to the selected backend health endpoint and report measured results.
+              Send 500 real requests to the backend health endpoint (/api/health) and report measured results.
             </p>
           </div>
 
@@ -547,31 +699,37 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
             <div className="p-3 bg-[#111524] border border-[#1f2335] rounded-lg space-y-2 text-xs font-mono">
               <div className="flex justify-between text-emerald-400 font-bold border-b border-[#1f2335] pb-1">
                 <span>Burst Completed</span>
-                <span>500 Requests</span>
+                <span>{loadTestStats.totalReq} Requests</span>
               </div>
               <div className="flex justify-between text-gray-300">
-                <span>Passed (200 OK):</span>
+                <span>Succeeded (2xx):</span>
                 <strong className="text-emerald-400">{loadTestStats.passedReq}</strong>
               </div>
               <div className="flex justify-between text-gray-300">
-                <span>Rate Limited (429):</span>
-                <strong className="text-amber-400">{loadTestStats.failedReq}</strong>
+                <span>Failed / Non-OK:</span>
+                <strong className={loadTestStats.failedReq ? 'text-amber-400' : 'text-gray-400'}>
+                  {loadTestStats.failedReq}
+                </strong>
               </div>
               <div className="flex justify-between text-gray-300">
-                <span>Peak Concurrency:</span>
+                <span>Avg Latency:</span>
+                <strong className="text-blue-300">{loadTestStats.avgLatency} ms</strong>
+              </div>
+              <div className="flex justify-between text-gray-300">
+                <span>Throughput:</span>
                 <strong className="text-purple-300">{loadTestStats.peakRps} req/sec</strong>
               </div>
             </div>
           ) : (
             <div className="p-3 bg-[#080a10] border border-[#1f2335] rounded-lg text-center text-xs text-gray-400">
-              Click <strong>"Run Load Stress Test"</strong> to execute a real load test on `/api/health`.
+              Click <strong>"Run Load Stress Test"</strong> to execute a real load test on <code>/api/health</code>.
             </div>
           )}
 
           <button
             onClick={handleRunLoadTest}
             disabled={isLoadTesting}
-            className="w-full py-2 bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/30 text-xs font-bold rounded-lg transition cursor-pointer flex items-center justify-center gap-2"
+            className="w-full py-2 bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/30 text-xs font-bold rounded-lg transition cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
           >
             <i className="fa-solid fa-play" /> Trigger 500-Req Load Burst
           </button>
@@ -594,8 +752,11 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="text-[11px] text-gray-500 font-mono">Quick Presets:</span>
             <button
-              onClick={() => { setTestUrl('/api/health'); setSelectedMethod('GET'); }}
-              className="px-2 py-1 bg-[#111524] hover:bg-[#1a1e30] border border-[#1f2335] text-gray-300 text-[11px] rounded font-mono"
+              onClick={() => {
+                setTestUrl('/api/health');
+                setSelectedMethod('GET');
+              }}
+              className="px-2 py-1 bg-[#111524] hover:bg-[#1a1e30] border border-[#1f2335] text-gray-300 text-[11px] rounded font-mono cursor-pointer"
             >
               GET /api/health
             </button>
@@ -607,7 +768,7 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
           {/* Method Select */}
           <select
             value={selectedMethod}
-            onChange={(e: any) => setSelectedMethod(e.target.value)}
+            onChange={(e) => setSelectedMethod(e.target.value as ProbeMethod)}
             className="w-full sm:w-28 px-3 py-2 bg-[#080a10] border border-[#1f2335] text-purple-400 text-xs font-bold rounded-lg outline-none cursor-pointer focus:border-[#3b28cc]"
           >
             <option value="GET">GET</option>
@@ -629,7 +790,7 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
           <button
             onClick={() => handlePing()}
             disabled={isPinging}
-            className="w-full sm:w-auto px-6 py-2 bg-[#3b28cc] hover:bg-[#4d3be3] text-white text-xs font-bold rounded-lg transition cursor-pointer flex items-center justify-center gap-2 shrink-0 shadow-lg"
+            className="w-full sm:w-auto px-6 py-2 bg-[#3b28cc] hover:bg-[#4d3be3] text-white text-xs font-bold rounded-lg transition cursor-pointer flex items-center justify-center gap-2 shrink-0 shadow-lg disabled:opacity-50"
           >
             {isPinging ? <i className="fa-solid fa-spinner animate-spin" /> : <i className="fa-solid fa-bolt" />}
             {isPinging ? 'Pinging Target...' : 'Execute Probe Ping'}
@@ -654,12 +815,16 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <span className="text-emerald-400 font-bold bg-emerald-500/10 px-2.5 py-1 rounded border border-emerald-500/20">
+                  <span
+                    className={`font-bold px-2.5 py-1 rounded border ${
+                      pingIsOk
+                        ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                        : 'text-red-400 bg-red-500/10 border-red-500/20'
+                    }`}
+                  >
                     HTTP {pingResult.status} {pingResult.statusText}
                   </span>
-                  <span className="text-purple-300 font-bold">
-                    Latency: {pingResult.latencyMs} ms
-                  </span>
+                  <span className="text-purple-300 font-bold">Latency: {pingResult.latencyMs} ms</span>
                 </div>
               </div>
 
@@ -667,19 +832,21 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-[11px] text-gray-300">
                 <div>
                   <span className="text-gray-500 block">Server Header:</span>
-                  <strong className="text-gray-200">{pingResult.serverHeader}</strong>
+                  <strong className="text-gray-200">{pingResult.serverHeader ?? 'N/A'}</strong>
                 </div>
                 <div>
                   <span className="text-gray-500 block">Content-Type:</span>
-                  <strong className="text-gray-200">{pingResult.contentType}</strong>
+                  <strong className="text-gray-200">{pingResult.contentType ?? 'N/A'}</strong>
                 </div>
                 <div>
                   <span className="text-gray-500 block">RateLimit Remaining:</span>
-                  <strong className="text-emerald-400">{pingResult.rateLimitRemaining} reqs</strong>
+                  <strong className="text-emerald-400">
+                    {pingResult.rateLimitRemaining !== undefined ? `${pingResult.rateLimitRemaining} reqs` : 'N/A'}
+                  </strong>
                 </div>
                 <div>
                   <span className="text-gray-500 block">Protocol / Security:</span>
-                  <strong className="text-purple-300">{pingResult.protocol}</strong>
+                  <strong className="text-purple-300">{pingResult.protocol ?? 'N/A'}</strong>
                 </div>
               </div>
 
@@ -695,7 +862,7 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
         </AnimatePresence>
       </div>
 
-      {/* AI API SECURITY AUDIT MODAL / PANEL */}
+      {/* AI API SECURITY AUDIT PANEL */}
       <AnimatePresence>
         {auditEndpoint && (
           <motion.div
@@ -736,8 +903,8 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
                 <div className="p-4 bg-[#111524] border border-[#1f2335] rounded-lg flex flex-col items-center justify-center text-center space-y-2">
                   <span className="text-gray-400 text-xs uppercase font-bold">API Security Posture</span>
                   <div className="text-4xl font-extrabold font-mono text-purple-400">{aiAuditReport.securityScore}/100</div>
-                  <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                    PASSED SECURITY AUDIT
+                  <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${auditBadge.cls}`}>
+                    {auditBadge.text}
                   </span>
                 </div>
 
@@ -745,7 +912,7 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
                 <div className="p-4 bg-[#111524] border border-[#1f2335] rounded-lg space-y-2">
                   <span className="font-bold text-amber-400 block">OWASP API Security Vulnerability Assessment:</span>
                   <ul className="space-y-1.5 text-gray-300 text-[11px] font-mono">
-                    {aiAuditReport.owaspApiRisks.map((risk, i) => (
+                    {(aiAuditReport.owaspApiRisks ?? []).map((risk, i) => (
                       <li key={i} className="flex items-start gap-1.5">
                         <i className="fa-solid fa-triangle-exclamation text-amber-400 mt-0.5" />
                         <span>{risk}</span>
@@ -758,7 +925,7 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
                 <div className="p-4 bg-[#111524] border border-[#1f2335] rounded-lg space-y-2">
                   <span className="font-bold text-emerald-400 block">Actionable Technical Remediation:</span>
                   <ul className="space-y-1.5 text-gray-300 text-[11px] font-mono">
-                    {aiAuditReport.concreteFixes.map((fix, i) => (
+                    {(aiAuditReport.concreteFixes ?? []).map((fix, i) => (
                       <li key={i} className="flex items-start gap-1.5">
                         <i className="fa-solid fa-shield-halved text-emerald-400 mt-0.5" />
                         <span>{fix}</span>
@@ -830,20 +997,32 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
                       className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
                         ep.status === 'Healthy'
                           ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                          : 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+                          : ep.status === 'Degraded'
+                          ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+                          : 'bg-red-500/20 text-red-400 border-red-500/30'
                       }`}
                     >
-                      <i className={`fa-solid ${ep.status === 'Healthy' ? 'fa-circle-check' : 'fa-triangle-exclamation'} mr-1`} />
+                      <i
+                        className={`fa-solid ${
+                          ep.status === 'Healthy'
+                            ? 'fa-circle-check'
+                            : ep.status === 'Degraded'
+                            ? 'fa-triangle-exclamation'
+                            : 'fa-circle-xmark'
+                        } mr-1`}
+                      />
                       {ep.status}
                     </span>
                   </td>
-                  <td className="py-3 text-white font-bold">{ep.latencyMs} ms</td>
+                  <td className="py-3 text-white font-bold">
+                    {ep.lastTested === 'Not tested' ? '—' : `${ep.latencyMs} ms`}
+                  </td>
                   <td className="py-3 text-gray-300">{ep.authType}</td>
                   <td className="py-3 text-gray-400">{ep.rateLimit}</td>
                   <td className="py-3 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <button
-                        onClick={() => handlePing(ep.path, ep.method === 'PATCH' ? 'POST' : ep.method)}
+                        onClick={() => handlePing(ep.path, ep.method === 'PATCH' ? 'POST' : ep.method, ep.id)}
                         className="px-2.5 py-1 bg-[#111524] hover:bg-[#1a1e30] border border-[#1f2335] text-emerald-400 text-[11px] rounded transition cursor-pointer"
                         title="Probe Ping Endpoint"
                       >
@@ -924,7 +1103,7 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
                     <label className="text-gray-300 font-semibold block">HTTP Method</label>
                     <select
                       value={newEpMethod}
-                      onChange={(e: any) => setNewEpMethod(e.target.value)}
+                      onChange={(e) => setNewEpMethod(e.target.value as ProbeMethod)}
                       className="w-full px-3 py-2 bg-[#080a10] border border-[#1f2335] text-white rounded-lg outline-none focus:border-purple-500 font-mono"
                     >
                       <option value="GET">GET</option>
@@ -938,7 +1117,9 @@ export const ApiMonitoringView: React.FC<ApiMonitoringViewProps> = ({ onBackToDa
                     <label className="text-gray-300 font-semibold block">Auth Type</label>
                     <select
                       value={newEpAuth}
-                      onChange={(e: any) => setNewEpAuth(e.target.value)}
+                      onChange={(e) =>
+                        setNewEpAuth(e.target.value as 'JWT Bearer' | 'API Key' | 'OAuth 2.0' | 'Public')
+                      }
                       className="w-full px-3 py-2 bg-[#080a10] border border-[#1f2335] text-white rounded-lg outline-none focus:border-purple-500"
                     >
                       <option value="Public">Public</option>

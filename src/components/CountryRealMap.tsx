@@ -1,5 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
 export interface CountryInfo {
   name: string;
@@ -31,8 +32,7 @@ interface CountryRealMapProps {
 }
 
 // Known major cities for monitored nations.
-// These locations are displayed independently of the attacks array,
-// so the map still shows locations when there are zero active attacks.
+// Displayed independently of the attacks array, so locations are always visible.
 const COUNTRY_CITIES: Record<
   string,
   { name: string; lat: number; lng: number }[]
@@ -93,6 +93,27 @@ type CityNode = {
   attack?: AttackItem;
 };
 
+type ActiveCity = {
+  name: string;
+  lat: number;
+  lng: number;
+  attackType: string;
+  status: string;
+  source: string;
+  ip: string;
+  port: string;
+  bandwidth: string;
+  hasThreat: boolean;
+};
+
+const escapeHtml = (value: string) =>
+  String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
 const getMarkerColors = (threatLevel: CityNode['threatLevel']) => {
   switch (threatLevel) {
     case 'CRITICAL':
@@ -128,6 +149,12 @@ const getMarkerColors = (threatLevel: CityNode['threatLevel']) => {
   }
 };
 
+const isValidCoord = (lat: unknown, lng: unknown) =>
+  typeof lat === 'number' &&
+  typeof lng === 'number' &&
+  Number.isFinite(lat) &&
+  Number.isFinite(lng);
+
 export const CountryRealMap: React.FC<CountryRealMapProps> = ({
   country,
   attacks,
@@ -140,32 +167,15 @@ export const CountryRealMap: React.FC<CountryRealMapProps> = ({
   const [mapStyle, setMapStyle] = useState<'dark' | 'satellite' | 'street'>(
     'dark'
   );
-
-  const [activeCity, setActiveCity] = useState<{
-    name: string;
-    lat: number;
-    lng: number;
-    attackType: string;
-    status: string;
-    source: string;
-    ip: string;
-    port: string;
-    bandwidth: string;
-  } | null>(null);
-
+  const [activeCity, setActiveCity] = useState<ActiveCity | null>(null);
   const [showAttackPanel, setShowAttackPanel] = useState<boolean>(true);
 
-  // IMPORTANT:
-  // City locations come from COUNTRY_CITIES, not from attacks.
-  // Therefore locations remain visible even when attacks.length === 0.
-  const cities = useRef<CityNode[]>([]);
-
-  useEffect(() => {
+  // City nodes are derived from COUNTRY_CITIES (not from attacks), so they
+  // are always present, even when attacks.length === 0.
+  const cities = useMemo<CityNode[]>(() => {
     const countryCities = COUNTRY_CITIES[country.code] || [];
-
-    cities.current = countryCities.map((city, index) => {
+    return countryCities.map((city, index) => {
       const attack = attacks[index];
-
       return {
         name: city.name,
         lat: city.lat,
@@ -176,27 +186,33 @@ export const CountryRealMap: React.FC<CountryRealMapProps> = ({
     });
   }, [country.code, attacks]);
 
-  const initialZoom = [
-    'US',
-    'CN',
-    'RU',
-    'CA',
-    'BR',
-    'AU',
-    'IN',
-  ].includes(country.code)
+  const initialZoom = ['US', 'CN', 'RU', 'CA', 'BR', 'AU', 'IN'].includes(
+    country.code
+  )
     ? 4
     : 6;
 
+  const buildActiveCity = (city: CityNode, attack?: AttackItem): ActiveCity => ({
+    name: city.name,
+    lat: city.lat,
+    lng: city.lng,
+    attackType: attack?.type || 'No active threat',
+    status: attack
+      ? attack.status === 'BLOCKED'
+        ? 'BLOCKED & MITIGATED'
+        : 'OBSERVED BY CHECK POINT'
+      : 'MONITORED',
+    source: attack
+      ? `${attack.sourceCountry.name} (${attack.sourceCountry.code})`
+      : 'Security Monitoring',
+    ip: attack?.targetIp || 'N/A',
+    port: attack?.targetPort || 'N/A',
+    bandwidth: attack?.volume || 'N/A',
+    hasThreat: Boolean(attack),
+  });
+
   useEffect(() => {
     if (!mapContainerRef.current) return;
-
-    // Destroy previous Leaflet instance before creating a new one.
-    if (mapInstanceRef.current) {
-      mapInstanceRef.current.stop();
-      mapInstanceRef.current.remove();
-      mapInstanceRef.current = null;
-    }
 
     const map = L.map(mapContainerRef.current, {
       center: [country.lat, country.lng],
@@ -213,36 +229,23 @@ export const CountryRealMap: React.FC<CountryRealMapProps> = ({
     if (mapStyle === 'satellite') {
       L.tileLayer(
         'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-        {
-          maxZoom: 18,
-        }
+        { maxZoom: 18 }
       ).addTo(map);
     } else if (mapStyle === 'street') {
-      L.tileLayer(
-        'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        {
-          maxZoom: 19,
-        }
-      ).addTo(map);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+      }).addTo(map);
     } else {
       L.tileLayer(
         'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-        {
-          maxZoom: 19,
-          subdomains: 'abcd',
-        }
+        { maxZoom: 19, subdomains: 'abcd' }
       ).addTo(map);
     }
 
-    // ------------------------------------------------------------
-    // CITY / LOCATION MARKERS
-    // ------------------------------------------------------------
-    // These are rendered from COUNTRY_CITIES and do NOT depend on
-    // attacks.length.
-    cities.current.forEach((city) => {
-      if (city.threatLevel === 'NONE') {
-        return;
-      }
+    // ---------------- CITY / LOCATION MARKERS ----------------
+    // Always rendered, with or without attacks.
+    cities.forEach((city) => {
+      if (!isValidCoord(city.lat, city.lng)) return;
 
       const colors = getMarkerColors(city.threatLevel);
       const hasAttack = Boolean(city.attack);
@@ -250,40 +253,20 @@ export const CountryRealMap: React.FC<CountryRealMapProps> = ({
       const customIcon = L.divIcon({
         className: 'custom-leaflet-marker',
         html: `
-          <div
-            class="relative flex items-center justify-center cursor-pointer"
-            style="width:32px;height:32px;"
-          >
-            <span
-              class="absolute w-8 h-8 rounded-full ${colors.ring} ${
+          <div class="relative flex items-center justify-center cursor-pointer" style="width:32px;height:32px;">
+            <span class="absolute w-8 h-8 rounded-full ${colors.ring} ${
           hasAttack ? 'animate-ping' : ''
-        }"
-            ></span>
-
-            <span
-              class="relative w-4 h-4 rounded-full ${
-                colors.dot
-              } border-2 shadow-lg"
-            ></span>
-
-            <div
-              class="absolute top-6 left-1/2 -translate-x-1/2 whitespace-nowrap
-                     bg-[#061224]/95 text-white font-mono text-[10px]
-                     font-bold px-2 py-0.5 rounded border
-                     ${
-                       hasAttack
-                         ? 'border-cyan-500/50'
-                         : 'border-emerald-500/40'
-                     }
-                     shadow-2xl pointer-events-none flex items-center gap-1"
-            >
-              <span
-                class="w-1.5 h-1.5 rounded-full ${
-                  colors.status
-                } ${hasAttack ? 'animate-pulse' : ''}"
-              ></span>
-
-              ${city.name}
+        }"></span>
+            <span class="relative w-4 h-4 rounded-full ${
+              colors.dot
+            } border-2 shadow-lg"></span>
+            <div class="absolute top-6 left-1/2 -translate-x-1/2 whitespace-nowrap bg-[#061224]/95 text-white font-mono text-[10px] font-bold px-2 py-0.5 rounded border ${
+              hasAttack ? 'border-cyan-500/50' : 'border-emerald-500/40'
+            } shadow-2xl pointer-events-none flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full ${colors.status} ${
+          hasAttack ? 'animate-pulse' : ''
+        }"></span>
+              ${escapeHtml(city.name)}
             </div>
           </div>
         `,
@@ -296,49 +279,25 @@ export const CountryRealMap: React.FC<CountryRealMapProps> = ({
       }).addTo(map);
 
       marker.on('click', () => {
-        const attack = city.attack;
-
-        setActiveCity({
-          name: city.name,
-          lat: city.lat,
-          lng: city.lng,
-          attackType: attack?.type || 'No active threat',
-          status: attack
-            ? attack.status === 'BLOCKED'
-              ? 'BLOCKED & MITIGATED'
-              : 'OBSERVED BY CHECK POINT'
-            : 'MONITORED',
-          source: attack
-            ? `${attack.sourceCountry.name} (${attack.sourceCountry.code})`
-            : 'Security Monitoring',
-          ip: attack?.targetIp || 'N/A',
-          port: attack?.targetPort || 'N/A',
-          bandwidth: attack?.volume || 'N/A',
+        setActiveCity(buildActiveCity(city, city.attack));
+        map.flyTo([city.lat, city.lng], Math.max(initialZoom + 1, 7), {
+          duration: 1.2,
         });
-
-        map.flyTo(
-          [city.lat, city.lng],
-          Math.max(initialZoom + 1, 7),
-          {
-            duration: 1.2,
-          }
-        );
       });
     });
 
-    // ------------------------------------------------------------
-    // ATTACK TRAJECTORIES
-    // ------------------------------------------------------------
-    // Attack routes are intentionally dependent on attacks because
-    // there is no route to draw when no attack exists.
+    // ---------------- ATTACK TRAJECTORIES ----------------
     attacks.forEach((atk) => {
-      const srcLat = atk.sourceCountry.lat;
-      const srcLng = atk.sourceCountry.lng;
-      const targetLat = atk.targetCountry.lat;
-      const targetLng = atk.targetCountry.lng;
+      const srcLat = atk.sourceCountry?.lat;
+      const srcLng = atk.sourceCountry?.lng;
+      const targetLat = atk.targetCountry?.lat;
+      const targetLng = atk.targetCountry?.lng;
 
-      const color =
-        atk.direction === 'inbound' ? '#ef4444' : '#f59e0b';
+      if (!isValidCoord(srcLat, srcLng) || !isValidCoord(targetLat, targetLng)) {
+        return;
+      }
+
+      const color = atk.direction === 'inbound' ? '#ef4444' : '#f59e0b';
 
       const polyline = L.polyline(
         [
@@ -358,26 +317,23 @@ export const CountryRealMap: React.FC<CountryRealMapProps> = ({
           <div class="font-sans text-xs bg-[#030a16] text-white p-2 rounded-lg border border-cyan-500/50 shadow-2xl">
             <div class="font-bold text-red-400 flex items-center gap-1">
               <span class="w-2 h-2 rounded-full bg-red-400 animate-ping"></span>
-              ${atk.type} [${atk.severity}]
+              ${escapeHtml(atk.type)} [${escapeHtml(atk.severity)}]
             </div>
-
             <div class="text-[11px] text-gray-300 mt-1">
-              <b>Source:</b> ${atk.sourceCountry.name}<br/>
-              <b>Target Node:</b> ${atk.targetCountry.name}<br/>
+              <b>Source:</b> ${escapeHtml(atk.sourceCountry.name)}<br/>
+              <b>Target Node:</b> ${escapeHtml(atk.targetCountry.name)}<br/>
               <b>Target IP:</b>
-              <span class="font-mono text-cyan-300">
-                ${atk.targetIp}:${atk.targetPort}
-              </span><br/>
+              <span class="font-mono text-cyan-300">${escapeHtml(
+                atk.targetIp
+              )}:${escapeHtml(atk.targetPort)}</span><br/>
               <b>Bandwidth:</b>
-              <span class="text-amber-400 font-bold">
-                ${atk.volume}
-              </span>
+              <span class="text-amber-400 font-bold">${escapeHtml(
+                atk.volume
+              )}</span>
             </div>
           </div>
         `,
-        {
-          sticky: true,
-        }
+        { sticky: true }
       );
     });
 
@@ -386,53 +342,36 @@ export const CountryRealMap: React.FC<CountryRealMapProps> = ({
       mapInstanceRef.current?.invalidateSize();
     }, 150);
 
-    // Handle responsive container changes.
     const resizeObserver = new ResizeObserver(() => {
       mapInstanceRef.current?.invalidateSize();
     });
-
     resizeObserver.observe(mapContainerRef.current);
 
     return () => {
       window.clearTimeout(timer);
       resizeObserver.disconnect();
-
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.stop();
-        mapInstanceRef.current.remove();
+      map.stop();
+      map.remove();
+      if (mapInstanceRef.current === map) {
         mapInstanceRef.current = null;
       }
     };
-  }, [country, mapStyle, attacks, initialZoom]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [country, mapStyle, attacks, cities, initialZoom]);
 
   const handleLocateCity = (atk: AttackItem, idx: number) => {
-    const countryCities = COUNTRY_CITIES[country.code] || [];
-    const city = countryCities[idx];
+    if (!mapInstanceRef.current || cities.length === 0) return;
 
-    if (!city || !mapInstanceRef.current) return;
+    const city = cities[idx % cities.length];
+    if (!city) return;
 
     mapInstanceRef.current.flyTo(
       [city.lat, city.lng],
       Math.max(initialZoom + 1, 7),
-      {
-        duration: 1.2,
-      }
+      { duration: 1.2 }
     );
 
-    setActiveCity({
-      name: city.name,
-      lat: city.lat,
-      lng: city.lng,
-      attackType: atk.type,
-      status:
-        atk.status === 'BLOCKED'
-          ? 'BLOCKED & MITIGATED'
-          : 'OBSERVED BY CHECK POINT',
-      source: `${atk.sourceCountry.name} (${atk.sourceCountry.code})`,
-      ip: atk.targetIp,
-      port: atk.targetPort,
-      bandwidth: atk.volume,
-    });
+    setActiveCity(buildActiveCity(city, atk));
   };
 
   return (
@@ -459,38 +398,19 @@ export const CountryRealMap: React.FC<CountryRealMapProps> = ({
         <div className="flex items-center gap-2 pointer-events-auto">
           {/* Map Layer Switcher */}
           <div className="flex bg-[#030d1d]/90 p-0.5 rounded-xl border border-cyan-500/40 backdrop-blur-md shadow-xl text-xs">
-            <button
-              onClick={() => setMapStyle('dark')}
-              className={`px-2.5 py-1 rounded-lg font-semibold transition cursor-pointer ${
-                mapStyle === 'dark'
-                  ? 'bg-cyan-600 text-white shadow-md'
-                  : 'text-gray-300 hover:text-white'
-              }`}
-            >
-              Dark
-            </button>
-
-            <button
-              onClick={() => setMapStyle('satellite')}
-              className={`px-2.5 py-1 rounded-lg font-semibold transition cursor-pointer ${
-                mapStyle === 'satellite'
-                  ? 'bg-cyan-600 text-white shadow-md'
-                  : 'text-gray-300 hover:text-white'
-              }`}
-            >
-              Satellite
-            </button>
-
-            <button
-              onClick={() => setMapStyle('street')}
-              className={`px-2.5 py-1 rounded-lg font-semibold transition cursor-pointer ${
-                mapStyle === 'street'
-                  ? 'bg-cyan-600 text-white shadow-md'
-                  : 'text-gray-300 hover:text-white'
-              }`}
-            >
-              Street
-            </button>
+            {(['dark', 'satellite', 'street'] as const).map((style) => (
+              <button
+                key={style}
+                onClick={() => setMapStyle(style)}
+                className={`px-2.5 py-1 rounded-lg font-semibold transition cursor-pointer capitalize ${
+                  mapStyle === style
+                    ? 'bg-cyan-600 text-white shadow-md'
+                    : 'text-gray-300 hover:text-white'
+                }`}
+              >
+                {style}
+              </button>
+            ))}
           </div>
 
           <button
@@ -513,10 +433,7 @@ export const CountryRealMap: React.FC<CountryRealMapProps> = ({
       </div>
 
       {/* Leaflet Map Canvas Container */}
-      <div
-        ref={mapContainerRef}
-        className="w-full h-full flex-1 z-0"
-      />
+      <div ref={mapContainerRef} className="w-full h-full flex-1 z-0" />
 
       {/* Attack List Overlay Panel */}
       {showAttackPanel && (
@@ -618,12 +535,26 @@ export const CountryRealMap: React.FC<CountryRealMapProps> = ({
         </div>
       )}
 
-      {/* Selected City Threat Telemetry Popup Card */}
+      {/* Selected City Popup Card */}
       {activeCity && (
-        <div className="absolute top-16 left-3 z-[1000] w-72 bg-[#020b18]/95 backdrop-blur-xl border border-red-500/40 rounded-2xl p-3 shadow-2xl">
-          <div className="flex items-center justify-between pb-2 mb-2 border-b border-red-500/30">
+        <div
+          className={`absolute top-16 left-3 z-[1000] w-72 bg-[#020b18]/95 backdrop-blur-xl border rounded-2xl p-3 shadow-2xl ${
+            activeCity.hasThreat ? 'border-red-500/40' : 'border-emerald-500/40'
+          }`}
+        >
+          <div
+            className={`flex items-center justify-between pb-2 mb-2 border-b ${
+              activeCity.hasThreat ? 'border-red-500/30' : 'border-emerald-500/30'
+            }`}
+          >
             <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping" />
+              <span
+                className={`w-2.5 h-2.5 rounded-full ${
+                  activeCity.hasThreat
+                    ? 'bg-red-500 animate-ping'
+                    : 'bg-emerald-400'
+                }`}
+              />
               <h4 className="text-xs font-bold text-white truncate">
                 {activeCity.name}
               </h4>
@@ -640,7 +571,11 @@ export const CountryRealMap: React.FC<CountryRealMapProps> = ({
           <div className="space-y-1.5 text-[11px]">
             <div className="flex justify-between">
               <span className="text-gray-400">Attack Type:</span>
-              <span className="font-bold text-red-400">
+              <span
+                className={`font-bold ${
+                  activeCity.hasThreat ? 'text-red-400' : 'text-emerald-400'
+                }`}
+              >
                 {activeCity.attackType}
               </span>
             </div>
@@ -675,7 +610,13 @@ export const CountryRealMap: React.FC<CountryRealMapProps> = ({
 
             <div className="flex justify-between pt-1 border-t border-white/10">
               <span className="text-gray-400">Status:</span>
-              <span className="font-bold text-red-400 animate-pulse">
+              <span
+                className={`font-bold ${
+                  activeCity.hasThreat
+                    ? 'text-red-400 animate-pulse'
+                    : 'text-emerald-400'
+                }`}
+              >
                 {activeCity.status}
               </span>
             </div>
