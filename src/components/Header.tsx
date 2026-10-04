@@ -31,19 +31,28 @@ export const Header: React.FC = () => {
       } catch (e) {}
     }
 
-    try {
-      const res = await fetch('/api/users');
-      if (res.ok) {
-        const serverUsers: SecurityUser[] = await res.json();
-        if (Array.isArray(serverUsers) && serverUsers.length > 0) {
-          const map = new Map<string, SecurityUser>();
-          serverUsers.forEach((u) => map.set(u.id, u));
-          users.forEach((u) => map.set(u.id, u));
-          users = Array.from(map.values());
+    const token = sessionStorage.getItem('user_mgmt_token');
+    if (token) {
+      try {
+        const res = await fetch('/api/users', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.status === 401) {
+          sessionStorage.removeItem('user_mgmt_authorized');
+          sessionStorage.removeItem('user_mgmt_token');
         }
+        if (res.ok) {
+          const serverUsers: SecurityUser[] = await res.json();
+          if (Array.isArray(serverUsers) && serverUsers.length > 0) {
+            const map = new Map<string, SecurityUser>();
+            serverUsers.forEach((u) => map.set(u.id, u));
+            users.forEach((u) => map.set(u.id, u));
+            users = Array.from(map.values());
+          }
+        }
+      } catch (err) {
+        // Offline fallback
       }
-    } catch (err) {
-      // Offline fallback
     }
 
     setUserList(users);
@@ -284,4 +293,3 @@ export const Header: React.FC = () => {
     </header>
   );
 };
-

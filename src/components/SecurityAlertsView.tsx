@@ -4,18 +4,19 @@ import { motion, AnimatePresence } from 'motion/react';
 export interface SecurityAlert {
   id: string;
   title: string;
-  severity: 'Critical' | 'High' | 'Medium' | 'Low';
+  severity: 'Critical' | 'High' | 'Medium' | 'Low' | 'Unrated';
   srcIp: string;
   country: string;
   countryCode: string;
   targetEndpoint: string;
   timestamp: string;
+  sourceKind?: 'ip' | 'country';
   status: 'Active' | 'Investigating' | 'Blocked' | 'Resolved';
   attackVector: string;
   owaspCategory: string;
-  requestsPerSec: number;
+  requestsPerSec: number | null;
   protocol: string;
-  riskScore: number; // 0-100
+  riskScore: number | null;
 }
 
 interface SecurityAlertsViewProps {
@@ -68,6 +69,7 @@ const mapLogToAlert = (log: SecurityLogRecord): SecurityAlert => {
     countryCode: typeof numericDetails.countryCode === 'string' ? numericDetails.countryCode : 'XX',
     targetEndpoint: log.destination,
     timestamp: log.timestamp,
+    sourceKind: 'ip',
     status,
     attackVector: log.service,
     owaspCategory: typeof numericDetails.owaspCategory === 'string' ? numericDetails.owaspCategory : 'Not classified',
@@ -78,23 +80,22 @@ const mapLogToAlert = (log: SecurityLogRecord): SecurityAlert => {
 };
 
 const mapThreatToAlert = (threat: ThreatIndicator, index: number): SecurityAlert => {
-  const hasHighRiskTag = threat.tags?.some((tag) => /exploit|malware|ransomware|ddos|botnet|c2|credential|phish/i.test(tag));
-  const severity: 'Critical' | 'High' | 'Medium' | 'Low' = hasHighRiskTag ? 'Critical' : 'High';
   return {
     id: threat.id || `threat-${index}`,
-    title: threat.pulseName || `ThreatCloud Attack Event #${index + 1}`,
-    severity,
+    title: threat.pulseName || `Check Point ThreatMap event #${index + 1}`,
+    severity: 'Unrated',
     srcIp: threat.sourceCountry?.code || threat.indicator?.split(' -> ')[0] || 'N/A',
     country: threat.sourceCountry?.name || 'Unknown',
     countryCode: threat.sourceCountry?.code || 'XX',
     targetEndpoint: threat.targetCountry?.name || threat.indicator?.split(' -> ')[1] || 'Protected Network',
     timestamp: threat.created || new Date().toISOString(),
+    sourceKind: 'country',
     status: 'Active',
     attackVector: threat.indicatorType || 'LIVE ATTACK',
     owaspCategory: threat.tags?.join(', ') || 'Cross-site threat',
-    requestsPerSec: 0,
-    protocol: 'Multi-protocol',
-    riskScore: hasHighRiskTag ? 95 : 75,
+    requestsPerSec: null,
+    protocol: 'Not reported',
+    riskScore: null,
   };
 };
 
@@ -144,13 +145,13 @@ export const SecurityAlertsView: React.FC<SecurityAlertsViewProps> = ({
       
       // Fetch real threat data from Check Point ThreatCloud
       try {
-        const threatResponse = await fetch('/api/threats?limit=20', { cache: 'no-store' });
+        const threatResponse = await fetch('/api/threats?limit=100', { cache: 'no-store' });
         if (threatResponse.ok) {
           const threatPayload = await threatResponse.json() as ThreatFeed;
           const realThreats = (threatPayload.threats || []).map(mapThreatToAlert);
           allAlerts.push(...realThreats);
           if (realThreats.length > 0) {
-            showToast(`Live Threat Feed: ${realThreats.length} real-time attacks detected from Check Point ThreatCloud`, 'info');
+            showToast(`Live Threat Feed: ${realThreats.length} recent attacks received from Check Point ThreatMap`, 'info');
           }
         }
       } catch (threatError) {
@@ -173,7 +174,7 @@ export const SecurityAlertsView: React.FC<SecurityAlertsViewProps> = ({
       
       // Remove duplicates and set alerts
       const uniqueAlerts = allAlerts.filter((alert, index, arr) =>
-        arr.findIndex((a) => a.srcIp === alert.srcIp && a.country === alert.country && a.targetEndpoint === alert.targetEndpoint) === index
+        arr.findIndex((candidate) => candidate.id === alert.id) === index
       );
       
       if (uniqueAlerts.length === 0) {
@@ -524,7 +525,7 @@ export const SecurityAlertsView: React.FC<SecurityAlertsViewProps> = ({
         <div className="flex items-center gap-3 flex-wrap w-full md:w-auto">
           <div className="flex items-center gap-1 bg-[#080a10] p-1 border border-[#1f2335] rounded-lg">
             <span className="text-[11px] text-gray-400 px-2 font-semibold">Severity:</span>
-            {['All', 'Critical', 'High', 'Medium', 'Low'].map((sev) => (
+            {['All', 'Critical', 'High', 'Medium', 'Low', 'Unrated'].map((sev) => (
               <button
                 key={sev}
                 onClick={() => setSeverityFilter(sev)}
@@ -707,7 +708,11 @@ export const SecurityAlertsView: React.FC<SecurityAlertsViewProps> = ({
                       {/* Technical Line */}
                       <div className="text-[11px] text-gray-400 font-mono flex items-center gap-3 flex-wrap">
                         <span>
-                          IP: <strong className="text-gray-200">{alert.srcIp}</strong> ({alert.country})
+                          {alert.sourceKind === 'country' ? 'Origin country: ' : 'Source IP: '}
+                          <strong className="text-gray-200">
+                            {alert.sourceKind === 'country' ? alert.country : alert.srcIp}
+                          </strong>
+                          {alert.sourceKind === 'country' ? ` (${alert.countryCode})` : ` (${alert.country})`}
                         </span>
                         <span>•</span>
                         <span>
@@ -722,7 +727,7 @@ export const SecurityAlertsView: React.FC<SecurityAlertsViewProps> = ({
                       </div>
 
                       <div className="text-[10px] text-gray-500 font-mono">
-                        {alert.owaspCategory} | Rate: {alert.requestsPerSec} req/sec | Protocol: {alert.protocol} | Risk Index: {alert.riskScore}/100
+                        {alert.owaspCategory} | Rate: {alert.requestsPerSec === null ? 'Not reported' : `${alert.requestsPerSec} req/sec`} | Protocol: {alert.protocol} | Risk Index: {alert.riskScore === null ? 'Not reported' : `${alert.riskScore}/100`}
                       </div>
                     </div>
                   </div>
@@ -738,7 +743,7 @@ export const SecurityAlertsView: React.FC<SecurityAlertsViewProps> = ({
                     </button>
 
                     {/* Block IP */}
-                    {alert.status !== 'Blocked' && (
+                    {alert.sourceKind !== 'country' && alert.status !== 'Blocked' && (
                       <button
                         onClick={() => handleBlockIp(alert.id, alert.srcIp)}
                         className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 text-xs font-bold rounded-lg transition cursor-pointer flex items-center gap-1.5"

@@ -160,6 +160,7 @@ export type NavView =
   | 'api-monitoring'
   | 'alerts'
   | 'vulnerability-scanner'
+  | 'password-strength'
   | 'email-breach'
   | 'text-encrypt'
   | 'steganography'

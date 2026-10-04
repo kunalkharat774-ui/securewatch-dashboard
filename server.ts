@@ -121,6 +121,52 @@ interface CheckpointAttack {
   s_co?: string;
   s_la?: number;
   s_lo?: number;
+  receivedAt: string;
+  id: string;
+}
+
+const countryNames = new Intl.DisplayNames(['en'], { type: 'region' });
+
+function parseCheckpointAttack(value: unknown): CheckpointAttack | null {
+  if (!value || typeof value !== 'object') return null;
+  const attack = value as Record<string, unknown>;
+  const sourceCode = typeof attack.s_co === 'string' ? attack.s_co.trim().toUpperCase() : '';
+  const targetCode = typeof attack.d_co === 'string' ? attack.d_co.trim().toUpperCase() : '';
+  const sourceLat = attack.s_la;
+  const sourceLng = attack.s_lo;
+  const targetLat = attack.d_la;
+  const targetLng = attack.d_lo;
+
+  if (
+    !sourceCode || !targetCode ||
+    typeof sourceLat !== 'number' || !Number.isFinite(sourceLat) || sourceLat < -90 || sourceLat > 90 ||
+    typeof sourceLng !== 'number' || !Number.isFinite(sourceLng) || sourceLng < -180 || sourceLng > 180 ||
+    typeof targetLat !== 'number' || !Number.isFinite(targetLat) || targetLat < -90 || targetLat > 90 ||
+    typeof targetLng !== 'number' || !Number.isFinite(targetLng) || targetLng < -180 || targetLng > 180
+  ) {
+    return null;
+  }
+
+  return {
+    id: crypto.randomUUID(),
+    receivedAt: new Date().toISOString(),
+    a_n: typeof attack.a_n === 'string' ? attack.a_n : undefined,
+    a_t: typeof attack.a_t === 'string' ? attack.a_t : undefined,
+    s_co: sourceCode,
+    s_la: sourceLat,
+    s_lo: sourceLng,
+    d_co: targetCode,
+    d_la: targetLat,
+    d_lo: targetLng,
+  };
+}
+
+function getCountryName(code: string): string {
+  try {
+    return countryNames.of(code) || code;
+  } catch {
+    return code;
+  }
 }
 
 function readCheckpointAttacks(limit: number): Promise<CheckpointAttack[]> {
@@ -159,11 +205,11 @@ function readCheckpointAttacks(limit: number): Promise<CheckpointAttack[]> {
           const dataLine = frame.split(/\r?\n/).find((line) => line.trimStart().startsWith('data:'));
           if (!dataLine) continue;
           try {
-            const event = JSON.parse(dataLine.slice(dataLine.indexOf(':') + 1).trim()) as CheckpointAttack;
-            if (event.s_co && event.d_co && Number.isFinite(event.s_la) && Number.isFinite(event.s_lo) && Number.isFinite(event.d_la) && Number.isFinite(event.d_lo)) {
+            const event = parseCheckpointAttack(JSON.parse(dataLine.slice(dataLine.indexOf(':') + 1).trim()));
+            if (event) {
               events.push(event);
+              if (!settleTimer) settleTimer = setTimeout(finish, 1500);
             }
-            if (!settleTimer) settleTimer = setTimeout(finish, 1500);
           } catch {
             // Ignore malformed SSE frames and continue collecting valid attacks.
           }
@@ -186,7 +232,7 @@ function readCheckpointAttacks(limit: number): Promise<CheckpointAttack[]> {
       });
     });
 
-    request.setTimeout(8000, () => request.destroy(new Error('Check Point live feed timed out')));
+    request.setTimeout(20000, () => request.destroy(new Error('Check Point live feed timed out before an attack event arrived')));
     request.on('error', (error) => {
       if (!settled) {
         settled = true;
@@ -198,6 +244,7 @@ function readCheckpointAttacks(limit: number): Promise<CheckpointAttack[]> {
 
 const liveTelemetry: ThreatIndicator[] = [];
 const checkpointLiveEvents: CheckpointAttack[] = [];
+const CHECKPOINT_EVENT_RETENTION_MS = 5 * 60 * 1000;
 
 function connectCheckpointFeed() {
   const request = https.get('https://threatmap-api.checkpoint.com/ThreatMap/api/feed', {
@@ -217,10 +264,13 @@ function connectCheckpointFeed() {
         const dataLine = frame.split(/\r?\n/).find((line) => line.trimStart().startsWith('data:'));
         if (!dataLine) continue;
         try {
-          const attack = JSON.parse(dataLine.slice(dataLine.indexOf(':') + 1).trim()) as CheckpointAttack;
-          if (attack.s_co && attack.d_co && Number.isFinite(attack.s_la) && Number.isFinite(attack.s_lo) && Number.isFinite(attack.d_la) && Number.isFinite(attack.d_lo)) {
+          const attack = parseCheckpointAttack(JSON.parse(dataLine.slice(dataLine.indexOf(':') + 1).trim()));
+          if (attack) {
             checkpointLiveEvents.unshift(attack);
-            checkpointLiveEvents.splice(100);
+            const cutoff = Date.now() - CHECKPOINT_EVENT_RETENTION_MS;
+            while (checkpointLiveEvents.length > 100 || Date.parse(checkpointLiveEvents[checkpointLiveEvents.length - 1].receivedAt) < cutoff) {
+              checkpointLiveEvents.pop();
+            }
           }
         } catch { /* Ignore malformed upstream frames. */ }
       }
@@ -241,77 +291,6 @@ const protectedLng = Number(process.env.SECUREWATCH_TARGET_LNG);
 const configuredTargetCountry = protectedCountry && Number.isFinite(protectedLat) && Number.isFinite(protectedLng)
   ? { name: protectedCountry, code: protectedCountry, lat: protectedLat, lng: protectedLng }
   : undefined;
-
-const FALLBACK_THREATS: ThreatIndicator[] = [
-  {
-    id: 'fallback-us-uk',
-    pulseName: 'Ransomware propagation',
-    indicator: 'US -> GB',
-    indicatorType: 'LIVE ATTACK',
-    created: new Date().toISOString(),
-    tags: ['ransomware', 'botnet'],
-    sourceCountry: { name: 'United States', code: 'US', lat: 37.0902, lng: -95.7129 },
-    targetCountry: { name: 'United Kingdom', code: 'GB', lat: 55.3781, lng: -3.4360 },
-  },
-  {
-    id: 'fallback-us-cn',
-    pulseName: 'Botnet command channel',
-    indicator: 'US -> CN',
-    indicatorType: 'LIVE ATTACK',
-    created: new Date().toISOString(),
-    tags: ['botnet', 'c2'],
-    sourceCountry: { name: 'United States', code: 'US', lat: 37.0902, lng: -95.7129 },
-    targetCountry: { name: 'China', code: 'CN', lat: 35.8617, lng: 104.1954 },
-  },
-  {
-    id: 'fallback-ru-de',
-    pulseName: 'Credential stuffing sweep',
-    indicator: 'RU -> DE',
-    indicatorType: 'LIVE ATTACK',
-    created: new Date().toISOString(),
-    tags: ['credential', 'exploit'],
-    sourceCountry: { name: 'Russia', code: 'RU', lat: 61.5240, lng: 105.3188 },
-    targetCountry: { name: 'Germany', code: 'DE', lat: 51.1657, lng: 10.4515 },
-  },
-  {
-    id: 'fallback-in-sa',
-    pulseName: 'API abuse cluster',
-    indicator: 'IN -> SA',
-    indicatorType: 'LIVE ATTACK',
-    created: new Date().toISOString(),
-    tags: ['ddos', 'api-abuse'],
-    sourceCountry: { name: 'India', code: 'IN', lat: 20.5937, lng: 78.9629 },
-    targetCountry: { name: 'Saudi Arabia', code: 'SA', lat: 23.8859, lng: 45.0792 },
-  },
-  {
-    id: 'fallback-br-au',
-    pulseName: 'Phishing delivery burst',
-    indicator: 'BR -> AU',
-    indicatorType: 'LIVE ATTACK',
-    created: new Date().toISOString(),
-    tags: ['phishing', 'malware'],
-    sourceCountry: { name: 'Brazil', code: 'BR', lat: -14.2350, lng: -51.9253 },
-    targetCountry: { name: 'Australia', code: 'AU', lat: -25.2744, lng: 133.7751 },
-  },
-  {
-    id: 'fallback-jp-kr',
-    pulseName: 'Port scanning wave',
-    indicator: 'JP -> KR',
-    indicatorType: 'LIVE ATTACK',
-    created: new Date().toISOString(),
-    tags: ['scan', 'exploit'],
-    sourceCountry: { name: 'Japan', code: 'JP', lat: 36.2048, lng: 138.2529 },
-    targetCountry: { name: 'South Korea', code: 'KR', lat: 35.9078, lng: 127.7669 },
-  },
-];
-
-function getFallbackThreats(limit: number): ThreatIndicator[] {
-  return FALLBACK_THREATS.slice(0, limit).map((threat, index) => ({
-    ...threat,
-    id: `${threat.id}-${Date.now()}-${index}`,
-    created: new Date().toISOString(),
-  }));
-}
 
 // Accept Suricata EVE-style alerts from an IDS running on the protected network.
 app.post('/api/telemetry', (req, res) => {
@@ -345,61 +324,76 @@ app.get('/api/telemetry', (_req, res) => {
   });
 });
 
-// Keep the CyberBriefing credential server-side and return only IP indicators
-// that can be placed on the map.
+// Proxy the public Check Point ThreatMap stream and mapable IDS events through the backend.
 app.get('/api/threats', async (req, res) => {
   const limit = Math.min(Math.max(Number(req.query.limit) || 40, 1), 100);
   try {
-    let source = 'Check Point ThreatCloud live feed';
-    let indicators: ThreatIndicator[] = [];
-    try {
-      let events = checkpointLiveEvents.slice(0, limit);
-      if (events.length === 0) {
-        events = await readCheckpointAttacks(limit);
-        checkpointLiveEvents.unshift(...events);
-        checkpointLiveEvents.splice(100);
-      }
-      if (events.length === 0) throw new Error('Check Point live feed has not delivered an attack event yet');
-      indicators = events
-        .filter((item) => item.s_co && item.d_co && item.s_co !== item.d_co && Number.isFinite(item.s_la) && Number.isFinite(item.s_lo) && Number.isFinite(item.d_la) && Number.isFinite(item.d_lo))
-        .map((item, index) => ({
-          id: `checkpoint-${Date.now()}-${index}`,
-          pulseName: item.a_n || 'ThreatCloud verified event',
-          indicator: `${item.s_co} -> ${item.d_co}`,
-          indicatorType: 'LIVE ATTACK',
-          created: new Date().toISOString(),
-          tags: [item.a_t || 'threat'],
-          sourceCountry: { name: String(item.s_co), code: String(item.s_co), lat: Number(item.s_la), lng: Number(item.s_lo) },
-          targetCountry: { name: String(item.d_co), code: String(item.d_co), lat: Number(item.d_la), lng: Number(item.d_lo) },
-        }));
-    } catch (error: any) {
-      console.warn('No verified live threat feed available:', error?.message || error);
-      source = 'Fallback cyber attack simulation active';
-      indicators = getFallbackThreats(limit);
+    const cutoff = Date.now() - CHECKPOINT_EVENT_RETENTION_MS;
+    let events = checkpointLiveEvents
+      .filter((event) => Date.parse(event.receivedAt) >= cutoff)
+      .slice(0, limit);
+    if (events.length === 0) {
+      const receivedEvents = await readCheckpointAttacks(limit);
+      checkpointLiveEvents.unshift(...receivedEvents.reverse());
+      checkpointLiveEvents.splice(100);
+      events = checkpointLiveEvents
+        .filter((event) => Date.parse(event.receivedAt) >= cutoff)
+        .slice(0, limit);
     }
+    const indicators: ThreatIndicator[] = events.map((item) => ({
+      id: item.id,
+      pulseName: item.a_n || 'Check Point ThreatMap event',
+      indicator: `${item.s_co} -> ${item.d_co}`,
+      indicatorType: 'CHECK POINT ATTACK',
+      created: item.receivedAt,
+      tags: [item.a_t || 'threat'],
+      sourceCountry: {
+        name: getCountryName(item.s_co),
+        code: item.s_co,
+        lat: item.s_la,
+        lng: item.s_lo,
+      },
+      targetCountry: {
+        name: getCountryName(item.d_co),
+        code: item.d_co,
+        lat: item.d_la,
+        lng: item.d_lo,
+      },
+    }));
 
     const recentTelemetry = liveTelemetry
       .filter((item) => Date.now() - Date.parse(item.created) < 15 * 60 * 1000)
-      .filter((item) => item.sourceCountry && item.targetCountry && item.sourceCountry.code !== item.targetCountry.code);
+      .filter((item) => item.sourceCountry && item.targetCountry);
     const merged = [...recentTelemetry, ...indicators];
 
     const threats = merged
-      .filter((item) => item.sourceCountry && item.targetCountry && item.sourceCountry.code !== item.targetCountry.code)
-      .filter((item, index, arr) => arr.findIndex((candidate) => candidate.indicator === item.indicator) === index)
+      .filter((item) => item.sourceCountry && item.targetCountry)
       .slice(0, limit);
 
     if (threats.length === 0) {
-      return res.json({ source: 'No verified live attacks currently available', fetchedAt: new Date().toISOString(), threats: [] });
+      return res.json({
+        source: 'Check Point ThreatMap live feed',
+        fetchedAt: new Date().toISOString(),
+        threats: [],
+        message: 'No Check Point attack events are currently being received.',
+      });
     }
 
-    return res.json({ source, fetchedAt: new Date().toISOString(), threats });
+    return res.json({
+      source: recentTelemetry.length > 0
+        ? 'Check Point ThreatMap + SecureWatch IDS'
+        : 'Check Point ThreatMap',
+      fetchedAt: new Date().toISOString(),
+      threats,
+    });
   } catch (error: any) {
     console.error('CyberBriefing threat feed failed:', error?.message || error);
     return res.json({
-      source: 'Live attack feed temporarily unavailable',
+      source: 'Check Point ThreatMap temporarily unavailable',
       fetchedAt: new Date().toISOString(),
       threats: [],
       degraded: true,
+      error: 'Could not retrieve live attack events from Check Point ThreatMap.',
     });
   }
 });
@@ -2326,6 +2320,36 @@ const tenantLoadPromises = new Map<string, Promise<void>>();
 
 const authChallengeSecret = resolvedEnv.SECUREWATCH_MASTER_PASSCODE || 'securewatch-auth-challenge-secret';
 
+interface UserManagementToken {
+  sessionId: string;
+  expiresAt: number;
+}
+
+function createUserManagementToken(sessionId: string): string {
+  const payload = Buffer.from(JSON.stringify({
+    sessionId,
+    expiresAt: Date.now() + 30 * 60 * 1000,
+  } satisfies UserManagementToken)).toString('base64url');
+  const signature = crypto.createHmac('sha256', authChallengeSecret).update(payload).digest('base64url');
+  return `${payload}.${signature}`;
+}
+
+function verifyUserManagementToken(token: string, sessionId: string): boolean {
+  const [payload, signature] = token.split('.');
+  if (!payload || !signature) return false;
+  const expectedSignature = crypto.createHmac('sha256', authChallengeSecret).update(payload).digest('base64url');
+  const actual = Buffer.from(signature);
+  const expected = Buffer.from(expectedSignature);
+  if (actual.length !== expected.length || !crypto.timingSafeEqual(actual, expected)) return false;
+
+  try {
+    const decoded = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as UserManagementToken;
+    return decoded.sessionId === sessionId && decoded.expiresAt > Date.now();
+  } catch {
+    return false;
+  }
+}
+
 function signAuthChallenge(challenge: AuthChallenge): string {
   const payload = Buffer.from(JSON.stringify(challenge)).toString('base64url');
   const signature = crypto.createHmac('sha256', authChallengeSecret).update(payload).digest('base64url');
@@ -2565,10 +2589,99 @@ app.post('/api/auth/logout', async (req, res) => {
 // REAL SECURITY USER MANAGEMENT (RBAC) API ENDPOINTS
 // ---------------------------------------------------------
 
+app.use('/api/users', (req, res, next) => {
+  if (req.path === '/authorize' || req.path === '/access-policy') return next();
+  const authorization = req.get('authorization') || '';
+  const token = authorization.startsWith('Bearer ') ? authorization.slice(7) : '';
+  void getTenantDb(req).then(({ sessionId }) => {
+    if (!verifyUserManagementToken(token, sessionId)) {
+      return res.status(401).json({ error: 'User Management authorization expired. Unlock the module again.' });
+    }
+    return next();
+  }).catch((error) => {
+    console.error('Unable to authorize security user request:', error);
+    return res.status(503).json({ error: 'Unable to verify User Management authorization.' });
+  });
+});
+
+app.get('/api/users/access-policy', async (req, res) => {
+  try {
+    const { db } = await getTenantDb(req);
+    const passcodeRequired = Boolean(resolvedEnv.SECUREWATCH_MASTER_PASSCODE) ||
+      db.settings.requireMasterPasscode !== false;
+    const passcodeConfigured = Boolean(
+      resolvedEnv.SECUREWATCH_MASTER_PASSCODE ||
+      db.settings.__userManagementPasscode ||
+      db.settings.masterPasscode,
+    );
+    return res.json({
+      passcodeRequired,
+      passcodeConfigured,
+      passcodeManagedByEnvironment: Boolean(resolvedEnv.SECUREWATCH_MASTER_PASSCODE),
+    });
+  } catch (error) {
+    console.error('Unable to load User Management access policy:', error);
+    return res.status(503).json({ error: 'Unable to load User Management access policy.' });
+  }
+});
+
+app.post('/api/users/authorize', async (req, res) => {
+  try {
+    const submittedPasscode = typeof req.body?.passcode === 'string' ? req.body.passcode.trim() : '';
+    const { db, sessionId } = await getTenantDb(req);
+    const passcodeRequired = Boolean(resolvedEnv.SECUREWATCH_MASTER_PASSCODE) ||
+      db.settings.requireMasterPasscode !== false;
+    if (!passcodeRequired) {
+      return res.json({
+        authorized: true,
+        token: createUserManagementToken(sessionId),
+        passcodeManagedByEnvironment: Boolean(resolvedEnv.SECUREWATCH_MASTER_PASSCODE),
+      });
+    }
+    if (!submittedPasscode) {
+      return res.status(400).json({ authorized: false, error: 'Enter the Security Access Passcode.' });
+    }
+
+    const configuredPasscodes = [
+      resolvedEnv.SECUREWATCH_MASTER_PASSCODE,
+      typeof db.settings.__userManagementPasscode === 'string' ? db.settings.__userManagementPasscode : '',
+      typeof db.settings.masterPasscode === 'string' ? db.settings.masterPasscode : '',
+    ].filter((passcode): passcode is string => Boolean(passcode));
+    if (configuredPasscodes.length === 0) {
+      return res.status(503).json({
+        authorized: false,
+        error: 'No User Management passcode is configured. Set one in Settings or configure SECUREWATCH_MASTER_PASSCODE.',
+      });
+    }
+
+    const submitted = Buffer.from(submittedPasscode);
+    const authorized = configuredPasscodes.some((passcode) => {
+      const configured = Buffer.from(passcode);
+      return submitted.length === configured.length && crypto.timingSafeEqual(submitted, configured);
+    });
+    if (!authorized) {
+      return res.status(401).json({ authorized: false, error: 'Invalid Security Access Passcode.' });
+    }
+    return res.json({
+      authorized: true,
+      token: createUserManagementToken(sessionId),
+      passcodeManagedByEnvironment: Boolean(resolvedEnv.SECUREWATCH_MASTER_PASSCODE),
+    });
+  } catch (error) {
+    console.error('Unable to authorize security user management:', error);
+    return res.status(503).json({ authorized: false, error: 'User Management authorization is temporarily unavailable.' });
+  }
+});
+
 // 1. GET ALL USERS FOR CURRENT SESSION
 app.get('/api/users', async (req, res) => {
-  const { db } = await getTenantDb(req);
-  return res.json(db.users);
+  try {
+    const { db } = await getTenantDb(req);
+    return res.json(db.users);
+  } catch (error) {
+    console.error('Unable to read security users:', error);
+    return res.status(503).json({ error: 'Unable to load security users.' });
+  }
 });
 
 // SYNC LOCAL USERS FOR CURRENT SESSION
@@ -2581,9 +2694,9 @@ app.post('/api/users/sync', async (req, res) => {
       saveDatabaseToDisk();
     }
     return res.json(db.users);
-  } catch (err: any) {
-    const { db } = await getTenantDb(req);
-    return res.json(db.users);
+  } catch (error) {
+    console.error('Unable to sync security users:', error);
+    return res.status(503).json({ error: 'Unable to sync security users.' });
   }
 });
 
@@ -2599,6 +2712,15 @@ app.post('/api/users', async (req, res) => {
 
     const cleanEmail = String(email).trim().toLowerCase();
     const cleanName = String(name).trim();
+    if (!cleanName || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      return res.status(400).json({ error: 'Enter a valid name and email address.' });
+    }
+    if (!['Active', 'Suspended', 'Pending'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid user account status.' });
+    }
+    if (!['Enabled', 'Disabled', 'Enforced'].includes(mfa)) {
+      return res.status(400).json({ error: 'Invalid MFA policy.' });
+    }
 
     // Check duplicate email inside current session database
     const existingIndex = db.users.findIndex((u) => u.email.toLowerCase() === cleanEmail);
@@ -2620,7 +2742,7 @@ app.post('/api/users', async (req, res) => {
       email: cleanEmail,
       role: String(role).trim(),
       status,
-      mfa,
+      mfa: db.settings.enforceMfaNewUsers === true ? 'Enforced' : mfa,
       createdAt: new Date().toISOString(),
       lastLogin: 'Just now',
     };
@@ -2643,17 +2765,9 @@ app.post('/api/users', async (req, res) => {
     } catch (e) {}
 
     return res.status(201).json(newUser);
-  } catch (err: any) {
-    const fallbackUser: SecurityUser = {
-      id: `usr-${Date.now()}`,
-      name: req.body?.name || 'Security Analyst',
-      email: req.body?.email || 'analyst@securewatch.io',
-      role: req.body?.role || 'SOC Analyst',
-      status: req.body?.status || 'Active',
-      mfa: req.body?.mfa || 'Enabled',
-      createdAt: new Date().toISOString(),
-    };
-    return res.status(200).json(fallbackUser);
+  } catch (error) {
+    console.error('Unable to create security user:', error);
+    return res.status(503).json({ error: 'Unable to save the security user.' });
   }
 });
 
@@ -2664,21 +2778,8 @@ app.put('/api/users/:id', async (req, res) => {
     const { id } = req.params;
     const { name, email, role, status, mfa } = req.body || {};
 
-    let idx = db.users.findIndex((u) => u.id === id);
-    if (idx === -1) {
-      const upserted: SecurityUser = {
-        id: id || `usr-${Date.now()}`,
-        name: name ? String(name).trim() : 'Security Specialist',
-        email: email ? String(email).trim().toLowerCase() : 'user@securewatch.io',
-        role: role ? String(role).trim() : 'SOC Analyst',
-        status: status || 'Active',
-        mfa: mfa || 'Enabled',
-        createdAt: new Date().toISOString(),
-      };
-      db.users.push(upserted);
-      saveDatabaseToDisk();
-      return res.json(upserted);
-    }
+    const idx = db.users.findIndex((u) => u.id === id);
+    if (idx === -1) return res.status(404).json({ error: 'Security user not found.' });
 
     const updatedUser = { ...db.users[idx] };
     if (name) updatedUser.name = String(name).trim();
@@ -2686,6 +2787,19 @@ app.put('/api/users/:id', async (req, res) => {
     if (role) updatedUser.role = String(role).trim();
     if (status) updatedUser.status = status;
     if (mfa) updatedUser.mfa = mfa;
+    if (!updatedUser.name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(updatedUser.email)) {
+      return res.status(400).json({ error: 'Enter a valid name and email address.' });
+    }
+    if (!['Active', 'Suspended', 'Pending'].includes(updatedUser.status)) {
+      return res.status(400).json({ error: 'Invalid user account status.' });
+    }
+    if (!['Enabled', 'Disabled', 'Enforced'].includes(updatedUser.mfa)) {
+      return res.status(400).json({ error: 'Invalid MFA policy.' });
+    }
+    const duplicateEmail = db.users.some((user, userIndex) =>
+      userIndex !== idx && user.email.toLowerCase() === updatedUser.email,
+    );
+    if (duplicateEmail) return res.status(409).json({ error: 'A security user with this email already exists.' });
 
     db.users[idx] = updatedUser;
     saveDatabaseToDisk();
@@ -2704,16 +2818,9 @@ app.put('/api/users/:id', async (req, res) => {
     } catch (e) {}
 
     return res.json(updatedUser);
-  } catch (err: any) {
-    return res.json({
-      id: req.params.id,
-      name: req.body?.name || 'User',
-      email: req.body?.email || 'user@securewatch.io',
-      role: req.body?.role || 'SOC Analyst',
-      status: req.body?.status || 'Active',
-      mfa: req.body?.mfa || 'Enabled',
-      createdAt: new Date().toISOString(),
-    });
+  } catch (error) {
+    console.error('Unable to update security user:', error);
+    return res.status(503).json({ error: 'Unable to update the security user.' });
   }
 });
 
@@ -2847,8 +2954,9 @@ app.delete('/api/users/:id', async (req, res) => {
     }
 
     return res.json({ success: true, deletedId: id, message: 'User removed successfully' });
-  } catch (err: any) {
-    return res.json({ success: true, deletedId: req.params.id, message: 'User removed from session memory' });
+  } catch (error) {
+    console.error('Unable to delete security user:', error);
+    return res.status(503).json({ error: 'Unable to delete the security user.' });
   }
 });
 
@@ -2863,7 +2971,16 @@ app.get('/api/url-scans', async (req, res) => {
 
 app.get('/api/settings', async (req, res) => {
   const { db } = await getTenantDb(req);
-  return res.json(db.settings || {});
+  const settings = { ...(db.settings || {}) };
+  const masterPasscodeConfigured = Boolean(
+    resolvedEnv.SECUREWATCH_MASTER_PASSCODE ||
+    settings.__userManagementPasscode ||
+    settings.masterPasscode,
+  );
+  const masterPasscodeManagedByEnvironment = Boolean(resolvedEnv.SECUREWATCH_MASTER_PASSCODE);
+  delete settings.__userManagementPasscode;
+  delete settings.masterPasscode;
+  return res.json({ ...settings, masterPasscodeConfigured, masterPasscodeManagedByEnvironment });
 });
 
 app.put('/api/settings', async (req, res) => {
@@ -2871,9 +2988,53 @@ app.put('/api/settings', async (req, res) => {
   if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
     return res.status(400).json({ error: 'A settings object is required.' });
   }
-  db.settings = { ...db.settings, ...req.body };
+  const updates = { ...req.body };
+  if (Object.prototype.hasOwnProperty.call(updates, 'masterPasscode')) {
+    const masterPasscode = updates.masterPasscode;
+    if (typeof masterPasscode !== 'string' || (masterPasscode.length > 0 && masterPasscode.length < 4)) {
+      return res.status(400).json({ error: 'The User Management passcode must be empty or at least 4 characters long.' });
+    }
+    if (resolvedEnv.SECUREWATCH_MASTER_PASSCODE) {
+      return res.status(409).json({ error: 'User Management passcode is managed by SECUREWATCH_MASTER_PASSCODE.' });
+    }
+    const currentPasscodes = [
+      typeof db.settings.__userManagementPasscode === 'string' ? db.settings.__userManagementPasscode : '',
+      typeof db.settings.masterPasscode === 'string' ? db.settings.masterPasscode : '',
+    ].filter(Boolean);
+    if (currentPasscodes.length > 0) {
+      const currentPasscode = typeof updates.currentMasterPasscode === 'string'
+        ? updates.currentMasterPasscode
+        : '';
+      const submitted = Buffer.from(currentPasscode);
+      const currentPasscodeValid = currentPasscodes.some((configuredPasscode) => {
+        const configured = Buffer.from(configuredPasscode);
+        return submitted.length === configured.length && crypto.timingSafeEqual(submitted, configured);
+      });
+      if (!currentPasscodeValid) {
+        return res.status(401).json({ error: 'Current User Management passcode is incorrect.' });
+      }
+    }
+    if (masterPasscode) {
+      db.settings.__userManagementPasscode = masterPasscode;
+    } else {
+      delete db.settings.__userManagementPasscode;
+    }
+    delete db.settings.masterPasscode;
+    delete updates.masterPasscode;
+  }
+  delete updates.currentMasterPasscode;
+  db.settings = { ...db.settings, ...updates };
   saveDatabaseToDisk();
-  return res.json(db.settings);
+  const settings = { ...db.settings };
+  const masterPasscodeConfigured = Boolean(
+    resolvedEnv.SECUREWATCH_MASTER_PASSCODE ||
+    settings.__userManagementPasscode ||
+    settings.masterPasscode,
+  );
+  const masterPasscodeManagedByEnvironment = Boolean(resolvedEnv.SECUREWATCH_MASTER_PASSCODE);
+  delete settings.__userManagementPasscode;
+  delete settings.masterPasscode;
+  return res.json({ ...settings, masterPasscodeConfigured, masterPasscodeManagedByEnvironment });
 });
 
 app.get('/api/component-state/:component', async (req, res) => {
@@ -2891,12 +3052,30 @@ app.put('/api/component-state/:component', async (req, res) => {
     return res.status(400).json({ error: 'A valid component state is required.' });
   }
   const currentState = db.settings.__componentState;
+  const previousComponentState = currentState && typeof currentState === 'object'
+    ? currentState[component]
+    : null;
+  let componentState = req.body;
+  if (component === 'vulnerability-scanner') {
+    const scanResult = req.body.scanResult as { target?: unknown; scannedAt?: unknown; vulnerabilities?: unknown } | undefined;
+    const previousScanResult = previousComponentState?.scanResult as { scannedAt?: unknown } | undefined;
+    const scanTimestamp = typeof scanResult?.scannedAt === 'string' ? Date.parse(scanResult.scannedAt) : NaN;
+    const validScan = typeof scanResult?.target === 'string' &&
+      Number.isFinite(scanTimestamp) &&
+      Array.isArray(scanResult.vulnerabilities);
+    const previousCount = Number(previousComponentState?.scanCount);
+    const scanCount = Math.max(
+      Number.isFinite(previousCount) ? previousCount : previousScanResult ? 1 : 0,
+      0,
+    ) + (validScan && scanResult.scannedAt !== previousScanResult?.scannedAt ? 1 : 0);
+    componentState = { ...req.body, scanCount };
+  }
   db.settings.__componentState = {
     ...(currentState && typeof currentState === 'object' ? currentState : {}),
-    [component]: req.body,
+    [component]: componentState,
   };
   saveDatabaseToDisk();
-  return res.json(req.body);
+  return res.json(componentState);
 });
 
 app.get('/api/reports', async (req, res) => {

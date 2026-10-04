@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ProfileView } from './ProfileView';
 
 export interface SecurityUser {
   id: string;
@@ -53,12 +52,11 @@ export const SecurityUsersView: React.FC<SecurityUsersViewProps> = () => {
   };
 
   // Authorized Security Gate Password Protection
-  const [masterPasscode, setMasterPasscode] = useState<string>(() => {
-    return localStorage.getItem('user_mgmt_master_passcode') || '';
-  });
   const [isAuthorized, setIsAuthorized] = useState<boolean>(() => {
-    return sessionStorage.getItem('user_mgmt_authorized') === 'true';
+    return sessionStorage.getItem('user_mgmt_authorized') === 'true' &&
+      Boolean(sessionStorage.getItem('user_mgmt_token'));
   });
+  const [passcodeManagedByEnvironment, setPasscodeManagedByEnvironment] = useState<boolean>(false);
   const [inputPasscode, setInputPasscode] = useState<string>('');
   const [showPasscode, setShowPasscode] = useState<boolean>(false);
   const [passcodeError, setPasscodeError] = useState<string | null>(null);
@@ -91,7 +89,7 @@ export const SecurityUsersView: React.FC<SecurityUsersViewProps> = () => {
     return () => clearInterval(interval);
   }, [isLockedOut, lockoutTimer]);
 
-  const handleVerifyPasscode = (e: React.FormEvent) => {
+  const handleVerifyPasscode = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isLockedOut) return;
 
@@ -100,14 +98,35 @@ export const SecurityUsersView: React.FC<SecurityUsersViewProps> = () => {
       return;
     }
 
-    if (inputPasscode.trim() === masterPasscode) {
+    try {
+      const response = await fetch('/api/users/authorize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ passcode: inputPasscode }),
+      });
+      const result = await response.json() as {
+        authorized?: boolean;
+        token?: string;
+        error?: string;
+        passcodeManagedByEnvironment?: boolean;
+      };
+      if (!response.ok || result.authorized !== true || !result.token) {
+        if (response.status === 503) {
+          setPasscodeError(result.error || 'Set the User Management passcode in Settings before opening this module.');
+          return;
+        }
+        throw new Error(result.error || 'Invalid Security Access Passcode.');
+      }
       setIsAuthorized(true);
+      setPasscodeManagedByEnvironment(result.passcodeManagedByEnvironment === true);
+      sessionStorage.setItem('user_mgmt_token', result.token);
       sessionStorage.setItem('user_mgmt_authorized', 'true');
       setPasscodeError(null);
       setInputPasscode('');
       setFailedAttempts(0);
       showToast('Authorized Access Granted! User Management Unlocked.', 'success');
-    } else {
+      void fetchUsers();
+    } catch (error) {
       const nextAttempts = failedAttempts + 1;
       setFailedAttempts(nextAttempts);
       if (nextAttempts >= 5) {
@@ -115,7 +134,8 @@ export const SecurityUsersView: React.FC<SecurityUsersViewProps> = () => {
         setLockoutTimer(30);
         setPasscodeError('Security Lockout! Too many failed authorization attempts. Try again in 30s.');
       } else {
-        setPasscodeError(`Unauthorized Access Attempt! Invalid Passcode. (${5 - nextAttempts} attempt(s) remaining)`);
+        const message = error instanceof Error ? error.message : 'Unable to verify the passcode.';
+        setPasscodeError(`${message} (${5 - nextAttempts} attempt(s) remaining)`);
       }
     }
   };
@@ -123,15 +143,16 @@ export const SecurityUsersView: React.FC<SecurityUsersViewProps> = () => {
   const handleLockSession = () => {
     setIsAuthorized(false);
     sessionStorage.removeItem('user_mgmt_authorized');
+    sessionStorage.removeItem('user_mgmt_token');
     showToast('User Management Session Locked for security.', 'info');
   };
 
-  const handleChangePasscode = (e: React.FormEvent) => {
+  const handleChangePasscode = async (e: React.FormEvent) => {
     e.preventDefault();
     setChangePassError(null);
 
-    if (currentPassInput.trim() !== masterPasscode) {
-      setChangePassError('Current Security Passcode is incorrect.');
+    if (passcodeManagedByEnvironment) {
+      setChangePassError('The User Management passcode is managed by SECUREWATCH_MASTER_PASSCODE.');
       return;
     }
 
@@ -145,21 +166,44 @@ export const SecurityUsersView: React.FC<SecurityUsersViewProps> = () => {
       return;
     }
 
-    setMasterPasscode(newPassInput);
-    localStorage.setItem('user_mgmt_master_passcode', newPassInput);
-    setIsChangePassModalOpen(false);
-    setCurrentPassInput('');
-    setNewPassInput('');
-    setConfirmPassInput('');
-    showToast('Master Security Passcode updated successfully!', 'success');
+    try {
+      const verification = await fetch('/api/users/authorize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ passcode: currentPassInput }),
+      });
+      const verificationResult = await verification.json() as { authorized?: boolean; error?: string };
+      if (!verification.ok || verificationResult.authorized !== true) {
+        throw new Error(verificationResult.error || 'Current Security Passcode is incorrect.');
+      }
+
+      const response = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          masterPasscode: newPassInput,
+          currentMasterPasscode: currentPassInput,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error('The new passcode could not be saved.');
+      }
+
+      setIsChangePassModalOpen(false);
+      setCurrentPassInput('');
+      setNewPassInput('');
+      setConfirmPassInput('');
+      showToast('Master Security Passcode updated successfully!', 'success');
+    } catch (error) {
+      setChangePassError(error instanceof Error ? error.message : 'Unable to update the security passcode.');
+    }
   };
 
-  // Fetch users from real backend API & sync with local cache (100% Zero Error Guarantee)
+  // Load the backend as the source of truth; keep the local cache for offline viewing only.
   const fetchUsers = async () => {
     setLoading(true);
     setError(null);
 
-    // 1. Immediately hydrate from local persistent store
     let localUsers: SecurityUser[] = [];
     const storedStr = localStorage.getItem('custom_created_security_users');
     if (storedStr) {
@@ -173,37 +217,91 @@ export const SecurityUsersView: React.FC<SecurityUsersViewProps> = () => {
 
     setUsers(localUsers);
 
-    // 2. Background sync with backend
     try {
-      const res = await fetch('/api/users');
-      if (res.ok) {
-        const serverData: SecurityUser[] = await res.json();
-        if (Array.isArray(serverData)) {
-          const userMap = new Map<string, SecurityUser>();
-          serverData.forEach((u) => userMap.set(u.id, u));
-          localUsers.forEach((u) => userMap.set(u.id, u));
-
-          const merged = Array.from(userMap.values());
-          setUsers(merged);
-          localStorage.setItem('custom_created_security_users', JSON.stringify(merged));
-
-          // Background push sync
-          fetch('/api/users/sync', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ users: merged }),
-          }).catch(() => {});
-        }
+      const token = sessionStorage.getItem('user_mgmt_token');
+      const res = await fetch('/api/users', {
+        cache: 'no-store',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (res.status === 401) {
+        setIsAuthorized(false);
+        sessionStorage.removeItem('user_mgmt_authorized');
+        sessionStorage.removeItem('user_mgmt_token');
       }
-    } catch (err: any) {
-      console.warn('API sync warning - using active local persistent store:', err);
+      if (!res.ok) throw new Error(`Unable to load users (HTTP ${res.status}).`);
+      const serverData: SecurityUser[] = await res.json();
+      if (!Array.isArray(serverData)) throw new Error('The server returned an invalid users list.');
+      setUsers(serverData);
+      localStorage.setItem('custom_created_security_users', JSON.stringify(serverData));
+      setError(null);
+    } catch (err) {
+      setUsers(localUsers);
+      setError(err instanceof Error ? `${err.message} Showing saved local users.` : 'Unable to load users. Showing saved local users.');
+      console.warn('User list unavailable from backend:', err);
     } finally {
       setLoading(false);
     }
   };
 
+  const requestUsersApi = async <T,>(url: string, options?: RequestInit): Promise<T> => {
+    const token = sessionStorage.getItem('user_mgmt_token');
+    const headers = new Headers(options?.headers);
+    if (token) headers.set('Authorization', `Bearer ${token}`);
+    const response = await fetch(url, { ...options, headers });
+    const payload = await response.json().catch(() => null) as (T & { error?: string }) | null;
+    if (!response.ok) {
+      if (response.status === 401) {
+        setIsAuthorized(false);
+        sessionStorage.removeItem('user_mgmt_authorized');
+        sessionStorage.removeItem('user_mgmt_token');
+      }
+      throw new Error(payload?.error || `User management request failed (HTTP ${response.status}).`);
+    }
+    if (payload === null) throw new Error('The server returned an empty response.');
+    return payload;
+  };
+
   useEffect(() => {
-    fetchUsers();
+    localStorage.removeItem('user_mgmt_master_passcode');
+    const existingToken = sessionStorage.getItem('user_mgmt_token');
+    if (existingToken) {
+      void fetchUsers();
+    }
+
+    void fetch('/api/users/access-policy', { cache: 'no-store' })
+      .then(async (response) => {
+        const policy = await response.json() as {
+          passcodeRequired?: boolean;
+          passcodeConfigured?: boolean;
+          passcodeManagedByEnvironment?: boolean;
+          error?: string;
+        };
+        if (!response.ok) throw new Error(policy.error || 'Unable to load User Management access policy.');
+        setPasscodeManagedByEnvironment(policy.passcodeManagedByEnvironment === true);
+        if (existingToken || policy.passcodeRequired !== false) {
+          if (!policy.passcodeConfigured) {
+            setPasscodeError('No User Management passcode is configured. Set one in Settings before opening this module.');
+          }
+          return;
+        }
+
+        const authResponse = await fetch('/api/users/authorize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ passcode: '' }),
+        });
+        const result = await authResponse.json() as { authorized?: boolean; token?: string; error?: string };
+        if (!authResponse.ok || !result.authorized || !result.token) {
+          throw new Error(result.error || 'Unable to authorize User Management.');
+        }
+        sessionStorage.setItem('user_mgmt_token', result.token);
+        sessionStorage.setItem('user_mgmt_authorized', 'true');
+        setIsAuthorized(true);
+        void fetchUsers();
+      })
+      .catch((error: unknown) => {
+      setPasscodeError(error instanceof Error ? error.message : 'Unable to check User Management access.');
+      });
   }, []);
 
   // Open Add Modal
@@ -233,21 +331,22 @@ export const SecurityUsersView: React.FC<SecurityUsersViewProps> = () => {
   };
 
   // Clear all users from persistent database
-  const handleClearAllUsers = () => {
+  const handleClearAllUsers = async () => {
     if (window.confirm('Clear all security users from the database?')) {
-      setUsers([]);
-      localStorage.removeItem('custom_created_security_users');
-      localStorage.removeItem('activeSecurityUser');
-      window.dispatchEvent(new Event('security_users_changed'));
-
-      // Sync backend
-      fetch('/api/users/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ users: [] }),
-      }).catch(() => {});
-
-      showToast('All Security Users cleared from database.', 'info');
+      try {
+        await requestUsersApi<SecurityUser[]>('/api/users/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ users: [] }),
+        });
+        setUsers([]);
+        localStorage.removeItem('custom_created_security_users');
+        localStorage.removeItem('activeSecurityUser');
+        window.dispatchEvent(new Event('security_users_changed'));
+        showToast('All Security Users cleared from database.', 'info');
+      } catch (error) {
+        showToast(error instanceof Error ? error.message : 'Unable to clear security users.', 'error');
+      }
     }
   };
 
@@ -265,50 +364,23 @@ export const SecurityUsersView: React.FC<SecurityUsersViewProps> = () => {
     const cleanName = formData.name.trim();
     const cleanEmail = formData.email.trim().toLowerCase();
 
-    const newUserObj: SecurityUser = {
-      id: `usr-${Date.now()}`,
-      name: cleanName,
-      email: cleanEmail,
-      role: formData.role.trim(),
-      status: formData.status,
-      mfa: formData.mfa,
-      createdAt: new Date().toISOString(),
-      lastLogin: 'Just now',
-    };
-
-    // 1. Instant local persistence
-    setUsers((prev) => {
-      const filtered = prev.filter((u) => u.email.toLowerCase() !== cleanEmail);
-      const updated = [newUserObj, ...filtered];
-      localStorage.setItem('custom_created_security_users', JSON.stringify(updated));
-      return updated;
-    });
-
-    localStorage.setItem('activeSecurityUser', JSON.stringify(newUserObj));
-    window.dispatchEvent(new Event('security_users_changed'));
-    setIsAddModalOpen(false);
-    setFormSubmitting(false);
-    showToast(`Security User "${newUserObj.name}" created successfully!`, 'success');
-
-    // 2. Network API post in background
     try {
-      const res = await fetch('/api/users', {
+      const savedUser = await requestUsersApi<SecurityUser>('/api/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, name: cleanName, email: cleanEmail, role: formData.role.trim() }),
       });
-      if (res.ok) {
-        const serverUser = await res.json();
-        if (serverUser && serverUser.id) {
-          setUsers((prev) => {
-            const mapped = prev.map((u) => (u.id === newUserObj.id ? serverUser : u));
-            localStorage.setItem('custom_created_security_users', JSON.stringify(mapped));
-            return mapped;
-          });
-        }
-      }
-    } catch (err) {
-      console.warn('API post offline - user stored in persistent local database');
+      const updated = [savedUser, ...users.filter((user) => user.id !== savedUser.id)];
+      setUsers(updated);
+      localStorage.setItem('custom_created_security_users', JSON.stringify(updated));
+      localStorage.setItem('activeSecurityUser', JSON.stringify(savedUser));
+      window.dispatchEvent(new Event('security_users_changed'));
+      setIsAddModalOpen(false);
+      showToast(`Security User "${savedUser.name}" created successfully!`, 'success');
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : 'Unable to create the security user.');
+    } finally {
+      setFormSubmitting(false);
     }
   };
 
@@ -320,84 +392,67 @@ export const SecurityUsersView: React.FC<SecurityUsersViewProps> = () => {
     setFormSubmitting(true);
     setFormError(null);
 
-    const updatedUserObj: SecurityUser = {
-      ...editingUser,
-      name: formData.name.trim(),
-      email: formData.email.trim().toLowerCase(),
-      role: formData.role.trim(),
-      status: formData.status,
-      mfa: formData.mfa,
-    };
-
-    // 1. Instant local update
-    setUsers((prev) => {
-      const updated = prev.map((u) => (u.id === editingUser.id ? updatedUserObj : u));
-      localStorage.setItem('custom_created_security_users', JSON.stringify(updated));
-      return updated;
-    });
-
-    localStorage.setItem('activeSecurityUser', JSON.stringify(updatedUserObj));
-    window.dispatchEvent(new Event('security_users_changed'));
-    setEditingUser(null);
-    setFormSubmitting(false);
-    showToast(`User "${updatedUserObj.name}" updated successfully!`, 'success');
-
-    // 2. Network PUT in background
     try {
-      await fetch(`/api/users/${editingUser.id}`, {
+      const updatedUserObj = await requestUsersApi<SecurityUser>(`/api/users/${editingUser.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          name: formData.name.trim(),
+          email: formData.email.trim().toLowerCase(),
+          role: formData.role.trim(),
+        }),
       });
-    } catch (err) {
-      console.warn('API PUT offline - changes saved in persistent local store');
+      const updated = users.map((user) => user.id === updatedUserObj.id ? updatedUserObj : user);
+      setUsers(updated);
+      localStorage.setItem('custom_created_security_users', JSON.stringify(updated));
+      localStorage.setItem('activeSecurityUser', JSON.stringify(updatedUserObj));
+      window.dispatchEvent(new Event('security_users_changed'));
+      setEditingUser(null);
+      showToast(`User "${updatedUserObj.name}" updated successfully!`, 'success');
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : 'Unable to update the security user.');
+    } finally {
+      setFormSubmitting(false);
     }
   };
 
   // Quick Status Toggle (Active <-> Suspended)
   const handleToggleStatus = async (user: SecurityUser) => {
     const nextStatus = user.status === 'Active' ? 'Suspended' : 'Active';
-    const updatedUser = { ...user, status: nextStatus as any };
-
-    setUsers((prev) => {
-      const newUsers = prev.map((u) => (u.id === user.id ? updatedUser : u));
-      localStorage.setItem('custom_created_security_users', JSON.stringify(newUsers));
-      return newUsers;
-    });
-
-    window.dispatchEvent(new Event('security_users_changed'));
-    showToast(`User "${user.name}" status changed to ${nextStatus}`, 'info');
-
     try {
-      await fetch(`/api/users/${user.id}`, {
+      const updatedUser = await requestUsersApi<SecurityUser>(`/api/users/${user.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: nextStatus }),
       });
-    } catch (e) {}
+      const newUsers = users.map((item) => item.id === user.id ? updatedUser : item);
+      setUsers(newUsers);
+      localStorage.setItem('custom_created_security_users', JSON.stringify(newUsers));
+      window.dispatchEvent(new Event('security_users_changed'));
+      showToast(`User "${user.name}" status changed to ${nextStatus}`, 'info');
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Unable to update user status.', 'error');
+    }
   };
 
   // Quick MFA Toggle (Enabled <-> Disabled)
   const handleToggleMFA = async (user: SecurityUser) => {
     const nextMfa = user.mfa === 'Disabled' ? 'Enabled' : user.mfa === 'Enabled' ? 'Enforced' : 'Disabled';
-    const updatedUser = { ...user, mfa: nextMfa as any };
-
-    setUsers((prev) => {
-      const newUsers = prev.map((u) => (u.id === user.id ? updatedUser : u));
-      localStorage.setItem('custom_created_security_users', JSON.stringify(newUsers));
-      return newUsers;
-    });
-
-    window.dispatchEvent(new Event('security_users_changed'));
-    showToast(`MFA for "${user.name}" set to ${nextMfa}`, 'info');
-
     try {
-      await fetch(`/api/users/${user.id}`, {
+      const updatedUser = await requestUsersApi<SecurityUser>(`/api/users/${user.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mfa: nextMfa }),
       });
-    } catch (e) {}
+      const newUsers = users.map((item) => item.id === user.id ? updatedUser : item);
+      setUsers(newUsers);
+      localStorage.setItem('custom_created_security_users', JSON.stringify(newUsers));
+      window.dispatchEvent(new Event('security_users_changed'));
+      showToast(`MFA for "${user.name}" set to ${nextMfa}`, 'info');
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Unable to update user MFA.', 'error');
+    }
   };
 
   // Confirm Delete (100% Failproof)
@@ -406,31 +461,27 @@ export const SecurityUsersView: React.FC<SecurityUsersViewProps> = () => {
     const targetId = deletingUser.id;
     const targetName = deletingUser.name;
 
-    setUsers((prev) => {
-      const newUsers = prev.filter((u) => u.id !== targetId);
+    try {
+      await requestUsersApi<{ success: boolean }>(`/api/users/${targetId}`, { method: 'DELETE' });
+      const newUsers = users.filter((user) => user.id !== targetId);
+      setUsers(newUsers);
       localStorage.setItem('custom_created_security_users', JSON.stringify(newUsers));
-      return newUsers;
-    });
-
-    const savedActive = localStorage.getItem('activeSecurityUser');
-    if (savedActive) {
-      try {
-        const parsed = JSON.parse(savedActive);
-        if (parsed.id === targetId) {
+      const savedActive = localStorage.getItem('activeSecurityUser');
+      if (savedActive) {
+        try {
+          if ((JSON.parse(savedActive) as SecurityUser).id === targetId) {
+            localStorage.removeItem('activeSecurityUser');
+          }
+        } catch {
           localStorage.removeItem('activeSecurityUser');
         }
-      } catch (e) {}
+      }
+      window.dispatchEvent(new Event('security_users_changed'));
+      setDeletingUser(null);
+      showToast(`Security Account "${targetName}" removed!`, 'info');
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Unable to delete the security user.', 'error');
     }
-
-    window.dispatchEvent(new Event('security_users_changed'));
-    setDeletingUser(null);
-    showToast(`Security Account "${targetName}" removed!`, 'info');
-
-    try {
-      await fetch(`/api/users/${targetId}`, {
-        method: 'DELETE',
-      });
-    } catch (e) {}
   };
 
   // Filtered Users
@@ -591,11 +642,12 @@ export const SecurityUsersView: React.FC<SecurityUsersViewProps> = () => {
             <div className="flex items-center gap-2 shrink-0 flex-wrap">
               <button
                 onClick={() => setIsChangePassModalOpen(true)}
+                disabled={passcodeManagedByEnvironment}
                 className="px-3 py-2 bg-[#111524] hover:bg-[#1f2335] text-cyan-300 border border-cyan-500/30 text-xs font-bold rounded-lg cursor-pointer transition flex items-center gap-1.5"
-                title="Change Security Passcode"
+                title={passcodeManagedByEnvironment ? 'Passcode is managed by the server environment' : 'Change Security Passcode'}
               >
                 <i className="fa-solid fa-key text-amber-400" />
-                <span>Change Passcode</span>
+                <span>{passcodeManagedByEnvironment ? 'Passcode Managed by Server' : 'Change Passcode'}</span>
               </button>
 
               <button
@@ -615,14 +667,6 @@ export const SecurityUsersView: React.FC<SecurityUsersViewProps> = () => {
               </button>
             </div>
           </div>
-
-          <ProfileView
-            username="securewatch"
-            isUnlocked={true}
-            onOpenLoginModal={() => showToast('Authentication required to unlock hidden content.', 'info')}
-            onOpenLightbox={(post) => showToast(`Previewing post ${post.id}`, 'info')}
-            onOpenStories={(stories) => showToast(`${stories.length} stories ready to open`, 'info')}
-          />
 
           {/* REAL STATS SUMMARY BAR */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -927,7 +971,7 @@ export const SecurityUsersView: React.FC<SecurityUsersViewProps> = () => {
                   <input
                     type="email"
                     required
-                    placeholder="e.g. vikram.sharma@xhunter.io"
+                    placeholder="e.g. vikram.sharma@Securewatch.io"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     className="w-full px-3.5 py-2.5 bg-[#080a10] border border-[#1f2335] text-white rounded-lg outline-none focus:border-[#3b28cc]"

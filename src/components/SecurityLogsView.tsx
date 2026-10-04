@@ -352,7 +352,7 @@ export const SecurityLogsView: React.FC<SecurityLogsViewProps> = ({ onBackToDash
               <i className="fa-solid fa-arrow-left text-[10px]" /> Back
             </button>
             <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <i className="fa-solid fa-shield-halved text-amber-400" /> xHunter SIEM Security Telemetry Logs
+              <i className="fa-solid fa-shield-halved text-amber-400" /> securewatch SIEM Security Telemetry Logs
             </h2>
             <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 font-mono">
               Real Backend Telemetry

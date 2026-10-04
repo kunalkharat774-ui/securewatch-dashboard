@@ -6,10 +6,29 @@ interface KpiCardsProps {
   onSelectView?: (viewId: NavView) => void;
 }
 
+interface ThreatFeedEvent {
+  id: string;
+  pulseName: string;
+  indicator: string;
+  indicatorType: string;
+  created: string;
+  tags: string[];
+  sourceCountry: { name: string; code: string; lat: number; lng: number };
+  targetCountry: { name: string; code: string; lat: number; lng: number };
+}
+
 export const KpiCards: React.FC<KpiCardsProps> = ({ onSelectView }) => {
   const [securityEvents, setSecurityEvents] = useState(0);
-  const [activeThreats, setActiveThreats] = useState(0);
-  const [vulnerabilities, setVulnerabilities] = useState(0);
+  const [activeThreats, setActiveThreats] = useState<number | null>(null);
+  const [threatEvents, setThreatEvents] = useState<ThreatFeedEvent[]>([]);
+  const [threatFeedSource, setThreatFeedSource] = useState('Check Point ThreatMap');
+  const [threatFeedMessage, setThreatFeedMessage] = useState('Loading live attack events...');
+  const [vulnerabilityScanCount, setVulnerabilityScanCount] = useState(0);
+  const [latestScan, setLatestScan] = useState<{
+    target?: string;
+    scannedAt?: string;
+    vulnerabilities?: Array<{ severity?: string; title?: string }>;
+  } | null>(null);
   const [riskScore, setRiskScore] = useState(0);
   const [activeModal, setActiveModal] = useState<'requests' | 'threats' | 'vulns' | 'risk' | null>(null);
 
@@ -17,21 +36,53 @@ export const KpiCards: React.FC<KpiCardsProps> = ({ onSelectView }) => {
   useEffect(() => {
     let cancelled = false;
 
+    const loadThreatFeed = async () => {
+      try {
+        const response = await fetch('/api/threats?limit=100', { cache: 'no-store' });
+        const payload = await response.json() as {
+          source?: string;
+          threats?: ThreatFeedEvent[];
+          degraded?: boolean;
+          error?: string;
+          message?: string;
+        };
+        if (!response.ok || payload.degraded) {
+          throw new Error(payload.error || `Check Point ThreatMap request failed (${response.status})`);
+        }
+        if (!Array.isArray(payload.threats)) {
+          throw new Error('Check Point ThreatMap returned an invalid attack feed.');
+        }
+        if (cancelled) return;
+
+        setThreatEvents(payload.threats);
+        setActiveThreats(payload.threats.length);
+        setThreatFeedSource(payload.source || 'Check Point ThreatMap');
+        setThreatFeedMessage(
+          payload.threats.length > 0
+            ? ''
+            : payload.message || 'No attack events are currently being received.'
+        );
+      } catch (error) {
+        if (cancelled) return;
+        console.error('Active Threats feed unavailable:', error);
+        setActiveThreats(null);
+        setThreatFeedMessage(error instanceof Error ? error.message : 'Check Point ThreatMap feed unavailable.');
+      }
+    };
+
     const loadMetrics = async () => {
       try {
-        const [logsResponse, threatsResponse, riskResponse, urlScansResponse, scannerStateResponse] = await Promise.all([
+        const [logsResponse, riskResponse, urlScansResponse, scannerStateResponse] = await Promise.all([
           fetch('/api/security-logs', { cache: 'no-store' }),
-          fetch('/api/threats?limit=100', { cache: 'no-store' }),
           fetch('/api/risk-items', { cache: 'no-store' }),
           fetch('/api/url-scans', { cache: 'no-store' }),
           fetch('/api/component-state/vulnerability-scanner', { cache: 'no-store' }),
         ]);
-        if (!logsResponse.ok || !threatsResponse.ok || !riskResponse.ok || !urlScansResponse.ok || !scannerStateResponse.ok) {
+        if (!logsResponse.ok || !riskResponse.ok || !urlScansResponse.ok || !scannerStateResponse.ok) {
           throw new Error('Telemetry unavailable');
         }
 
         const logsPayload = await logsResponse.json() as { logs?: Array<{ level?: string; action?: string }> };
-        const threatsPayload = await threatsResponse.json() as { threats?: unknown[] };
         const riskItems = await riskResponse.json() as Array<{
           likelihood?: number;
           impact?: number;
@@ -39,20 +90,21 @@ export const KpiCards: React.FC<KpiCardsProps> = ({ onSelectView }) => {
           controlsImplemented?: boolean;
         }>;
         const urlScans = await urlScansResponse.json() as Array<{ reputationScore?: number }>;
-        const scannerState = await scannerStateResponse.json() as { scanResult?: { vulnerabilitiesCount?: number } } | null;
+        const scannerState = await scannerStateResponse.json() as {
+          scanCount?: number;
+          scanResult?: {
+            target?: string;
+            scannedAt?: string;
+            vulnerabilitiesCount?: number;
+            vulnerabilities?: Array<{ severity?: string; title?: string }>;
+          };
+        } | null;
         if (cancelled) return;
 
         const logs = Array.isArray(logsPayload.logs) ? logsPayload.logs : [];
-        const liveThreats = Array.isArray(threatsPayload.threats) ? threatsPayload.threats.length : 0;
-        const activeLogThreats = logs.filter((log) => {
-          const level = String(log.level || '').toUpperCase();
-          return level === 'CRITICAL' || level === 'ERROR' || level === 'WARN';
-        }).length;
 
         setSecurityEvents(logs.length);
-        setActiveThreats(liveThreats + activeLogThreats);
         const validRiskItems = Array.isArray(riskItems) ? riskItems : [];
-        const unresolvedRisks = validRiskItems.filter((item) => item.controlsImplemented !== true).length;
         const residualTotal = validRiskItems.reduce((total, item) => {
           const inherent = Number(item.likelihood || 0) * Number(item.impact || 0) * (Number(item.assetCriticality || 0) / 3);
           return total + (item.controlsImplemented === true ? inherent * 0.4 : inherent);
@@ -63,30 +115,35 @@ export const KpiCards: React.FC<KpiCardsProps> = ({ onSelectView }) => {
         const latestUrlScore = Array.isArray(urlScans)
           ? Number(urlScans[0]?.reputationScore)
           : NaN;
-        const latestScanCount = Number(scannerState?.scanResult?.vulnerabilitiesCount);
+        const savedScanCount = Number(scannerState?.scanCount);
+        const legacyScanCount = scannerState?.scanResult ? 1 : 0;
 
-        setVulnerabilities(Number.isFinite(latestScanCount) ? Math.max(0, latestScanCount) : unresolvedRisks);
+        setVulnerabilityScanCount(Number.isFinite(savedScanCount)
+          ? Math.max(0, savedScanCount)
+          : legacyScanCount);
+        setLatestScan(scannerState?.scanResult || null);
         setRiskScore(Number.isFinite(latestUrlScore)
           ? Math.min(100, Math.max(0, Math.round(100 - latestUrlScore)))
           : Math.min(100, Math.max(0, calculatedRiskScore)));
       } catch {
         if (cancelled) return;
         setSecurityEvents(0);
-        setActiveThreats(0);
-        setVulnerabilities(0);
         setRiskScore(0);
       }
     };
 
+    void loadThreatFeed();
     void loadMetrics();
-    const interval = window.setInterval(() => void loadMetrics(), 10000);
+    const metricsInterval = window.setInterval(() => void loadMetrics(), 10000);
+    const threatInterval = window.setInterval(() => void loadThreatFeed(), 10000);
     const handleScannerUpdate = () => void loadMetrics();
     window.addEventListener('vulnerability_scan_completed', handleScannerUpdate);
     window.addEventListener('url_reputation_scan_completed', handleScannerUpdate);
 
     return () => {
       cancelled = true;
-      window.clearInterval(interval);
+      window.clearInterval(metricsInterval);
+      window.clearInterval(threatInterval);
       window.removeEventListener('vulnerability_scan_completed', handleScannerUpdate);
       window.removeEventListener('url_reputation_scan_completed', handleScannerUpdate);
     };
@@ -111,7 +168,7 @@ export const KpiCards: React.FC<KpiCardsProps> = ({ onSelectView }) => {
     {
       id: 'threats',
       title: 'Active Threats',
-      value: formatMetric(activeThreats),
+      value: activeThreats === null ? '—' : formatMetric(activeThreats),
       badge: <span className="px-1 py-0.2 rounded text-[9px] bg-red-500/20 text-red-400 font-bold uppercase border border-red-500/30">LIVE</span>,
       subtext: 'Real-time detection',
       subIcon: 'fa-arrow-up',
@@ -123,10 +180,12 @@ export const KpiCards: React.FC<KpiCardsProps> = ({ onSelectView }) => {
     },
     {
       id: 'vulns',
-      title: 'Vulnerabilities',
-      value: formatMetric(vulnerabilities),
+      title: 'Vulnerability Scans',
+      value: formatMetric(vulnerabilityScanCount),
       badge: null,
-      subtext: 'Run a vulnerability scan',
+      subtext: latestScan
+        ? `${latestScan.vulnerabilities?.length ?? 0} findings in latest scan`
+        : 'Completed vulnerability scans',
       subIcon: 'fa-arrow-down',
       subColor: 'text-emerald-400',
       icon: 'fa-bug',
@@ -193,10 +252,12 @@ export const KpiCards: React.FC<KpiCardsProps> = ({ onSelectView }) => {
                   <h3 className="font-bold text-white text-base">
                     {activeModal === 'requests' && 'Live Traffic & Request Telemetry'}
                     {activeModal === 'threats' && 'Active Cyber Threat Stream'}
-                    {activeModal === 'vulns' && 'Vulnerability Assessment Audit'}
+                    {activeModal === 'vulns' && 'Vulnerability Scan Summary'}
                     {activeModal === 'risk' && 'Enterprise Risk Score Factors'}
                   </h3>
-                  <p className="text-xs text-amber-400/80 font-mono">Live Real-time Metrics & Controls</p>
+                  <p className="text-xs text-amber-400/80 font-mono">
+                    {activeModal === 'threats' ? threatFeedSource : 'Live Real-time Metrics & Controls'}
+                  </p>
                 </div>
               </div>
               <button
@@ -245,25 +306,49 @@ export const KpiCards: React.FC<KpiCardsProps> = ({ onSelectView }) => {
             {activeModal === 'threats' && (
               <div className="space-y-3 text-xs">
                 <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-300 flex items-center justify-between">
-                  <span>Critical High-Frequency Probes Detected</span>
-                  <span className="font-mono font-bold text-red-400">{activeThreats} Live Vectors</span>
+                  <span>Check Point ThreatMap attack events</span>
+                  <span className="font-mono font-bold text-red-400">
+                    {activeThreats === null ? 'Unavailable' : `${activeThreats} Events`}
+                  </span>
                 </div>
-                <div className="space-y-2 max-h-48 overflow-y-auto">
-                  <div className="p-2.5 bg-[#040d1a] border border-[#0d2138] rounded-lg flex justify-between items-center">
-                    <div>
-                      <div className="font-bold text-white">SQLi Injection Attack</div>
-                      <div className="text-[10px] text-gray-400 font-mono">Target: /api/v1/auth/login</div>
-                    </div>
-                    <span className="px-2 py-0.5 rounded bg-red-500/20 text-red-400 text-[10px] font-bold border border-red-500/30">Auto Blocked</span>
-                  </div>
-                  <div className="p-2.5 bg-[#040d1a] border border-[#0d2138] rounded-lg flex justify-between items-center">
-                    <div>
-                      <div className="font-bold text-white">SSH Brute Force Flood</div>
-                      <div className="text-[10px] text-gray-400 font-mono">IP: 185.220.101.5</div>
-                    </div>
-                    <span className="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 text-[10px] font-bold border border-cyan-500/30">Blacklisted</span>
-                  </div>
+                <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                  {threatEvents.length > 0 ? threatEvents.map((threat) => (
+                    <article key={threat.id} className="p-2.5 bg-[#040d1a] border border-[#0d2138] rounded-lg">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="font-bold leading-snug text-white">{threat.pulseName}</div>
+                        <span className="shrink-0 px-2 py-0.5 rounded bg-red-500/20 text-red-300 text-[10px] font-bold border border-red-500/30">
+                          {threat.indicatorType}
+                        </span>
+                      </div>
+                      <div className="mt-1.5 flex items-center gap-2 font-mono text-[10px] text-gray-300">
+                        <span>{threat.sourceCountry.name} ({threat.sourceCountry.code})</span>
+                        <i className="fa-solid fa-arrow-right text-cyan-400" />
+                        <span>{threat.targetCountry.name} ({threat.targetCountry.code})</span>
+                      </div>
+                      <div className="mt-1 flex items-center justify-between gap-2 text-[10px] text-gray-500">
+                        <span className="truncate">{threat.tags.join(', ') || 'Threat event'}</span>
+                        <time className="shrink-0">
+                          Received {Number.isNaN(Date.parse(threat.created))
+                            ? threat.created
+                            : new Date(threat.created).toLocaleTimeString()}
+                        </time>
+                      </div>
+                    </article>
+                  )) : (
+                    <p className="rounded-lg border border-[#0d2138] bg-[#040d1a] p-3 text-gray-400">
+                      {threatFeedMessage}
+                    </p>
+                  )}
                 </div>
+                <a
+                  href="https://threatmap.checkpoint.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-cyan-300 hover:text-cyan-200"
+                >
+                  Open Check Point ThreatMap
+                  <i className="fa-solid fa-arrow-up-right-from-square text-[9px]" />
+                </a>
               </div>
             )}
 
@@ -271,18 +356,35 @@ export const KpiCards: React.FC<KpiCardsProps> = ({ onSelectView }) => {
               <div className="space-y-3 text-xs">
                 <div className="grid grid-cols-2 gap-2 text-center p-3 bg-[#040d1a] border border-[#0d2138] rounded-lg">
                   <div>
-                    <span className="text-[10px] text-gray-400 block">Critical CVEs</span>
-                    <span className="text-sm font-bold text-red-400 font-mono">2 Active</span>
+                    <span className="text-[10px] text-gray-400 block">Completed Scans</span>
+                    <span className="text-sm font-bold text-amber-300 font-mono">{formatMetric(vulnerabilityScanCount)}</span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-gray-400 block">Moderate/Low CVEs</span>
-                    <span className="text-sm font-bold text-cyan-400 font-mono">{vulnerabilities - 2} Active</span>
+                    <span className="text-[10px] text-gray-400 block">Latest Scan Findings</span>
+                    <span className="text-sm font-bold text-cyan-400 font-mono">{latestScan?.vulnerabilities?.length ?? 0}</span>
                   </div>
                 </div>
-                <div className="p-3 bg-[#040d1a] border border-[#0d2138] rounded-lg space-y-1 font-mono text-[11px]">
-                  <div className="text-cyan-400 font-bold">CVE-2026-44910: TLS 1.1 Deprecation Notice</div>
-                  <p className="text-gray-400 text-[10px]">Upgrade TLS handshake policy on ingress router.</p>
-                </div>
+                {latestScan ? (
+                  <div className="p-3 bg-[#040d1a] border border-[#0d2138] rounded-lg space-y-1 text-[11px]">
+                    <div className="text-gray-300">Latest target: <span className="text-cyan-300 font-mono">{latestScan.target || 'Unknown'}</span></div>
+                    {latestScan.scannedAt && (
+                      <div className="text-gray-400">Scanned: <span className="font-mono">{new Date(latestScan.scannedAt).toLocaleString()}</span></div>
+                    )}
+                    {(latestScan.vulnerabilities || []).slice(0, 5).map((finding, index) => (
+                      <div key={`${finding.title || 'finding'}-${index}`} className="text-gray-300">
+                        <span className="text-amber-300">{finding.severity || 'Unrated'}</span>
+                        {' '}{finding.title || 'Untitled finding'}
+                      </div>
+                    ))}
+                    {latestScan.vulnerabilities?.length === 0 && (
+                      <div className="text-emerald-300">No findings were reported in the latest scan.</div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-3 bg-[#040d1a] border border-[#0d2138] rounded-lg text-gray-400">
+                    No vulnerability scans have been completed yet.
+                  </div>
+                )}
               </div>
             )}
 
@@ -339,5 +441,3 @@ export const KpiCards: React.FC<KpiCardsProps> = ({ onSelectView }) => {
     </>
   );
 };
-
-

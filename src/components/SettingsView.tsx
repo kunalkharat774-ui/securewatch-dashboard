@@ -28,6 +28,8 @@ export interface SystemSettings {
   // User Mgmt & Access Control
   requireMasterPasscode: boolean;
   masterPasscode: string;
+  masterPasscodeConfigured: boolean;
+  masterPasscodeManagedByEnvironment: boolean;
   enforceMfaNewUsers: boolean;
   sessionTimeoutMinutes: number;
 
@@ -64,6 +66,8 @@ export const DEFAULT_SYSTEM_SETTINGS: SystemSettings = {
 
   requireMasterPasscode: true,
   masterPasscode: '',
+  masterPasscodeConfigured: false,
+  masterPasscodeManagedByEnvironment: false,
   enforceMfaNewUsers: true,
   sessionTimeoutMinutes: 30,
 
@@ -82,10 +86,14 @@ interface SettingsViewProps {
 
 export const SettingsView: React.FC<SettingsViewProps> = ({ onBackToDashboard }) => {
   const [settings, setSettings] = useState<SystemSettings>(() => {
+    localStorage.removeItem('user_mgmt_master_passcode');
     const saved = localStorage.getItem('securewatch_system_settings');
     if (saved) {
       try {
-        return { ...DEFAULT_SYSTEM_SETTINGS, ...JSON.parse(saved) };
+        const settings = { ...DEFAULT_SYSTEM_SETTINGS, ...JSON.parse(saved), masterPasscode: '' };
+        localStorage.setItem('securewatch_system_settings', JSON.stringify(settings));
+        localStorage.removeItem('user_mgmt_master_passcode');
+        return settings;
       } catch (e) {
         console.warn('Failed to parse saved system settings:', e);
       }
@@ -100,13 +108,16 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onBackToDashboard })
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'info' | 'danger' } | null>(null);
   const [webhookTestStatus, setWebhookTestStatus] = useState<string | null>(null);
   const [isTestingWebhook, setIsTestingWebhook] = useState<boolean>(false);
+  const [masterPasscodeDraft, setMasterPasscodeDraft] = useState('');
+  const [currentMasterPasscodeDraft, setCurrentMasterPasscodeDraft] = useState('');
+  const [isSavingMasterPasscode, setIsSavingMasterPasscode] = useState(false);
 
   useEffect(() => {
     fetch('/api/settings', { cache: 'no-store' })
       .then((response) => response.ok ? response.json() : null)
       .then((remoteSettings) => {
         if (!remoteSettings || typeof remoteSettings !== 'object') return;
-        setSettings((current) => ({ ...current, ...remoteSettings }));
+        setSettings((current) => ({ ...current, ...remoteSettings, masterPasscode: '' }));
       })
       .catch(() => undefined);
   }, []);
@@ -115,6 +126,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onBackToDashboard })
   const updateSetting = <K extends keyof SystemSettings>(key: K, value: SystemSettings[K]) => {
     setSettings((prev) => {
       const updated = { ...prev, [key]: value };
+      updated.masterPasscode = '';
       localStorage.setItem('securewatch_system_settings', JSON.stringify(updated));
       window.dispatchEvent(new Event('system_settings_updated'));
       void fetch('/api/settings', {
@@ -125,6 +137,48 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onBackToDashboard })
       return updated;
     });
     showToast(`Setting "${String(key)}" updated to ${String(value)}`, 'info');
+  };
+
+  const saveMasterPasscode = async () => {
+    if (settings.masterPasscodeManagedByEnvironment) {
+      showToast('The User Management passcode is managed by SECUREWATCH_MASTER_PASSCODE.', 'danger');
+      return;
+    }
+    if (masterPasscodeDraft.length < 4) {
+      showToast('Passcode must be at least 4 characters long.', 'danger');
+      return;
+    }
+    if (settings.masterPasscodeConfigured && !currentMasterPasscodeDraft) {
+      showToast('Enter the current User Management passcode before replacing it.', 'danger');
+      return;
+    }
+
+    setIsSavingMasterPasscode(true);
+    try {
+      const response = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          masterPasscode: masterPasscodeDraft,
+          ...(settings.masterPasscodeConfigured ? { currentMasterPasscode: currentMasterPasscodeDraft } : {}),
+        }),
+      });
+      const result = await response.json() as { error?: string };
+      if (!response.ok) throw new Error(result.error || 'Unable to save the User Management passcode.');
+
+      setSettings((current) => {
+        const updated = { ...current, masterPasscode: '', masterPasscodeConfigured: true };
+        localStorage.setItem('securewatch_system_settings', JSON.stringify(updated));
+        return updated;
+      });
+      setMasterPasscodeDraft('');
+      setCurrentMasterPasscodeDraft('');
+      showToast('User Management passcode saved securely.', 'success');
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Unable to save the User Management passcode.', 'danger');
+    } finally {
+      setIsSavingMasterPasscode(false);
+    }
   };
 
   const showToast = (text: string, type: 'success' | 'info' | 'danger' = 'info') => {
@@ -639,18 +693,44 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onBackToDashboard })
             {/* Edit Master Passcode */}
             <div className="p-4 bg-[#111524] border border-[#1f2335] rounded-xl space-y-2">
               <span className="font-bold text-white block">Master Passcode for User Management</span>
-              <p className="text-gray-400 text-[11px]">Passcode used to authorize access to the Security Users view.</p>
+              <p className="text-gray-400 text-[11px]">
+                {settings.masterPasscodeManagedByEnvironment
+                  ? 'The passcode is managed securely by the server environment.'
+                  : settings.masterPasscodeConfigured
+                  ? 'A passcode is configured. Enter a new value to replace it; the saved passcode is never displayed.'
+                  : 'Set a passcode of at least 4 characters to authorize access to the Security Users view.'}
+              </p>
               <div className="flex gap-2">
+                {settings.masterPasscodeConfigured && !settings.masterPasscodeManagedByEnvironment && (
+                  <input
+                    type="password"
+                    autoComplete="current-password"
+                    value={currentMasterPasscodeDraft}
+                    onChange={(e) => setCurrentMasterPasscodeDraft(e.target.value)}
+                    placeholder="Current passcode"
+                    aria-label="Current User Management passcode"
+                    className="flex-1 px-3 py-1.5 bg-[#080a10] border border-[#1f2335] text-amber-300 font-mono text-xs rounded font-bold outline-none focus:border-cyan-500"
+                  />
+                )}
                 <input
-                  type="text"
-                  value={settings.masterPasscode}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    updateSetting('masterPasscode', val);
-                    localStorage.setItem('user_mgmt_master_passcode', val);
-                  }}
+                  type="password"
+                  autoComplete="new-password"
+                  value={masterPasscodeDraft}
+                  onChange={(e) => setMasterPasscodeDraft(e.target.value)}
+                  disabled={settings.masterPasscodeManagedByEnvironment}
+                  placeholder={settings.masterPasscodeManagedByEnvironment ? 'Managed by server environment' : settings.masterPasscodeConfigured ? 'Enter a new passcode' : 'Create a passcode'}
                   className="flex-1 px-3 py-1.5 bg-[#080a10] border border-[#1f2335] text-emerald-400 font-mono text-xs rounded font-bold outline-none focus:border-cyan-500"
                 />
+                <button
+                  type="button"
+                  onClick={() => void saveMasterPasscode()}
+                  disabled={settings.masterPasscodeManagedByEnvironment || isSavingMasterPasscode ||
+                    masterPasscodeDraft.length < 4 ||
+                    (settings.masterPasscodeConfigured && !currentMasterPasscodeDraft)}
+                  className="px-3 py-1.5 rounded bg-cyan-700 hover:bg-cyan-600 disabled:cursor-not-allowed disabled:opacity-50 text-white text-xs font-bold"
+                >
+                  {isSavingMasterPasscode ? 'Saving...' : 'Save'}
+                </button>
               </div>
             </div>
 

@@ -19,6 +19,7 @@ const dashboardModuleViews: NavView[] = [
   'api-monitoring',
   'alerts',
   'vulnerability-scanner',
+  'password-strength',
   'email-breach',
   'text-encrypt',
   'steganography',

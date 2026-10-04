@@ -49,6 +49,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onSelectView, ale
     { id: 'api-monitoring', label: 'API Monitoring', icon: 'fa-network-wired' },
     { id: 'alerts', label: 'Security Alerts', icon: 'fa-bell', badge: { text: `${alertCount}`, type: 'count' } },
     { id: 'vulnerability-scanner', label: 'Vulnerability Scanner', icon: 'fa-bug' },
+    { id: 'password-strength', label: 'Password Strength', icon: 'fa-key' },
     { id: 'email-breach', label: 'Email Breach Checker', icon: 'fa-envelope', badge: { text: 'NEW', type: 'new' } },
     { id: 'text-encrypt', label: 'Text Encryption', icon: 'fa-lock', badge: { text: 'CRYPTO', type: 'new' } },
     { id: 'steganography', label: 'Steganography', icon: 'fa-file-image', badge: { text: 'LSB', type: 'new' } },

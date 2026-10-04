@@ -58,5 +58,3 @@ export const BinaryBackground: React.FC = () => {
     </div>
   );
 };
-
-

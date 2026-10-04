@@ -53,76 +53,8 @@ export const ALL_COUNTRIES: Country[] = [
 ];
 
 const CRITICAL_TAG_REGEX = /ransom|malware|botnet|ddos|exploit/i;
-
-const FALLBACK_THREATS = [
-  {
-    id: 'demo-us-uk',
-    pulseName: 'Ransomware propagation',
-    indicator: 'US -> GB',
-    indicatorType: 'LIVE ATTACK',
-    created: new Date().toISOString(),
-    tags: ['ransomware', 'botnet'],
-    sourceCountry: { name: 'United States', code: 'US', lat: 37.0902, lng: -95.7129 },
-    targetCountry: { name: 'United Kingdom', code: 'GB', lat: 55.3781, lng: -3.4360 },
-  },
-  {
-    id: 'demo-us-cn',
-    pulseName: 'Botnet command channel',
-    indicator: 'US -> CN',
-    indicatorType: 'LIVE ATTACK',
-    created: new Date().toISOString(),
-    tags: ['botnet', 'c2'],
-    sourceCountry: { name: 'United States', code: 'US', lat: 37.0902, lng: -95.7129 },
-    targetCountry: { name: 'China', code: 'CN', lat: 35.8617, lng: 104.1954 },
-  },
-  {
-    id: 'demo-ru-de',
-    pulseName: 'Credential stuffing sweep',
-    indicator: 'RU -> DE',
-    indicatorType: 'LIVE ATTACK',
-    created: new Date().toISOString(),
-    tags: ['credential', 'exploit'],
-    sourceCountry: { name: 'Russia', code: 'RU', lat: 61.5240, lng: 105.3188 },
-    targetCountry: { name: 'Germany', code: 'DE', lat: 51.1657, lng: 10.4515 },
-  },
-  {
-    id: 'demo-in-sa',
-    pulseName: 'API abuse cluster',
-    indicator: 'IN -> SA',
-    indicatorType: 'LIVE ATTACK',
-    created: new Date().toISOString(),
-    tags: ['ddos', 'api-abuse'],
-    sourceCountry: { name: 'India', code: 'IN', lat: 20.5937, lng: 78.9629 },
-    targetCountry: { name: 'Saudi Arabia', code: 'SA', lat: 23.8859, lng: 45.0792 },
-  },
-  {
-    id: 'demo-br-au',
-    pulseName: 'Phishing delivery burst',
-    indicator: 'BR -> AU',
-    indicatorType: 'LIVE ATTACK',
-    created: new Date().toISOString(),
-    tags: ['phishing', 'malware'],
-    sourceCountry: { name: 'Brazil', code: 'BR', lat: -14.2350, lng: -51.9253 },
-    targetCountry: { name: 'Australia', code: 'AU', lat: -25.2744, lng: 133.7751 },
-  },
-  {
-    id: 'demo-jp-kr',
-    pulseName: 'Port scanning wave',
-    indicator: 'JP -> KR',
-    indicatorType: 'LIVE ATTACK',
-    created: new Date().toISOString(),
-    tags: ['scan', 'exploit'],
-    sourceCountry: { name: 'Japan', code: 'JP', lat: 36.2048, lng: 138.2529 },
-    targetCountry: { name: 'South Korea', code: 'KR', lat: 35.9078, lng: 127.7669 },
-  },
-];
-
-const getFallbackThreats = (limit = 8): any[] =>
-  FALLBACK_THREATS.slice(0, limit).map((threat, index) => ({
-    ...threat,
-    id: `${threat.id}-${index}`,
-    created: new Date().toISOString(),
-  }));
+const countryFlagUrl = (code: string, size = '24x18') =>
+  /^[a-z]{2}$/i.test(code) ? `https://flagcdn.com/${size}/${code.toLowerCase()}.png` : null;
 
 interface GlobeMapProps {
   isFullScreen?: boolean;
@@ -131,8 +63,18 @@ interface GlobeMapProps {
 type GlobePoint = Country & {
   pointColor?: string;
   pointRadius?: number;
-  isTelemetry?: boolean;
 };
+
+interface ThreatFeedEvent {
+  id: string;
+  pulseName: string;
+  indicator: string;
+  indicatorType: string;
+  created: string;
+  tags: string[];
+  sourceCountry: Country;
+  targetCountry: Country;
+}
 
 export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -147,8 +89,8 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
   const [attackFilter, setAttackFilter] = useState<'all' | 'inbound' | 'outbound'>('all');
   const [searchCountry, setSearchCountry] = useState<string>('');
 
-  const [threats, setThreats] = useState<any[]>([]);
-  const threatsRef = useRef<any[]>([]);
+  const [threats, setThreats] = useState<ThreatFeedEvent[]>([]);
+  const threatsRef = useRef<ThreatFeedEvent[]>([]);
   const [feedError, setFeedError] = useState<string | null>(null);
   const [webglAvailable, setWebglAvailable] = useState<boolean>(true);
   const lastClickRef = useRef<number>(0);
@@ -194,37 +136,23 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
   }, [threats]);
 
   const globePoints = useMemo<GlobePoint[]>(() => {
-    const points: GlobePoint[] = countryCatalog.map((country) => ({ ...country }));
-
-    threats.forEach((threat, threatIndex) => {
-      const anchors = [threat.sourceCountry, threat.targetCountry].filter(
-        (country: Country | undefined): country is Country => Boolean(country)
-      );
-
-      anchors.forEach((anchor, anchorIndex) => {
-        for (let pointIndex = 0; pointIndex < 10; pointIndex += 1) {
-          const angle = ((pointIndex * 137.5) + threatIndex * 23 + anchorIndex * 47) * (Math.PI / 180);
-          const spread = 0.8 + (pointIndex % 4) * 0.55;
-          points.push({
-            ...anchor,
-            name: `Telemetry ${threatIndex + 1}-${anchorIndex + 1}-${pointIndex + 1}`,
-            code: `TELEMETRY-${threatIndex}-${anchorIndex}-${pointIndex}`,
-            lat: Math.max(-89, Math.min(89, anchor.lat + Math.sin(angle) * spread)),
-            lng: anchor.lng + Math.cos(angle) * spread * 1.8,
-            pointColor: anchorIndex === 0 ? '#67e8f9' : '#5eead4',
-            pointRadius: pointIndex % 3 === 0 ? 0.42 : 0.25,
-            isTelemetry: true,
-          });
-        }
-      });
-    });
-
-    return points;
-  }, [countryCatalog, threats]);
+    return threats.flatMap((threat) => [
+      {
+        ...threat.sourceCountry,
+        pointColor: '#ff453a',
+        pointRadius: 0.42,
+      },
+      {
+        ...threat.targetCountry,
+        pointColor: '#ffd166',
+        pointRadius: 0.42,
+      },
+    ]);
+  }, [threats]);
 
   const globeLabels = useMemo(() => {
     const activeCodes = new Set(
-      threats.flatMap((threat) => [threat.sourceCountry?.code, threat.targetCountry?.code]).filter(Boolean)
+      threats.flatMap((threat) => [threat.sourceCountry.code, threat.targetCountry.code])
     );
     return countryCatalog.filter((country) => activeCodes.has(country.code));
   }, [countryCatalog, threats]);
@@ -235,27 +163,32 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
     let cancelled = false;
     const loadThreats = async () => {
       try {
-        const response = await fetch('/api/threats?limit=12');
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || 'CyberBriefing feed unavailable');
-        const nextThreats = Array.isArray(data.threats) && data.threats.length > 0 ? data.threats : getFallbackThreats(8);
+        const response = await fetch('/api/threats?limit=100', { cache: 'no-store' });
+        const data = await response.json() as {
+          threats?: ThreatFeedEvent[];
+          degraded?: boolean;
+          error?: string;
+        };
+        if (!response.ok || data.degraded) {
+          throw new Error(data.error || 'Check Point ThreatMap feed unavailable');
+        }
+        if (!Array.isArray(data.threats)) {
+          throw new Error('Check Point ThreatMap returned an invalid attack feed.');
+        }
         if (!cancelled) {
-          threatsRef.current = nextThreats;
-          setThreats(nextThreats);
+          threatsRef.current = data.threats;
+          setThreats(data.threats);
           setFeedError(null);
         }
       } catch (error) {
-        console.error('CyberBriefing feed unavailable:', error);
+        console.error('Check Point ThreatMap feed unavailable:', error);
         if (!cancelled) {
-          const fallbackThreats = getFallbackThreats(8);
-          threatsRef.current = fallbackThreats;
-          setThreats(fallbackThreats);
-          setFeedError(null);
+          setFeedError(error instanceof Error ? error.message : 'Check Point ThreatMap feed unavailable');
         }
       }
     };
     loadThreats();
-    const timer = window.setInterval(loadThreats, 15 * 1000);
+    const timer = window.setInterval(loadThreats, 10 * 1000);
     return () => {
       cancelled = true;
       window.clearInterval(timer);
@@ -266,7 +199,7 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
     const matched = threatsRef.current.filter((threat) => {
       const sourceCode = threat.sourceCountry?.code;
       const targetCode = threat.targetCountry?.code;
-      return Boolean(sourceCode && targetCode && (sourceCode === country.code || targetCode === country.code));
+      return sourceCode === country.code || targetCode === country.code;
     });
 
     return matched.map((threat) => {
@@ -276,7 +209,7 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
 
       return {
         id: threat.id,
-        type: `${threat.indicatorType} observed IOC: ${threat.pulseName}`,
+        type: `${threat.indicatorType}: ${threat.pulseName}`,
         direction: (isSource ? 'outbound' : 'inbound') as 'outbound' | 'inbound',
         sourceCountry,
         targetCountry,
@@ -297,7 +230,7 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
       startLng: atk.sourceCountry.lng,
       endLat: atk.targetCountry.lat,
       endLng: atk.targetCountry.lng,
-      color: '#67e8f9',
+      color: '#fb7185',
       highlight: true,
       sourceCountry: atk.sourceCountry,
       targetCountry: atk.targetCountry,
@@ -464,7 +397,7 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
       .pointAltitude(0.025)
       .pointRadius((point: GlobePoint) => point.pointRadius ?? 0.32)
       .onPointClick((point: GlobePoint) => {
-        if (!point.isTelemetry) selectHandlerRef.current(point);
+        selectHandlerRef.current(point);
       })
       .labelsData([])
       .labelText((d: any) => d.name)
@@ -473,6 +406,7 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
       .labelDotRadius(0.2)
       .labelAltitude(0.055)
       .labelResolution(3)
+      .onLabelClick((country: Country) => selectHandlerRef.current(country))
       .onGlobeClick(({ lat, lng }: { lat: number; lng: number }) => {
         const timestamp = Date.now();
         const isDoubleClick = timestamp - lastClickRef.current < 280;
@@ -606,7 +540,10 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
       (threat) =>
         threat.sourceCountry &&
         threat.targetCountry &&
-        threat.sourceCountry.code !== threat.targetCountry.code
+        Number.isFinite(threat.sourceCountry.lat) &&
+        Number.isFinite(threat.sourceCountry.lng) &&
+        Number.isFinite(threat.targetCountry.lat) &&
+        Number.isFinite(threat.targetCountry.lng)
     );
 
     const liveArcs = validThreats.map((threat) => ({
@@ -675,10 +612,10 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
       const telemetryCount = threats.filter((threat) => threat.indicatorType === 'LIVE IDS').length;
       setTickerText(
         liveArcs.length > 0
-          ? `[VERIFIED LIVE ATTACKS] ${liveArcs.length} active source-to-target events | ${telemetryCount} local IDS alerts`
+          ? `[CHECK POINT THREATMAP] ${liveArcs.length} recent attack events | ${telemetryCount} local IDS alerts`
           : telemetryCount > 0
             ? `[LOCAL IDS TELEMETRY] ${telemetryCount} verified alerts | Waiting for source-to-target events`
-            : '[LIVE FEED] No verified cross-country attack events received yet'
+            : '[CHECK POINT THREATMAP] No attack events are currently being received'
       );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -836,9 +773,9 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-mono text-gray-300">
           <span className="flex items-center gap-1.5">
             <span className="h-1.5 w-5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(74,222,128,0.9)]" />
-            LIVE NETWORK CABLE
+            LIVE ATTACK ROUTES
           </span>
-          <span className="text-amber-300">Click a node for attack details</span>
+          <span className="text-amber-300">Click a country or attack node for details</span>
         </div>
       </div>
 
@@ -857,11 +794,9 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
                 : 'bg-[#0d111c]/80 text-gray-300 border-[#1f2335] hover:border-gray-500 hover:text-white'
             }`}
           >
-            <img
-              src={`https://flagcdn.com/24x18/${c.code.toLowerCase()}.png`}
-              alt={c.name}
-              className="w-3.5 h-2.5 rounded-xs object-cover"
-            />
+            {countryFlagUrl(c.code) && (
+              <img src={countryFlagUrl(c.code) || undefined} alt={c.name} className="w-3.5 h-2.5 rounded-xs object-cover" />
+            )}
             <span>{c.name}</span>
           </button>
         ))}
@@ -901,11 +836,9 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
                     }}
                     className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-200 hover:bg-[#1a1e30] hover:text-white rounded transition text-left cursor-pointer"
                   >
-                    <img
-                      src={`https://flagcdn.com/24x18/${c.code.toLowerCase()}.png`}
-                      alt={c.name}
-                      className="w-4 h-3 rounded object-cover"
-                    />
+                    {countryFlagUrl(c.code) && (
+                      <img src={countryFlagUrl(c.code) || undefined} alt={c.name} className="w-4 h-3 rounded object-cover" />
+                    )}
                     <span className="truncate">{c.name}</span>
                     <span className="ml-auto text-[10px] text-gray-500">{c.code}</span>
                   </button>
@@ -924,11 +857,13 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
           {/* Panel Top Header */}
           <div className="flex items-center justify-between border-b border-[#1f2335] pb-3 mb-3">
             <div className="flex items-center gap-3">
-              <img
-                className="w-10 h-7 object-cover rounded-md border border-white/20 shadow-sm"
-                src={`https://flagcdn.com/48x36/${selectedStats.country.code.toLowerCase()}.png`}
-                alt={selectedStats.country.name}
-              />
+              {countryFlagUrl(selectedStats.country.code, '48x36') && (
+                <img
+                  className="w-10 h-7 object-cover rounded-md border border-white/20 shadow-sm"
+                  src={countryFlagUrl(selectedStats.country.code, '48x36') || undefined}
+                  alt={selectedStats.country.name}
+                />
+              )}
               <div>
                 <div className="flex items-center gap-2">
                   <h2 className="text-base sm:text-lg font-bold text-white leading-tight">
@@ -1047,8 +982,8 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
                   <span>Attack origin data</span>
                 </div>
                 <p className="mt-1.5 text-[11px] leading-relaxed text-gray-400">
-                  Origins are based on each event's source-country coordinates. They may identify only a
-                  country or region, not an exact device or street address.
+                  Origins are based on Check Point event coordinates. They may identify only a country or
+                  region, not an exact device or street address. Times shown are when events reached this feed.
                 </p>
               </div>
 
@@ -1195,11 +1130,9 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
 
                       <div className="flex items-center gap-2 text-[11px] text-gray-300 bg-[#0d111c] p-2 rounded-lg border border-[#1f2335]/60 mb-2">
                         <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                          <img
-                            src={`https://flagcdn.com/24x18/${atk.sourceCountry.code.toLowerCase()}.png`}
-                            alt={atk.sourceCountry.name}
-                            className="w-4 h-3 rounded object-cover"
-                          />
+                          {countryFlagUrl(atk.sourceCountry.code) && (
+                            <img src={countryFlagUrl(atk.sourceCountry.code) || undefined} alt={atk.sourceCountry.name} className="w-4 h-3 rounded object-cover" />
+                          )}
                           <span className="truncate">{atk.sourceCountry.name}</span>
                         </div>
 
@@ -1207,11 +1140,9 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
 
                         <div className="flex items-center gap-1.5 min-w-0 flex-1 justify-end">
                           <span className="truncate text-right">{atk.targetCountry.name}</span>
-                          <img
-                            src={`https://flagcdn.com/24x18/${atk.targetCountry.code.toLowerCase()}.png`}
-                            alt={atk.targetCountry.name}
-                            className="w-4 h-3 rounded object-cover"
-                          />
+                          {countryFlagUrl(atk.targetCountry.code) && (
+                            <img src={countryFlagUrl(atk.targetCountry.code) || undefined} alt={atk.targetCountry.name} className="w-4 h-3 rounded object-cover" />
+                          )}
                         </div>
                       </div>
 
@@ -1304,7 +1235,7 @@ export const GlobeMap: React.FC<GlobeMapProps> = ({ isFullScreen = false }) => {
           LIVE FEED
         </div>
         <div className="font-mono text-xs text-blue-400 whitespace-nowrap animate-marquee">
-          {feedError ? 'LIVE FEED TEMPORARILY UNAVAILABLE | Showing verified events already received' : tickerText}
+          {feedError ? `CHECK POINT LIVE FEED UNAVAILABLE | ${feedError}` : tickerText}
         </div>
       </div>
 
